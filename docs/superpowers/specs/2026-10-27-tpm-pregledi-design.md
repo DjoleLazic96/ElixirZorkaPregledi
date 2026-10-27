@@ -1,8 +1,11 @@
 # TPM pregledi — dizajn
 
 **Datum:** 2026-10-27
+
 **Status:** Predloženo — čeka odobrenje vlasnika projekta (Miroslav Zec, direktor održavanja)
+
 **Pokrenuto kao:** „Aplikacija koja zamenjuje papirne obrasce TPM pregleda: dnevne preglede DP1 i DP2 i preglede u planskom zastoju PZ1–PZ4."
+
 **Repo:** `tpm-pregledi`
 
 > Ovaj spec pokriva **celu prvu isporuku** (jedna faza). Sledeća faza je modul za pumpe i trake (§12).
