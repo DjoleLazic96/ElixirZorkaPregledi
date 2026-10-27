@@ -1,0 +1,24 @@
+# =============================================================================
+# Normalizacija završetaka linija (Elixir blueprint 03 §2).
+# Razvija se na Windows-u, produkcija je Linux kontejner. Bez ovoga `deploy.sh`
+# može da stigne sa CRLF i pukne sa "bad interpreter: /usr/bin/env bash^M".
+# Ovaj fajl se commit-uje PRE bilo kog .sh fajla.
+# =============================================================================
+# Sve tekstualno je LF i u repou i u radnom direktorijumu (usklađeno sa .editorconfig).
+* text=auto eol=lf
+
+# Windows skripte — CRLF (cmd.exe se buni na LF)
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binarno — bez konverzije
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.xlsx binary
+*.pdf  binary
+*.pgcustom binary
