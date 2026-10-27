@@ -14,7 +14,7 @@ import { useServerStanje } from './hooks';
 /**
  * Stranica „Stanje servera" (blueprint 10 §2, samo Admin): tri kartice —
  * Aplikacija, Baza, Host — sa vizuelnim pragovima (samo boja, bez alarma).
- * Prvo učitavanje: tpm-pregledion kartice; naredna: `FetchingOverlay`.
+ * Prvo učitavanje: skeleton kartice; naredna: `FetchingOverlay`.
  */
 
 const NEDOSTUPNO = 'nedostupno';
@@ -205,8 +205,8 @@ function HostKartica({ h }: { h: ServerStanje['host'] }) {
   );
 }
 
-/** TpmPregledion kartice za prvo učitavanje (nema podataka „ispod" koje bi FetchingOverlay zatamnio). */
-function TpmPregledionKartice() {
+/** Skeleton kartice za prvo učitavanje (nema podataka „ispod" koje bi FetchingOverlay zatamnio). */
+function SkeletonKartice() {
   return (
     <div role="status" aria-label="Učitavanje…" className="grid gap-4 lg:grid-cols-3">
       {['Aplikacija', 'Baza', 'Host'].map((naslov) => (
@@ -268,7 +268,7 @@ export function StanjeServeraPage() {
         </div>
       )}
 
-      {upit.isPending && <TpmPregledionKartice />}
+      {upit.isPending && <SkeletonKartice />}
 
       {s && (
         <FetchingOverlay fetching={upit.isFetching}>

@@ -166,7 +166,7 @@ try
         {
             doc.Info.Title       = $"{NazivAplikacije} — API";
             doc.Info.Version     = "v1";
-            doc.Info.Description = "Backend tpm-pregledia: autentifikacija, korisnici, audit log, stanje servera i primer šifarnika (kategorije).";
+            doc.Info.Description = "Backend aplikacije TPM pregledi: autentifikacija, korisnici, audit log, stanje servera i primer šifarnika (kategorije).";
             return Task.CompletedTask;
         });
     });

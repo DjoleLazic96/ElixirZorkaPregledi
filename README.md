@@ -3,17 +3,25 @@
 > Interna aplikacija za Elixir. Prati **Elixir blueprint** (standard za sve Elixir aplikacije):
 > https://github.com/casper96kzs/elixir-blueprint . Uputstvo važi za verziju u `VERSION`; istorija u `CHANGELOG.md`.
 
-<!-- POSLE preimenuj.ps1: popuni sekcije „Šta aplikacija radi", „Role" i „Deploy / produkcija". -->
-
 ## Šta aplikacija radi
 
-<!-- 3–6 rečenica običnim jezikom: ko je koristi, koji proces pokriva, šta je rezultat. -->
+Aplikacija zamenjuje papirne obrasce TPM pregleda opreme u fabrici: dnevne preglede DP1 i DP2 i preglede u planskom
+zastoju PZ1–PZ4. Inženjeri pregled popunjavaju na službenom Android telefonu, stavku po stavku, i bez interneta;
+uz neispravan odgovor pišu napomenu, dodaju sliku i otvaraju potrebnu akciju. Supervizor i Direktor raspoređuju
+preglede, overavaju ih ili vraćaju na doradu i prate kvarove, akcije i stanje opreme kroz analitiku. Papirni
+obrazac sa potpisom se ukida. Dizajn: `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md`.
 
 ### Osnovni pojmovi
 
 | Pojam | Značenje |
 |---|---|
-| Kategorija | *(primer šifarnika iz tpm-pregledia — zameniti domenskim pojmovima)* |
+| DP1, DP2 | dnevni pregled; radi se svakog radnog dana, naizmenično |
+| PZ1–PZ4 | pregled u planskom zastoju; fiksni datum, redom |
+| Šablon | obrazac pregleda: sekcije → uređaji → aktivnosti; ima verzije |
+| Aktivnost | stavka koja se pregleda, sa dva odgovora (npr. Okreće / Ne okreće) |
+| Kvar (K-…) | neispravna stavka; otvoren dok sledeći pregled ne kaže „ispravno" |
+| Potrebna akcija (A-…) | šta treba uraditi; ima vrstu, hitnost i rok; zatvara se ručno |
+| Overa | „Overio" → status „Overeno"; radi Supervizor ili Direktor |
 
 ## Ključne funkcije
 
@@ -22,14 +30,20 @@
 - Audit log: ko je, kada, šta i odakle promenio; prijave i odjave; pokretanja aplikacije.
 - Stanje servera: aplikacija, baza, host, poslednji backup — samo Admin.
 - „O aplikaciji": verzija, build, okruženje.
-- Šifarnik **Kategorije** — *primer feature-a razrađen od baze do uputstva; kopiraj ili obriši.*
+- Šifarnik **Kategorije** — *primer iz skeleta; uklanja se kad stigne prvi poslovni feature.*
+- *Planirano (spec):* raspored i kalendar, popunjavanje bez interneta, overa i dorada, akcije i kvarovi, ekran uređaja,
+  analitika, šabloni sa verzijama, obaveštenja (push i mejl), izvoz PDF/Word/Excel.
 
 ## Role
 
 | Rola | Labela u UI | Šta sme |
 |---|---|---|
-| `Admin` | Administrator | sve, uključujući korisnike, audit log, stanje servera, izmene šifarnika |
-| `Korisnik` | Korisnik | čita šifarnike i radi u aplikaciji; ne menja šifarnike ni korisnike |
+| `Inzenjer` | Inženjer | popunjava preglede; vidi sve preglede, kvarove, akcije, uređaje |
+| `Supervizor` | Supervizor | raspored, overa i dorada, odsustva, akcije |
+| `Direktor` | Direktor | sve što i Supervizor, plus objava šablona i neradni dani |
+| `Admin` | Administrator | korisnici i prava, podešavanja, šabloni, neradni dani, audit log, stanje servera |
+
+*Skelet trenutno ima role `Admin` i `Korisnik`; četiri role i prava štikliranjem su predlog u `docs/odluke.md`.*
 
 Detalji: `docs/04-roles-and-permissions.md`.
 
@@ -86,11 +100,11 @@ cd frontend; npm run lint; npm test
 
 | | |
 |---|---|
-| **Vlasnik / kontakt** | <!-- ime i mejl vlasnika projekta --> |
-| **Svrha** | <!-- jedna rečenica --> |
+| **Vlasnik / kontakt** | Miroslav Zec, direktor održavanja (mejl: dopuniti) |
+| **Svrha** | Digitalni TPM pregledi opreme (DP i PZ), overa, kvarovi i potrebne akcije |
 | **URL** | `https://tpm-pregledi.elixirgroup.rs/` (preko VPN-a) |
 | **Host / folder** | Elixir docker host, `/opt/apps/tpm-pregledi/` |
-| **Zavisnosti** | PostgreSQL 16 (u stacku); nema spoljnih servisa |
+| **Zavisnosti** | PostgreSQL 16 (u stacku); Microsoft Graph (mejl); Web Push servisi pregledača |
 | **Health** | `GET /api/v1/health/ready` → `{"status":"ready"}` |
 | **Verzija** | `GET /api/v1/version`; UI → korisnički meni → „O aplikaciji" |
 | **Rollback** | `IMAGE_TAG=<prethodni> docker compose up -d` (+ restore dump-a ako je bilo migracije) |

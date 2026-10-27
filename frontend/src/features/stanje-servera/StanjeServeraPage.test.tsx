@@ -141,7 +141,7 @@ describe('StanjeServeraPage', () => {
     expect(u.refetch).toHaveBeenCalledOnce();
   });
 
-  it('prvo učitavanje prikazuje tpm-pregledion kartice', () => {
+  it('prvo učitavanje prikazuje skeleton kartice', () => {
     useServerStanjeMock.mockReturnValue(upit({ data: undefined, isPending: true, dataUpdatedAt: 0 }));
     render(<StanjeServeraPage />);
     expect(screen.getByRole('status', { name: 'Učitavanje…' })).toBeInTheDocument();

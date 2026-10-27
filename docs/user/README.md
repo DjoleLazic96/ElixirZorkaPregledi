@@ -5,8 +5,11 @@
 
 ## Šta ova aplikacija radi
 
-<!-- POPUNI: 3–5 rečenica običnim jezikom. Npr.: „Aplikacija služi za vođenje evidencije servisa opreme. U njoj unosite servise,
-pratite rokove i izvozite izveštaje. Pristup imaju zaposleni sa ličnim nalogom." -->
+Aplikacija služi za TPM preglede opreme: dnevne (DP1, DP2) i u planskom zastoju (PZ1–PZ4). Inženjer pregled popunjava
+na telefonu, i bez interneta, a podaci se sami pošalju kad se veza vrati. Supervizor i Direktor raspoređuju preglede,
+overavaju ih i prate kvarove, potrebne akcije i stanje opreme. Pristup imaju zaposleni sa ličnim nalogom.
+
+*Uputstvo se dopunjuje tokom razvoja; poglavlja ispod opisuju trenutno stanje skeleta.*
 
 ## Dve vrste korisnika
 
@@ -23,7 +26,7 @@ Nalog Vam otvara administrator. Detalji: [1. Prijava i role](01-prijava-i-role.m
 | Dokument | Za koga | Šta pokriva |
 |---|---|---|
 | [1. Prijava i role](01-prijava-i-role.md) | svi | prijava, odjava, promena lozinke, šta koja rola vidi, „O aplikaciji" |
-| [2. Kategorije](02-kategorije.md) | svi (izmene: administrator) | *primer šifarnika iz tpm-pregledia — zameniti domenskim uputstvom* |
+| [2. Kategorije](02-kategorije.md) | svi (izmene: administrator) | *primer šifarnika iz skeleta — zameniti domenskim uputstvom* |
 | [5. Upravljanje korisnicima](05-upravljanje-korisnicima.md) | administrator | nalozi, role, deaktivacija, reset lozinke |
 | [6. Audit log i stanje servera](06-audit-log-i-stanje-servera.md) | administrator | ko je šta promenio; zdravlje servera |
 | [7. Šta je novo](07-sta-je-novo.md) | svi | izmene po verzijama |

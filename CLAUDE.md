@@ -1,7 +1,7 @@
 # TPM pregledi — uputstvo za AI asistenta
 
 > Ovaj repo prati **Elixir blueprint** (standard za sve Elixir aplikacije):
-> https://github.com/casper96kzs/elixir-blueprint — dokumenti `01–20`, checkliste i `tpm-pregledion/` iz kog je ovaj
+> https://github.com/casper96kzs/elixir-blueprint — dokumenti `01–20`, checkliste i `skeleton/` iz kog je ovaj
 > repo nastao. Blueprint je autoritativan za tehnologiju, arhitekturu, sigurnost, UI, deploy i proces; ovde su samo
 > stvari specifične za ovaj projekat. Ako predlažeš odstupanje — zapiši ga u `docs/odluke.md` kao predlog, ne
 > implementiraj tiho.
@@ -11,7 +11,7 @@
 | Šta | Vrednost |
 |---|---|
 | Naziv | TPM pregledi |
-| Vlasnik | <!-- ime i mejl --> |
+| Vlasnik | Miroslav Zec, direktor održavanja (mejl: dopuniti) |
 | Git root | ovaj folder; grana `main` |
 | Backend | `backend/` — .NET 10, `TpmPregledi.{Domain,Application,Infrastructure,Api}` + `tests/` |
 | Frontend | `frontend/` — React 19 + TS + Vite 8 + Tailwind 4 |
@@ -57,4 +57,14 @@ bash deploy/scripts/export-images.sh                      # build image-a u tar 
 
 ## Projektno specifično
 
-<!-- Domenski pojmovi, posebna pravila, poznate zamke ovog projekta. -->
+- **Dizajn:** `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` — Prilog A su funkcionalna pravila (R1.1…); kad kod i Prilog A ne odgovaraju, pitaj, ne biraj sam.
+- **Odstupanja od blueprinta** (mobilni prikaz/PWA, rad bez interneta, fotografije, push, četiri role + prava, duža sesija,
+  dodatne biblioteke) su u `docs/odluke.md` kao PREDLOG — ne implementirati dok nisu odobrena.
+- **Van repoa** (folder iznad): mockup `2026-10-26 TPM mockup.html` (svi ekrani), `Analiza napomena DP-PZ.xlsx`
+  (list „Predlog polja" i „Ručne ispravke šablona"), `2026-10-20 Aplikacija.docx` (istorija dogovora). Stari prototip
+  `TPM · Pregledi (DP _ PZ).html` se ne koristi.
+- **Pojmovi:** DP1/DP2 (dnevni), PZ1–PZ4 (planski zastoj), šablon → sekcija → uređaj → aktivnost (dva odgovora), kvar `K-`,
+  akcija `A-`, pregled `DP1-2026-0142` (dorada ne menja broj).
+- **Zamke:** sve operacije sa telefona su idempotentne (`opId`); vreme odgovora je sa telefona (proveriti odstupanje sata);
+  započet pregled ostaje na svojoj verziji šablona; pregled se nikad ne briše (poništava se); „nije u funkciji" se ne prenosi.
+- Sledeća faza: modul za pumpe i trake (nije deo DP/PZ).

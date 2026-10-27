@@ -15,7 +15,7 @@
 
 `POST /kategorije` sa praznom šifrom → 400 `{"errors":{"sifra":["Šifra je obavezna."]}}` (ključevi camelCase kao u JSON-u).
 `POST /kategorije` sa šifrom koja već postoji (aktivna) → 422 `{"greske":["Kategorija sa ovom šifrom već postoji."]}`.
-Isto za korisnike: zauzeto korisničko ime → 422. 409 je rezervisan za konkurentnu izmenu (nema ga u tpm-preglediu).
+Isto za korisnike: zauzeto korisničko ime → 422. 409 je rezervisan za konkurentnu izmenu (nema ga u skeletu).
 
 ## Rute
 

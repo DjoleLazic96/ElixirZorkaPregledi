@@ -2,7 +2,7 @@
 
 > **Za koga:** svi (pregled); administrator (izmene). **Cilj:** znate da pronađete, dodate, izmenite i deaktivirate kategoriju.
 >
-> *Ovo je uputstvo za PRIMER šifarnika iz tpm-pregledia. Kad napravite svoj prvi šifarnik, kopirajte ovaj dokument, preimenujte ga i zamenite nazive.*
+> *Ovo je uputstvo za PRIMER šifarnika iz skeleta. Kad napravite svoj prvi šifarnik, kopirajte ovaj dokument, preimenujte ga i zamenite nazive.*
 
 ## Sadržaj
 
