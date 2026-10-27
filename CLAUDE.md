@@ -11,7 +11,7 @@
 | Šta | Vrednost |
 |---|---|
 | Naziv | TPM pregledi |
-| Vlasnik | Miroslav Zec, direktor održavanja (mejl: dopuniti) |
+| Vlasnik | Miroslav Zec, direktor održavanja |
 | Git root | ovaj folder; grana `main` |
 | Backend | `backend/` — .NET 10, `TpmPregledi.{Domain,Application,Infrastructure,Api}` + `tests/` |
 | Frontend | `frontend/` — React 19 + TS + Vite 8 + Tailwind 4 |

@@ -9,7 +9,7 @@
 **Repo:** `tpm-pregledi`
 
 > Ovaj spec pokriva **celu prvu isporuku** (jedna faza). Sledeća faza je modul za pumpe i trake (§12).
-> Funkcionalna pravila su u **Prilogu A** (130 pravila, isti brojevi kao u dokumentu „2026-10-26 Aplikacija – rezime.docx").
+> Funkcionalna pravila su u **Prilogu A** (131 pravilo, isti brojevi kao u dokumentu „2026-10-26 Aplikacija – rezime.docx").
 > Kad se tekst ovog spec-a i Prilog A razlikuju, važi Prilog A, a razlika se ispravlja u spec-u.
 
 ## 1. Cilj i motivacija
@@ -29,7 +29,7 @@ opreme kroz analitiku. Papirni obrazac sa potpisom se ukida.
 | Papirni obrasci | `../dnevni i planski pregledi/` (240 skeniranih PDF-ova, van repoa) | DP1, DP2, PZ1–PZ4 |
 | Analiza papira | `../Analiza napomena DP-PZ.xlsx` | 4305 napomena; list „Predlog polja" = gde se dodaju nova polja (§6, `dodatno_polje`); list „Ručne ispravke šablona" = ispravke pre uvoza |
 | Dogovori | `../2026-10-20 Aplikacija.docx` | sva pitanja i odgovori, hronološki |
-| Rezime | `../2026-10-26 Aplikacija – rezime.docx` | 130 pravila sa sledljivošću; isti sadržaj kao Prilog A |
+| Rezime | `../2026-10-26 Aplikacija – rezime.docx` | 131 pravilo sa sledljivošću; isti sadržaj kao Prilog A |
 | Mockup | `../2026-10-26 TPM mockup.html` | klikabilni prikaz svih ekrana (telefon i laptop, sve 4 role, sa i bez interneta); izmišljeni podaci |
 | Stari prototip | `../TPM · Pregledi (DP _ PZ).html` | **ne koristi se** (zamenjen mockupom) |
 
@@ -299,6 +299,17 @@ Datumi i brojevi samo kroz `lib/datum.ts` i `lib/broj.ts` (blueprint 15). Nove b
 Prijava: „Zapamti me na ovom uređaju", dugme „oko" uz lozinku (prikazano dok se ponovo ne klikne). „Moj nalog" (klik
 na ime; na telefonu ikonica 👤) — promena lozinke.
 
+### 8.1 Osnovna pravila prikaza (važe za sve ekrane)
+
+1. Aplikacija radi na svim širinama ekrana, od telefona (360 px) do velikog monitora (1920 px i više), u Chrome-u i Edge-u.
+2. Ni na jednom ekranu stranica ne sme da se pomera bočno i ništa ne sme da izađe iz okvira ekrana, kartice ili dijaloga — ni sa ni bez interneta, ni za jednu rolu.
+3. Dugačak tekst se prelama u novi red; brojevi (DP1-2026-0142, A-2026-0031, K-2026-0087) se ne lome; oznake (hitnost, status) u tabelama mogu u dva reda; trake sekcija i tabovi prelaze u novi red umesto da beže van ekrana.
+4. Tabele na laptopu od 1366 px staju na ekran bez bočnog pomeranja (naslovi kolona mogu u dva reda); na telefonu su kartice, naziv polja levo, vrednost pored njega.
+5. Poravnanje: polja i dugmad u istom redu su iste visine i poravnati; sadržaj kartica je poravnat po istoj levoj ivici; ekrani su centrirani u radnom delu.
+6. Na telefonu: dugmad najmanje 44 × 44 px; zaglavlje ima samo logo i ikonice (🔍 🔔 👤); obaveštenje „Bez interneta“ je traka ispod zaglavlja, ne u zaglavlju.
+7. Dijalozi nisu širi od ekrana; ako je sadržaj duži, pomera se unutar dijaloga. Grafikoni se šire prema kartici.
+8. Pre isporuke svaki ekran se proverava za svaku rolu na širinama 375, 768, 1366 i 1920 px, sa i bez interneta: automatski test da nema bočnog pomeranja i ničega van okvira, plus ručni pregled.
+
 ## 9. Ponašanje pri greškama
 
 | Situacija | Status | Poruka korisniku |
@@ -332,7 +343,7 @@ Integracioni (Testcontainers): 401/403 po svakoj ruti i pravu; ceo tok popuni �
 uvoz šablona iz `.xlsx`; izvoz PDF/Word/Excel (postoji i nije prazan).
 
 Frontend (Vitest): outbox i ponovno slanje; prikaz polja samo uz neispravan odgovor; guard ruta po pravima;
-„Prebaci sve na" u odsustvu; ekran popunjavanja na 375 px bez horizontalnog skrola.
+„Prebaci sve na" u odsustvu. Test prikaza (Playwright ili Vitest + jsdom gde je moguće, inače ručna check-lista): svaki ekran × svaka rola × 375/768/1366/1920 px × sa/bez interneta — nema bočnog pomeranja stranice i nijedan element ne izlazi iz okvira (§8.1).
 
 **Šta NE testiramo automatski:** stvarni Web Push na telefonu i instalaciju PWA (ručna provera na Android Chrome-u
 po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla kroz Graph (fake u testovima).
@@ -378,7 +389,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 
 ## Prilog A — Funkcionalna pravila
 
-> 130 pravila, isti brojevi kao u „2026-10-26 Aplikacija – rezime.docx". Oznaka u zagradi je izvor: **Z** = Izvorni zahtev (dokument od 20.10.); **K** = Odgovor klijenta; **P** = Analiza 240 papirnih obrazaca; **O** = Odluka iz razgovora 26.10..
+> 131 pravila, isti brojevi kao u „2026-10-26 Aplikacija – rezime.docx". Oznaka u zagradi je izvor: **Z** = Izvorni zahtev (dokument od 20.10.); **K** = Odgovor klijenta; **P** = Analiza 240 papirnih obrazaca; **O** = Odluka iz razgovora 26.10..
 
 ### A.1 Svrha, korisnici i prava
 
@@ -542,6 +553,15 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R10.6** Aplikacija se instalira na početni ekran telefona kroz Chrome (Android), čime rade push obaveštenja i ne gube se neposlati podaci. *[K]*
 - **R10.7** Prva prijava je sa internetom; posle toga inženjer ostaje prijavljen i radi bez interneta. *[Z]*
 - **R10.8** Aplikacija je responzivna za telefon, tablet, laptop i veliki monitor: na telefonu donji meni, kartice umesto tabela, jedan uređaj u fokusu i velika dugmad; na većim ekranima bočni meni i pune tabele. *[Z]*
+- **R10.9** Osnovna pravila prikaza (važe za sve ekrane): *[O]*
+  - Aplikacija radi na svim širinama ekrana, od telefona (360 px) do velikog monitora (1920 px i više), u Chrome-u i Edge-u.
+  - Ni na jednom ekranu stranica ne sme da se pomera bočno i ništa ne sme da izađe iz okvira ekrana, kartice ili dijaloga — ni sa ni bez interneta, ni za jednu rolu.
+  - Dugačak tekst se prelama u novi red; brojevi (DP1-2026-0142, A-2026-0031, K-2026-0087) se ne lome; oznake (hitnost, status) u tabelama mogu u dva reda; trake sekcija i tabovi prelaze u novi red umesto da beže van ekrana.
+  - Tabele na laptopu od 1366 px staju na ekran bez bočnog pomeranja (naslovi kolona mogu u dva reda); na telefonu su kartice, naziv polja levo, vrednost pored njega.
+  - Poravnanje: polja i dugmad u istom redu su iste visine i poravnati; sadržaj kartica je poravnat po istoj levoj ivici; ekrani su centrirani u radnom delu.
+  - Na telefonu: dugmad najmanje 44 × 44 px; zaglavlje ima samo logo i ikonice (🔍 🔔 👤); obaveštenje „Bez interneta“ je traka ispod zaglavlja, ne u zaglavlju.
+  - Dijalozi nisu širi od ekrana; ako je sadržaj duži, pomera se unutar dijaloga. Grafikoni se šire prema kartici.
+  - Pre isporuke svaki ekran se proverava za svaku rolu na širinama 375, 768, 1366 i 1920 px, sa i bez interneta: automatski test da nema bočnog pomeranja i ničega van okvira, plus ručni pregled.
 
 ### A.11 Izvoz, štampa i čuvanje
 

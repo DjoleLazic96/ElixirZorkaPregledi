@@ -100,7 +100,7 @@ cd frontend; npm run lint; npm test
 
 | | |
 |---|---|
-| **Vlasnik / kontakt** | Miroslav Zec, direktor održavanja (mejl: dopuniti) |
+| **Vlasnik / kontakt** | Miroslav Zec, direktor održavanja |
 | **Svrha** | Digitalni TPM pregledi opreme (DP i PZ), overa, kvarovi i potrebne akcije |
 | **URL** | `https://tpm-pregledi.elixirgroup.rs/` (preko VPN-a) |
 | **Host / folder** | Elixir docker host, `/opt/apps/tpm-pregledi/` |
