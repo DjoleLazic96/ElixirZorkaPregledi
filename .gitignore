@@ -1,0 +1,56 @@
+# --- .NET ---
+bin/
+obj/
+*.user
+TestResults/
+artifacts/
+
+# --- Node / frontend ---
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+*.local
+.eslintcache
+
+# --- Env / tajne (SAMO .env.example ide u git) ---
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+appsettings.*.local.json
+*.pfx
+*.p12
+secrets.json
+
+# --- Lokalni dev Postgres klaster ---
+.local-pg-data/
+.local-pg-data-server.log
+
+# --- Docker image export za dopremu na host (deploy/scripts/export-images.sh) ---
+*-images-*.tar
+*-server-bundle.tar.gz
+
+# --- Produkcioni runtime podaci (jedini bind mount; nastaju NA SERVERU) ---
+data/
+
+# --- Serilog i Data Protection lokalno (dotnet run) ---
+backend/src/*/logs/
+backend/src/*/data-protection-keys/
+backend/src/*/backups/
+
+# --- Pomoćni logovi AI sesija ---
+**/_run.log
+**/_run.err.log
+**/_dev.log
+
+# --- IDE / OS ---
+.vs/
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+.DS_Store
+Thumbs.db
+.claude/worktrees/

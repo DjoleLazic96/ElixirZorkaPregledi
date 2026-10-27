@@ -1,0 +1,119 @@
+# =============================================================================
+# tpm-pregledi (TPM pregledi) — produkcioni docker compose stack (Elixir blueprint 17).
+# =============================================================================
+# Host: Elixir docker host, folder /opt/apps/tpm-pregledi/. Pravila IT-a:
+#   - compose u KORENU app foldera, .env van gita (template .env.example),
+#   - `data/` JEDINI bind mount,
+#   - bez `ports:` — ulaz je Traefik (proxy-net + labele),
+#   - restart politika na svakom servisu, image bez `latest`.
+#
+# Doprema image-a: deploy/scripts/export-images.sh (dev mašina) → .tar → SFTP
+# kroz Jump → deploy/scripts/deploy.sh <tar> (docker load + up -d). `build:`
+# sekcije služe samo lokalnom build-u — na hostu se nikad ne poziva `compose build`.
+#
+# IMAGE_TAG (<verzija>-<sha>) upisuje deploy.sh u .env posle uspešnog deploy-a,
+# pa `docker compose ps|logs|exec` rade bez eksplicitne vrednosti.
+# Rollback: IMAGE_TAG=<stari> docker compose up -d
+#
+#   [Traefik] :443 ── Host(`${APP_DOMAIN}`) ──► frontend (nginx :8080) ──► backend (:8080) ──► db (:5432)
+#              proxy-net (deljena)              │ tpm-pregledi-internal (privatna) ────────────────┘
+# =============================================================================
+
+name: tpm-pregledi
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }
+
+services:
+  db:
+    # Minor pinovan; podiže se svesno (proveri tekući 16.x pri svakom release-u).
+    image: postgres:16.15-alpine
+    restart: unless-stopped
+    networks: [tpm-pregledi-internal]
+    logging: *logging
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:?POSTGRES_DB je obavezan}
+      POSTGRES_USER:     ${POSTGRES_USER:?POSTGRES_USER je obavezan}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD je obavezan}
+      TZ:   Europe/Belgrade
+      PGTZ: Europe/Belgrade
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?} -d ${POSTGRES_DB:?}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    # NAMERNO bez `:-latest` fallback-a — eksplicitno verzionisanje je pravilo produkcije.
+    image: tpm-pregledi/backend:${IMAGE_TAG:?IMAGE_TAG je obavezan (verzija-sha; postavlja ga deploy.sh)}
+    restart: unless-stopped
+    logging: *logging
+    networks:
+      tpm-pregledi-internal:
+        # Prefiksiran alias je OBAVEZAN: frontend je i na deljenoj proxy-net mreži gde
+        # ime `backend` može da pripada tuđem kontejneru (viđeno: 502 na prvom deploy-u).
+        aliases: [tpm-pregledi-backend]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS:        http://+:8080
+      TZ:                     Europe/Belgrade
+      ConnectionStrings__Default: >-
+        Host=db;Port=5432;
+        Database=${POSTGRES_DB:?};
+        Username=${POSTGRES_USER:?};
+        Password=${POSTGRES_PASSWORD:?};
+        Include Error Detail=false;
+        Pooling=true;Maximum Pool Size=50
+      Jwt__Secret:             ${JWT_SECRET:?JWT_SECRET je obavezan}
+      Jwt__Issuer:             tpm-pregledi
+      Jwt__Audience:           tpm-pregledi-clients
+      Jwt__AccessTokenMinutes: 15
+      Jwt__RefreshTokenDays:   7
+      Cors__Origins__0:        https://${APP_DOMAIN:?APP_DOMAIN je obavezan}
+      # localhost/127.0.0.1 MORAJU biti dozvoljeni — healthcheck i smoke test kucaju na njih.
+      AllowedHosts:            "${APP_DOMAIN:?};localhost;127.0.0.1"
+      DataProtection__KeysPath: /app/data-protection-keys
+      Backup__Path:            /app/backups
+      Admin__InitialUsername:  ${ADMIN_INITIAL_USERNAME:?ADMIN_INITIAL_USERNAME je obavezan}
+      Admin__InitialEmail:     ${ADMIN_INITIAL_EMAIL:?ADMIN_INITIAL_EMAIL je obavezan}
+      Admin__InitialPassword:  ${ADMIN_INITIAL_PASSWORD:?ADMIN_INITIAL_PASSWORD je obavezan}
+    volumes:
+      - ./data/logs/api:/app/logs
+      - ./data/data-protection-keys:/app/data-protection-keys
+      - ./data/backups:/app/backups:ro      # samo da „Stanje servera" vidi poslednji backup
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: tpm-pregledi/frontend:${IMAGE_TAG:?IMAGE_TAG je obavezan (verzija-sha; postavlja ga deploy.sh)}
+    restart: unless-stopped
+    logging: *logging
+    networks: [proxy-net, tpm-pregledi-internal]
+    depends_on:
+      backend:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tpm-pregledi.rule=Host(`${APP_DOMAIN:?}`)"
+      - "traefik.http.routers.tpm-pregledi.entrypoints=websecure"
+      - "traefik.http.routers.tpm-pregledi.tls=true"
+      - "traefik.http.services.tpm-pregledi.loadbalancer.server.port=8080"
+      - "traefik.docker.network=proxy-net"   # kontejner je u dve mreže — bez ovoga Traefik bira pogrešnu
+    # Healthcheck je u Dockerfile-u (kao i za backend); compose ga ne duplira.
+
+networks:
+  proxy-net:
+    external: true          # Traefik-ova mreža, postoji nezavisno od ove app
+  tpm-pregledi-internal:
+    driver: bridge

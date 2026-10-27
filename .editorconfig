@@ -1,0 +1,27 @@
+# =============================================================================
+# TPM pregledi — EditorConfig (Elixir blueprint).
+# Konzistentan stil između .NET i React strane. Prettier se NE koristi.
+# =============================================================================
+root = true
+
+[*]
+charset                  = utf-8
+end_of_line              = lf
+insert_final_newline     = true
+trim_trailing_whitespace = true
+indent_style             = space
+indent_size              = 2
+
+[*.{cs,csx}]
+indent_size              = 4
+# Javni API mora imati XML sažetak (GenerateDocumentationFile je uključen u Directory.Build.props).
+dotnet_diagnostic.CS1591.severity = warning
+
+[*.{csproj,props,targets,json,yml,yaml,slnx}]
+indent_size              = 2
+
+[*.{cmd,bat,ps1}]
+end_of_line              = crlf
+
+[*.md]
+trim_trailing_whitespace = false

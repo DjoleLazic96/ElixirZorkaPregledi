@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- TargetFramework, Nullable, GenerateDocumentationFile, verzija: Directory.Build.props.
+       Verzije paketa: Directory.Packages.props. -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\TpmPregledi.Domain\TpmPregledi.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="MediatR" />
+    <!-- UserManager/RoleManager za handlere korisnika — bez ASP.NET runtime zavisnosti. -->
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <!-- Unit testovi vide internal tipove (pomoćne klase feature-a). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="TpmPregledi.Application.UnitTests" />
+  </ItemGroup>
+
+</Project>

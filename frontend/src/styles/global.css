@@ -1,0 +1,97 @@
+@import 'tailwindcss';
+
+/*
+ * Globalni stilovi i dizajn tokeni (Elixir blueprint 14 §2).
+ *
+ * Jedina brend boja je `primary` (Elixir zelena), puna skala 50–950. Semantika:
+ *   primary = akcija / aktivno / uspeh
+ *   amber   = upozorenje / izmena
+ *   red     = greška / brisanje
+ *   gray    = neutralno
+ * Stranice ne uvode green/emerald/yellow/blue klase direktno — koriste tokene i `Badge tone`.
+ *
+ * Font je sistemski (bez Inter-a): CSP `font-src 'self'` blokira CDN, a brend font
+ * bi morao da se self-hostuje u `public/fonts/` + `@font-face`.
+ */
+@theme {
+  --color-primary-50: #ecfdf5;
+  --color-primary-100: #d1fae5;
+  --color-primary-200: #a7f3d0;
+  --color-primary-300: #6fd7a8;
+  --color-primary-400: #3fa872;
+  --color-primary-500: #1a6b3c;
+  --color-primary-600: #155a31;
+  --color-primary-700: #0e4824;
+  --color-primary-800: #0a3519;
+  --color-primary-900: #062410;
+  --color-primary-950: #03140a;
+
+  --color-amber-500: #b45309;
+  --color-red-500: #c0392b;
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/*
+ * Stabilan scrollbar — rezerviše prostor i kad nije vidljiv, pa pojava/nestajanje
+ * scrollbara (promena stranice tabele, otvaranje modala) ne pomera sadržaj vodoravno.
+ */
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  @apply bg-gray-50 text-gray-800 text-sm antialiased;
+}
+
+/*
+ * Slide-in animacija za toast obaveštenja (donji desni ugao).
+ * Koristi je <Toast /> preko klase `animate-toast-in`.
+ */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 180ms ease-out;
+}
+
+/*
+ * Kratak fade-in sadržaja rute (Outlet u AppLayout-u) — prelaz stranica „prelije"
+ * umesto tvrde zamene. Samo opacity, bez pomeranja, ~160 ms.
+ */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 160ms ease-out;
+}
+
+/*
+ * Korisnici sa `prefers-reduced-motion` dobijaju trenutan prikaz bez animacija.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-toast-in {
+    animation: none;
+  }
+}

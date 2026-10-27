@@ -1,0 +1,12 @@
+# Build kontekst za frontend Dockerfile. node_modules se instalira u image-u (npm ci).
+node_modules/
+dist/
+.vite/
+coverage/
+.eslintcache
+_dev.log
+.env
+.env.*
+.git
+.gitignore
+.gitattributes

@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- TargetFramework, Nullable, GenerateDocumentationFile, verzija: Directory.Build.props.
+       Verzije paketa: Directory.Packages.props. -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\TpmPregledi.Application\TpmPregledi.Application.csproj" />
+    <ProjectReference Include="..\TpmPregledi.Domain\TpmPregledi.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Deljeni ASP.NET framework: IHttpContextAccessor (CurrentUserService) i Data Protection
+         (AddDataProtection/PersistKeysToFileSystem) nisu NuGet paketi već deo Microsoft.AspNetCore.App. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EFCore.NamingConventions" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- PerformanceCounter: WindowsHardwareInfo čita sistemski CPU % (stanje servera). Paket radi
+         samo na Windows-u; na Linuxu se ne poziva (LinuxHardwareInfo čita /proc). -->
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+  </ItemGroup>
+
+  <!-- Testovi vide internal tipove (IHardwareInfo, ServerStanjeService, DesignTime factory). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="TpmPregledi.Application.UnitTests" />
+    <InternalsVisibleTo Include="TpmPregledi.Api.IntegrationTests" />
+  </ItemGroup>
+
+</Project>

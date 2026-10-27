@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- TargetFramework, Nullable, GenerateDocumentationFile, verzija: Directory.Build.props.
+       Verzije paketa: Directory.Packages.props. -->
+
+  <ItemGroup>
+    <!-- IdentityUser<TKey>/IdentityRole<TKey> bez EF Core i ASP.NET zavisnosti. -->
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" />
+  </ItemGroup>
+
+</Project>

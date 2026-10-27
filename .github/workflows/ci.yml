@@ -1,0 +1,52 @@
+# =============================================================================
+# CI — samo build + test + lint (Elixir blueprint 16 §6). NEMA deploy-a, NEMA tajni.
+# =============================================================================
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (.NET 10)
+    runs-on: ubuntu-latest        # ima Docker → Testcontainers radi
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore backend/TpmPregledi.slnx
+      - name: Build
+        run: dotnet build backend/TpmPregledi.slnx --configuration Release --no-restore
+      - name: Test (unit + integracioni)
+        run: dotnet test backend/TpmPregledi.slnx --configuration Release --no-build --logger "trx" --results-directory TestResults
+      - name: Ranjivi paketi (High/Critical blokiraju)
+        run: |
+          dotnet list backend/TpmPregledi.slnx package --vulnerable --include-transitive | tee vuln.txt
+          if grep -Eq 'High|Critical' vuln.txt; then echo "Ranjivi paketi — vidi iznad"; exit 1; fi
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with: { name: backend-test-results, path: TestResults }
+
+  frontend:
+    name: Frontend (React)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults: { run: { working-directory: frontend } }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - name: npm audit (High/Critical blokiraju)
+        run: npm audit --audit-level=high

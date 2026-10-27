@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- TargetFramework, Nullable, GenerateDocumentationFile, verzija: Directory.Build.props.
+       Verzije paketa: Directory.Packages.props. -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <!-- Design paket na startup projektu je uslov da `dotnet ef` radi kada je Api zadat kao startup projekat. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <!--
+      Microsoft.OpenApi: dovučen tranzitivno preko Microsoft.AspNetCore.OpenApi, koji povlači
+      ranjivu 2.0.0 (GHSA-v5pm-xwqc-g5wc). 2.8.0 je najniža verzija koja zatvara advisory.
+      NE dizati na 3.x — tamo je IOpenApiMediaType.Example read-only, pa ASP.NET-ov XML
+      comment source generator prestaje da se kompajlira (CS0200).
+    -->
+    <PackageReference Include="Microsoft.OpenApi" />
+    <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="Serilog.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TpmPregledi.Application\TpmPregledi.Application.csproj" />
+    <ProjectReference Include="..\TpmPregledi.Infrastructure\TpmPregledi.Infrastructure.csproj" />
+    <ProjectReference Include="..\TpmPregledi.Domain\TpmPregledi.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

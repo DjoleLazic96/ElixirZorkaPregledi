@@ -1,0 +1,37 @@
+<Project>
+  <!--
+    Zajednička podešavanja za sve .NET projekte u backend/ (Elixir blueprint 02, 11).
+    Verzije paketa su u Directory.Packages.props.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <!-- XML doc fajl → CS1591 upozorava na javne članove bez <summary> (vidi .editorconfig). -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
+    <!--
+      VERZIJA — jedini izvor je VERSION u korenu repoa.
+      Lokalno: čita se iz fajla. Docker build (kontekst je backend/) fajl nema, pa
+      export-images.sh prosleđuje -p:Version=<verzija> -p:SourceRevisionId=<sha> -p:BuildUtc=<iso>.
+      SDK sam dodaje SourceRevisionId kao "+sha" u InformationalVersion → "1.4.0+ab12cd3".
+    -->
+    <_VersionFile>$(MSBuildThisFileDirectory)../VERSION</_VersionFile>
+    <Version Condition="'$(Version)' == '' And Exists('$(_VersionFile)')">$([System.IO.File]::ReadAllText('$(_VersionFile)').Trim())</Version>
+    <Version Condition="'$(Version)' == ''">0.0.0-dev</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Datum build-a, čita ga IAppVersion za /api/v1/version. -->
+    <AssemblyMetadata Include="BuildUtc" Value="$(BuildUtc)" Condition="'$(BuildUtc)' != ''" />
+  </ItemGroup>
+
+  <!-- Test projekti: bez doc fajla i bez pakovanja. -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TpmPregledi.Api/TpmPregledi.Api.csproj" />
+    <Project Path="src/TpmPregledi.Application/TpmPregledi.Application.csproj" />
+    <Project Path="src/TpmPregledi.Domain/TpmPregledi.Domain.csproj" />
+    <Project Path="src/TpmPregledi.Infrastructure/TpmPregledi.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TpmPregledi.Api.IntegrationTests/TpmPregledi.Api.IntegrationTests.csproj" />
+    <Project Path="tests/TpmPregledi.Application.UnitTests/TpmPregledi.Application.UnitTests.csproj" />
+  </Folder>
+</Solution>

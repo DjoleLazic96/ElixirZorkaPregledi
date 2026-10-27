@@ -1,0 +1,23 @@
+# Build kontekst za backend Dockerfile — samo props + csproj + src.
+# (Pri build-u iz `git archive` ovo je uglavnom bez efekta — ulazi samo commit-ovano.)
+bin/
+obj/
+**/bin/
+**/obj/
+**/TestResults/
+**/logs/
+**/data-protection-keys/
+**/backups/
+**/_run.log
+**/_run.err.log
+tests/
+*.user
+.vs/
+**/appsettings.*.local.json
+**/appsettings.Local.json
+**/secrets.json
+.env
+.env.*
+.git
+.gitignore
+.gitattributes
