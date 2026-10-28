@@ -29,7 +29,7 @@
 ### Faza 03 — druga faza: Pumpe, Trake, Plansko stajanje
 - [~] Pumpe — opis i mockup gotovi (`../Druga faza/2026-10-28 Pumpe – druga faza.docx`), čekaju odgovore klijenta
 - [~] Plansko stajanje — opis i mockup gotovi (`../Druga faza/2026-10-28 Plansko stajanje – druga faza.docx`), čekaju odgovore klijenta
-- [ ] Trake — još nisu opisane
+- [~] Trake — opis i mockup gotovi (`../Druga faza/2026-10-28 Trake – druga faza.docx`), čekaju odgovore klijenta
 
 ### Zahtevi klijenta
 - [ ] 2026-10-27 — Miroslav Zec / naručilac — dorada analitike posle prvih meseci rada
