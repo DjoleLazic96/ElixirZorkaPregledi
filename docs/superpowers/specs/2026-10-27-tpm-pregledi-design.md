@@ -293,6 +293,8 @@ Klik na logo vodi na Početnu; svaki ekran detalja ima „Nazad" na ekran sa kog
 | `/moja-odsustva` | zahtevi i odsustva inženjera | Inženjer |
 | `/neradni-dani`, `/korisnici`, `/podesavanja` | administracija | Admin (neradni dani i Direktor) |
 
+Pretraga (u zaglavlju i u svakoj tabeli) žuto obeležava pronađeni deo teksta u rezultatima.
+
 Stanja po ekranu (učitavanje / prazno / greška / podaci) po skeletu (`FetchingOverlay`, skeleton kartice).
 Datumi i brojevi samo kroz `lib/datum.ts` i `lib/broj.ts` (blueprint 15). Nove biblioteke (zapisano u `docs/odluke.md`):
 `vite-plugin-pwa` (service worker), `dexie` (IndexedDB), `qrcode` (QR nalepnice). Grafikoni: `recharts` (u blueprintu).
@@ -531,7 +533,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R8.11** „Moje aktivnosti“ kod inženjera: današnji pregled, započeti a nezavršeni, planirani u narednih 7 dana (uz „Zatraži prebacivanje“), zahtevi na čekanju i akcije na uređajima iz njegovih pregleda. Kasniji pregledi su u Kalendaru. *[O]*
 - **R8.12** Supervizor i Direktor na Dashboardu imaju karticu „Čeka moju odluku“: overa, zahtevi za doradu, prebacivanje i odsustvo, a za Direktora i predlozi izmena šablona. Klik vodi na mesto odluke; ukupan broj stoji i na zvoncu. *[O]*
 - **R8.13** Sve tabele imaju sortiranje po kolonama, filtere (datum od–do, tip pregleda, sekcija, uređaj, inženjer, status, hitnost…) i pretragu. Izvoz uzima filtrirano; filteri se pamte po korisniku, uz „Poništi filtere“. Na telefonu je dugme „Filteri“. *[O]*
-- **R8.14** U zaglavlju je pretraga: broj pregleda, akcije ili kvara, ili deo naziva uređaja; klik na rezultat otvara taj ekran. *[O]*
+- **R8.14** U zaglavlju je pretraga: broj pregleda, akcije ili kvara, ili deo naziva uređaja; klik na rezultat otvara taj ekran. Pronađeni deo teksta se žuto obeležava (npr. „S12“ u S12, IS12, AS12). *[O]*
 - **R8.15** Svaki kvar ima broj (npr. K-2026-0087) i pamti iz kog pregleda je prijavljen. *[O]*
 - **R8.16** Ekran „Neispravnosti“ ima kolonu „Pregled“; klik na broj pregleda otvara pregled, klik na uređaj otvara uređaj, a klik na red otvara ekran kvara (podaci, akcije na toj stavci, istorija kvara, „Nazad“). *[O]*
 
