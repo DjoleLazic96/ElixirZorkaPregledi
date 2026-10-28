@@ -141,7 +141,7 @@ Svi poslovi su idempotentni (pamte šta su već poslali) i rade po `Europe/Belgr
 
 Posle predaje server pravi **ceo izveštaj u PDF-u** i **rezime problematičnih stavki** (sa linkovima na slike).
 Pojedinačan pregled se izvozi u PDF i Word; liste u Excel (izvozi se ono što je filtrirano). PDF: `QuestPDF`
-(u blueprintu — **proveriti licencu**, vidi §12); Word: `DocumentFormat.OpenXml`; Excel: `ClosedXML`.
+(u blueprintu); Word: `DocumentFormat.OpenXml`; Excel: `ClosedXML`.
 
 ## 6. Šema baze
 
@@ -379,8 +379,6 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 **Odloženo (otvoreno pre isporuke):**
 - Sređivanje šablona i uvoz ažurne verzije (ručne ispravke iz Excela).
 - IT: domen i HTTPS, server, nalog za Microsoft Graph (mejl), prostor i bekap za slike (procena ~5 GB godišnje).
-- Licenca za `QuestPDF` (Community licenca važi za firme sa prihodom ispod 1 M USD) — ili kupovina, ili druga biblioteka;
-  odlučuju vlasnik projekta i vlasnik blueprinta.
 
 ## 13. Reference
 

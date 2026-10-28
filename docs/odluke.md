@@ -9,13 +9,13 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
-## 2026-10-27 — PREDLOG: licenca za PDF biblioteku
+## 2026-10-28 — PDF izveštaji: QuestPDF
 
-**Kontekst:** blueprint 02 dozvoljava `QuestPDF` uz Community licencu; ona važi za firme sa godišnjim prihodom ispod 1 M USD, a Elixir je iznad.
-**Odluka:** pre implementacije izveštaja odlučiti: komercijalna licenca `QuestPDF` ili PDF iz Word dokumenta (`DocumentFormat.OpenXml`) konverzijom na serveru.
-**Posledice:** do odluke se pravi samo Word izvoz; PDF izveštaj čeka.
-**Alternative odbijene:** —
-**Odlučio:** otvoreno (vlasnik projekta + vlasnik blueprinta).
+**Kontekst:** izveštaj pregleda i liste se izvoze u PDF.
+**Odluka:** PDF se pravi bibliotekom `QuestPDF`, kako predviđa blueprint 02; ne traži se komercijalna licenca.
+**Posledice:** nema odstupanja od blueprinta; image dobija `fontconfig` + DejaVu (blueprint 02).
+**Alternative odbijene:** PDF konverzijom iz Word-a — složenije, a nije potrebno.
+**Odlučio:** naručilac, 2026-10-28.
 
 ## 2026-10-27 — PREDLOG: dodatne biblioteke
 

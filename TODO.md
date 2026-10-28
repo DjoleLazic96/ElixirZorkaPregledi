@@ -8,7 +8,6 @@
 ### Pre početka razvoja
 - [ ] Vlasnik projekta (Miroslav Zec) odobrava spec `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md`
 - [ ] Vlasnik blueprinta odlučuje o PREDLOZIMA u `docs/odluke.md` (PWA i rad bez interneta, mobilni prikaz, fotografije, push, četiri role + prava, duža sesija, biblioteke)
-- [ ] Licenca za PDF (`QuestPDF` komercijalna ili druga biblioteka)
 - [ ] Port 55434 upisati u registar blueprinta (03 §1)
 - [ ] GitHub organizacija i remote (odluka vlasnika projekta)
 
