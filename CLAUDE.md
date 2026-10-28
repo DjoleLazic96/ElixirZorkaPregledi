@@ -60,11 +60,11 @@ bash deploy/scripts/export-images.sh                      # build image-a u tar 
 - **Dizajn:** `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` — Prilog A su funkcionalna pravila (R1.1…); kad kod i Prilog A ne odgovaraju, pitaj, ne biraj sam.
 - **Odstupanja od blueprinta** (mobilni prikaz/PWA, rad bez interneta, fotografije, push, četiri role + prava, duža sesija,
   dodatne biblioteke) su u `docs/odluke.md` kao PREDLOG — ne implementirati dok nisu odobrena.
-- **Van repoa** (folder iznad): mockup `2026-10-26 TPM mockup.html` (svi ekrani), `Analiza napomena DP-PZ.xlsx`
-  (list „Predlog polja" i „Ručne ispravke šablona"), `2026-10-20 Aplikacija.docx` (istorija dogovora). Stari prototip
-  `TPM · Pregledi (DP _ PZ).html` se ne koristi.
+- **Van repoa** (folder iznad): mockup `2026-10-28 TPM mockup.html` (svi ekrani, i druga faza), `Analiza napomena DP-PZ.xlsx`
+  (list „Predlog polja" i „Ručne ispravke šablona"), `Staro/2026-10-20 Aplikacija.docx` (istorija dogovora), `Druga faza/` (pumpe, trake, plansko stajanje).
+  Stari prototip `Staro/TPM · Pregledi (DP _ PZ) - Zec.html` se ne koristi.
 - **Pojmovi:** DP1/DP2 (dnevni), PZ1–PZ4 (planski zastoj), šablon → sekcija → uređaj → aktivnost (dva odgovora), kvar `K-`,
   akcija `A-`, pregled `DP1-2026-0142` (dorada ne menja broj).
 - **Zamke:** sve operacije sa telefona su idempotentne (`opId`); vreme odgovora je sa telefona (proveriti odstupanje sata);
   započet pregled ostaje na svojoj verziji šablona; pregled se nikad ne briše (poništava se); „nije u funkciji" se ne prenosi.
-- Sledeća faza: modul za pumpe i trake (nije deo DP/PZ).
+- Sledeća faza: Pumpe, Trake i Plansko stajanje (nisu deo DP/PZ); opisi u `../Druga faza/`.

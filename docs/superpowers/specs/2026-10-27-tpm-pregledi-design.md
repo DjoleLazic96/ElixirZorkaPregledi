@@ -8,7 +8,7 @@
 
 **Repo:** `tpm-pregledi`
 
-> Ovaj spec pokriva **celu prvu isporuku** (jedna faza). Sledeća faza je modul za pumpe i trake (§12).
+> Ovaj spec pokriva **celu prvu isporuku** (jedna faza). Sledeća faza (druga) su moduli Pumpe, Trake i Plansko stajanje (§12).
 > Funkcionalna pravila su u **Prilogu A** (131 pravilo, isti brojevi kao u dokumentu „2026-10-26 Aplikacija – rezime.docx").
 > Kad se tekst ovog spec-a i Prilog A razlikuju, važi Prilog A, a razlika se ispravlja u spec-u.
 
@@ -26,12 +26,12 @@ opreme kroz analitiku. Papirni obrazac sa potpisom se ukida.
 | Šta | Gde | Napomena |
 |---|---|---|
 | Repo | ovaj folder | čist skelet iz Elixir blueprinta v1.1 (preimenovan); primer šifarnika `Kategorije` se uklanja kad stigne prvi poslovni feature |
-| Papirni obrasci | `../dnevni i planski pregledi/` (240 skeniranih PDF-ova, van repoa) | DP1, DP2, PZ1–PZ4 |
+| Papirni obrasci | `C:\Users\Korisnik\Desktop\dnevni i planski pregledi\` (240 skeniranih PDF-ova, van repoa) | DP1, DP2, PZ1–PZ4 |
 | Analiza papira | `../Analiza napomena DP-PZ.xlsx` | 4305 napomena; list „Predlog polja" = gde se dodaju nova polja (§6, `dodatno_polje`); list „Ručne ispravke šablona" = ispravke pre uvoza |
-| Dogovori | `../2026-10-20 Aplikacija.docx` | sva pitanja i odgovori, hronološki |
-| Rezime | `../2026-10-26 Aplikacija – rezime.docx` | 131 pravilo sa sledljivošću; isti sadržaj kao Prilog A |
-| Mockup | `../2026-10-26 TPM mockup.html` | klikabilni prikaz svih ekrana (telefon i laptop, sve 4 role, sa i bez interneta); izmišljeni podaci |
-| Stari prototip | `../TPM · Pregledi (DP _ PZ).html` | **ne koristi se** (zamenjen mockupom) |
+| Dogovori | `../Staro/2026-10-20 Aplikacija.docx` | sva pitanja i odgovori, hronološki |
+| Rezime | `../Staro/2026-10-26 Aplikacija – rezime.docx` | 131 pravilo sa sledljivošću; isti sadržaj kao Prilog A |
+| Mockup | `../2026-10-28 TPM mockup.html` | klikabilni prikaz svih ekrana (i moduli druge faze: Pumpe, Plansko stajanje) (telefon i laptop, sve 4 role, sa i bez interneta); izmišljeni podaci |
+| Stari prototip | `../Staro/TPM · Pregledi (DP _ PZ) - Zec.html` | **ne koristi se** (zamenjen mockupom) |
 
 Šabloni još nisu sređeni: pre uvoza se primenjuju ručne ispravke iz Excela, a uvozi se poslednja verzija papirnih
 obrazaca (vidi §12 „Odloženo").
@@ -58,7 +58,7 @@ Sve odluke su zapisane u Prilogu A; ovde su one koje najviše utiču na dizajn.
 | 14 | Merenje aktivnog vremena po odgovorima; upozorenja kontroloru, pragovi posle 3–4 nedelje | kontrola kvaliteta pregleda bez kažnjavanja |
 | 15 | Obaveštenja: push na telefon + mejl (Microsoft Graph, po blueprintu); primaoce bira Admin štikliranjem | dogovor |
 | 16 | Sve tabele: sortiranje, filteri, pretraga, izvoz u Excel; pojedinačan pregled u PDF i Word | dogovor |
-| 17 | Sve opisano ide u jednu fazu; pumpe i trake su sledeća faza | odluka vlasnika |
+| 17 | Sve opisano ide u jednu fazu; pumpe, trake i plansko stajanje su sledeća faza | odluka vlasnika |
 | 18 | Stari papirni pregledi se ne unose | dogovor |
 
 ## 4. Pristup
@@ -365,8 +365,9 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 
 ## 12. Šta se NE radi / van obima
 
-- **Modul za pumpe i trake** — sledeća faza; nije deo DP i PZ; sadržaj se definiše kasnije. Ekran uređaja je mesto
-  gde se dodaje kao nova kartica.
+- **Druga faza: Pumpe, Trake i Plansko stajanje** — nisu deo DP i PZ pregleda. Opisi: `../Druga faza/2026-10-28 Pumpe – druga faza.docx`,
+  `../Druga faza/2026-10-28 Plansko stajanje – druga faza.docx` (trake još nisu opisane). Pumpa se na ekranu uređaja dodaje kao nova kartica;
+  registar opreme iz ove faze mora da primi i pozicije pumpi koje nisu u DP/PZ pregledima.
 - Modul održavanja i radni nalozi (akcija tada može da postane radni nalog).
 - Unos starih papirnih pregleda.
 - Istorija administracije van postojećeg audit loga skeleta (odluka vlasnika: za sada nije potrebna; audit log skeleta
@@ -384,8 +385,9 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 ## 13. Reference
 
 - Elixir blueprint v1.1: https://github.com/casper96kzs/elixir-blueprint (02, 05, 06, 07, 12, 13, 14, 15, 16, 18, 19).
-- `../2026-10-26 Aplikacija – rezime.docx` (= Prilog A), `../2026-10-20 Aplikacija.docx` (istorija dogovora).
-- `../2026-10-26 TPM mockup.html` — mockup svih ekrana.
+- `../Staro/2026-10-26 Aplikacija – rezime.docx` (= Prilog A), `../Staro/2026-10-20 Aplikacija.docx` (istorija dogovora).
+- `../2026-10-28 TPM mockup.html` — mockup svih ekrana.
+- `../Druga faza/` — opisi i Excel izvori druge faze (pumpe, trake, plansko stajanje).
 - `../Analiza napomena DP-PZ.xlsx` — analiza 240 papirnih obrazaca, predlog polja, ručne ispravke šablona.
 - `docs/odluke.md` — odstupanja od blueprinta.
 
@@ -588,7 +590,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R13.1** Aplikacija se pravi po Elixir blueprint-u: .NET 10, PostgreSQL 16, React 19 + TypeScript + Tailwind, Docker, polazeći od gotovog skeleta. *[Z]*
 - **R13.2** Odstupanja od blueprint-a (upisuju se u docs/odluke.md): mobilni prikaz i PWA, otpremanje fotografija, push obaveštenja, zakazane provere i rad bez interneta, prava pristupa štikliranjem. *[O]*
 - **R13.3** Sve opisano u ovom dokumentu isporučuje se u prvoj fazi. Vremena odgovora se skupljaju od prvog dana; pragovi upozorenja o vremenu podešavaju se posle 3–4 nedelje podataka. *[O]*
-- **R13.4** Sledeća faza je modul za pumpe i trake (nije deo DP i PZ; sadržaj se definiše kasnije). *[O]*
+- **R13.4** Sledeća (druga) faza su moduli Pumpe, Trake i Plansko stajanje; nisu deo DP i PZ pregleda. Opisani su u posebnim dokumentima u folderu „Druga faza“ (trake još nisu). *[O]*
 - **R13.5** Aplikacija je platforma: zajednički registar opreme, nalozi, slike, obaveštenja, kalendar i rad bez interneta koriste i budući moduli (održavanje, pumpe i trake), koji nisu deo ove verzije. Pumpe i trake nisu deo DP i PZ pregleda; to je poseban modul za sledeću verziju, a sadržaj se definiše kasnije. *[Z]*
 
 ### A.14 Odloženo za kraj
