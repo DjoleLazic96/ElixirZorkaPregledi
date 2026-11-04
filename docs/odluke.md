@@ -17,29 +17,29 @@
 **Alternative odbijene:** PDF konverzijom iz Word-a — složenije, a nije potrebno.
 **Odlučio:** naručilac, 2026-10-28.
 
-## 2026-10-27 — PREDLOG: dodatne biblioteke
+## 2026-11-04 — dodatne biblioteke (odobreno; predlog od 2026-10-27)
 
 **Kontekst:** blueprint 02: biblioteka van liste = zapisana odluka.
 **Odluka:** backend `DocumentFormat.OpenXml` (Word izvoz), `WebPush` (Web Push/VAPID); frontend `vite-plugin-pwa` (service worker), `dexie` (IndexedDB), `qrcode` (QR nalepnice). `ClosedXML` i `recharts` su već u blueprintu.
 **Posledice:** zavisnosti u `Directory.Packages.props` i `package.json`; pokrivene `npm audit` / `dotnet list package --vulnerable`.
 **Alternative odbijene:** ručni service worker i IndexedDB bez biblioteke — više koda i grešaka za istu stvar.
-**Odlučio:** čeka vlasnika projekta + vlasnika blueprinta.
+**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); odobreno za implementaciju 2026-11-04 (faza 05).
 
-## 2026-10-27 — PREDLOG: „Zapamti me" i duža sesija na telefonu
+## 2026-11-04 — „Zapamti me" i duža sesija na telefonu (odobreno; predlog od 2026-10-27)
 
 **Kontekst:** inženjer mora da radi bez interneta i ne sme da bude izlogovan usred pregleda; blueprint 07: refresh token 7 dana.
 **Odluka:** uz „Zapamti me na ovom uređaju" refresh token važi 90 dana sa rotacijom (klizno); bez toga cookie traje do zatvaranja pregledača. Token se i dalje drži u memoriji, ne u `localStorage` (12 §38).
 **Posledice:** odstupanje od blueprinta 07 i 12 §9 (rok); promena lozinke, deaktivacija i promena role i dalje revokuju sve tokene.
 **Alternative odbijene:** 7 dana — inženjer posle odmora ne bi mogao da počne pregled bez signala.
-**Odlučio:** čeka vlasnika projekta + vlasnika blueprinta.
+**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); odobreno za implementaciju 2026-11-04 (faza 05).
 
-## 2026-10-27 — PREDLOG: rad bez interneta (PWA, IndexedDB, sinhronizacija)
+## 2026-11-04 — rad bez interneta (PWA, IndexedDB, sinhronizacija) (odobreno; predlog od 2026-10-27)
 
 **Kontekst:** pregledi se rade u pogonu bez pouzdanog signala; blueprint 14 §7 ne predviđa PWA.
 **Odluka:** aplikacija je PWA; telefon drži paket dodeljenih pregleda u IndexedDB i šalje idempotentne operacije (`POST /sinhronizacija`, `opId`). Podaci pregleda na telefonu nisu tokeni.
 **Posledice:** odstupanje od blueprinta 14 §7 (PWA); detalji u spec-u §5.1.
 **Alternative odbijene:** samo online — pregled bi stajao bez signala; native Android — druga kodna baza.
-**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); čeka vlasnika blueprinta.
+**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); odobreno za implementaciju 2026-11-04 (faza 05).
 
 ## 2026-11-04 — Mobilni prikaz (odobreno; predlog od 2026-10-27)
 

@@ -86,6 +86,34 @@ public class Fotografija
     public DateTime KreiranoAt { get; set; }
 }
 
+/// <summary>
+/// Sporan unos (R6.8): operacije koje su stigle sa telefona posle prebacivanja ili poništavanja pregleda. Ništa se ne
+/// gubi; Supervizor odlučuje šta važi (faza 06).
+/// </summary>
+public class SporanUnos
+{
+    /// <summary>PK.</summary>
+    public long Id { get; set; }
+
+    /// <summary>Pregled.</summary>
+    public int PregledId { get; set; }
+
+    /// <summary>Ko je poslao.</summary>
+    public string KorisnikId { get; set; } = string.Empty;
+
+    /// <summary>Operacija kao JSON.</summary>
+    public string Operacija { get; set; } = "{}";
+
+    /// <summary>Zašto nije primenjena.</summary>
+    public string Razlog { get; set; } = string.Empty;
+
+    /// <summary>Kada je stigla (UTC).</summary>
+    public DateTime PrimljenoAt { get; set; }
+
+    /// <summary>Odluka Supervizora: null = čeka.</summary>
+    public string? Odluka { get; set; }
+}
+
 /// <summary>Primljena operacija sa klijenta — ponovljen <see cref="OpId"/> se ne primenjuje dva puta.</summary>
 public class SinhronizacijaOperacija
 {

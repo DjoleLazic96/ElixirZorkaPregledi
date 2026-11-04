@@ -44,4 +44,7 @@ public class RefreshToken
 
     /// <summary>Da li token važi u datom trenutku (nije revokovan i nije istekao). Vreme dolazi spolja zbog testova.</summary>
     public bool JeVazeci(DateTime utcNow) => RevokedAt is null && utcNow < ExpiresAt;
+
+    /// <summary>„Zapamti me na ovom uređaju“ (R1.11): rotacija zadržava dug rok, pa telefon ostaje prijavljen i bez interneta.</summary>
+    public bool Dugotrajan { get; set; }
 }

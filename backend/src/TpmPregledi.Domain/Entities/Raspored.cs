@@ -115,6 +115,9 @@ public class Pregled
     /// <summary>Broj delova (pauze duže od granice).</summary>
     public int Delova { get; set; }
 
+    /// <summary>ID instalacije aplikacije na telefonu koji je započeo pregled (R10.5: jedan telefon).</summary>
+    public string? UredjajKlijenta { get; set; }
+
     /// <summary>Broj dorade (0 = prvo popunjavanje); broj pregleda se ne menja (R6.9).</summary>
     public int Dorada { get; set; }
 

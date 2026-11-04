@@ -92,6 +92,9 @@ public interface IAppDbContext
     /// <summary>Praćenje promena — odbijena operacija sinhronizacije odbacuje svoje nesnimljene izmene.</summary>
     Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker ChangeTracker { get; }
 
+    /// <summary>Sporni unosi.</summary>
+    DbSet<SporanUnos> SporniUnosi { get; }
+
     /// <summary>Snima promene (audit interceptor radi u istoj transakciji).</summary>
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

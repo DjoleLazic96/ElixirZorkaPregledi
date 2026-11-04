@@ -39,10 +39,11 @@ public sealed class JwtTokenService(
         ApplicationUser user,
         IReadOnlyList<string> roles,
         string? ipAddress,
+        bool zapamti = false,
         CancellationToken ct = default)
     {
         var (access, accessExp) = CreateAccessToken(user, roles, await PravaAsync(user.Id, ct));
-        var (raw, entity) = NoviRefreshToken(user.Id, ipAddress);
+        var (raw, entity) = NoviRefreshToken(user.Id, ipAddress, zapamti);
 
         db.RefreshTokens.Add(entity);
         await db.SaveChangesAsync(ct);
@@ -68,7 +69,7 @@ public sealed class JwtTokenService(
         // Rotacija: revoke starog + insert novog idu u ISTOM SaveChanges-u (atomarno).
         // Ako se ovo ikad refaktoriše, ne razbijati u dva poziva.
         existing.RevokedAt = now;
-        var (raw, fresh) = NoviRefreshToken(existing.User.Id, ipAddress);
+        var (raw, fresh) = NoviRefreshToken(existing.User.Id, ipAddress, existing.Dugotrajan);
         db.RefreshTokens.Add(fresh);
         await db.SaveChangesAsync(ct);
 
@@ -150,7 +151,7 @@ public sealed class JwtTokenService(
     }
 
     /// <summary>Generiše sirovi token i entitet sa njegovim hešom; sirovi token ide samo klijentu.</summary>
-    private (string Raw, RefreshToken Entity) NoviRefreshToken(string userId, string? ipAddress)
+    private (string Raw, RefreshToken Entity) NoviRefreshToken(string userId, string? ipAddress, bool dugotrajan)
     {
         var raw = GenerateSecureToken();
         var entity = new RefreshToken
@@ -158,7 +159,8 @@ public sealed class JwtTokenService(
             TokenHash   = RefreshTokenHasher.Hash(raw),
             UserId      = userId,
             CreatedAt   = clock.UtcNow,
-            ExpiresAt   = clock.UtcNow.AddDays(_opts.RefreshTokenDays),
+            ExpiresAt   = clock.UtcNow.AddDays(dugotrajan ? _opts.RefreshTokenDaysZapamti : _opts.RefreshTokenDays),
+            Dugotrajan  = dugotrajan,
             CreatedByIp = ipAddress,
         };
         return (raw, entity);

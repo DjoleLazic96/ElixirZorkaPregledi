@@ -62,9 +62,18 @@ public sealed record SekcijaPopunjavanjaDto(string Sifra, bool Moja, string Radi
 /// <param name="Status">Status.</param>
 /// <param name="PlaniraniDatum">Planirani dan.</param>
 /// <param name="ZapocetAt">Početak.</param>
-/// <param name="Sekcije">Sekcije (prazno dok pregled nije započet).</param>
+/// <param name="VerzijaId">Verzija po kojoj se popunjava (za planiran: važeća; telefon je šalje uz „zapocni“, R10.5).</param>
+/// <param name="Sekcije">Sekcije.</param>
 public sealed record PopunjavanjeDto(int Id, string Broj, string Tip, string Status, DateOnly PlaniraniDatum, DateTime? ZapocetAt,
-    IReadOnlyList<SekcijaPopunjavanjaDto> Sekcije);
+    int? VerzijaId, IReadOnlyList<SekcijaPopunjavanjaDto> Sekcije);
+
+/// <summary>Paket za rad bez interneta (spec §5.1): dodeljeni pregledi za danas i narednih 7 dana i započeti.</summary>
+/// <param name="Pregledi">Pregledi spremni za popunjavanje.</param>
+/// <param name="GenerisanoAt">Kada je paket napravljen.</param>
+public sealed record PaketDto(IReadOnlyList<PopunjavanjeDto> Pregledi, DateTime GenerisanoAt);
+
+/// <summary>Paket prijavljenog inženjera.</summary>
+public sealed record GetMojPaketQuery : IRequest<PaketDto>;
 
 /// <summary>Operacija sa klijenta (spec §5.1).</summary>
 /// <param name="OpId">UUID sa klijenta (idempotentnost).</param>
@@ -107,9 +116,30 @@ public sealed record SinhronizacijaCommand(string? UredjajKlijenta, DateTime? Kl
 public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUser, IDateTimeProvider clock) :
     IRequestHandler<ZapocniPregledCommand, PopunjavanjeDto>,
     IRequestHandler<GetPopunjavanjeQuery, PopunjavanjeDto>,
-    IRequestHandler<SinhronizacijaCommand, SinhronizacijaRezultat>
+    IRequestHandler<SinhronizacijaCommand, SinhronizacijaRezultat>,
+    IRequestHandler<GetMojPaketQuery, PaketDto>
 {
+    /// <summary>Poruka kad pregled nastavlja drugi telefon (R10.5).</summary>
+    public const string PorukaDrugiTelefon = "Pregled je započet na drugom telefonu. Nastaviće se kad taj telefon pošalje podatke.";
+
+    /// <inheritdoc />
+    public async Task<PaketDto> Handle(GetMojPaketQuery _, CancellationToken ct)
+    {
+        var granica = clock.Today.AddDays(7);
+        var ja = currentUser.UserId;
+        var pregledi = await db.Pregledi.Include(p => p.Ucesnici)
+            .Where(p => (p.DodeljenId == ja || p.Ucesnici.Any(u => u.KorisnikId == ja))
+                        && ((p.Status == StatusPregleda.Planiran && p.PlaniraniDatum <= granica) || p.Status == StatusPregleda.URadu))
+            .OrderBy(p => p.PlaniraniDatum).ToListAsync(ct);
+        var rez = new List<PopunjavanjeDto>(pregledi.Count);
+        foreach (var p in pregledi) rez.Add(await IzgradiAsync(p, ct));
+        return new PaketDto(rez, clock.UtcNow);
+    }
+
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    /// <summary>ID telefona iz tekućeg zahteva sinhronizacije.</summary>
+    private string? _uredjajKlijenta;
 
     /// <inheritdoc />
     public async Task<PopunjavanjeDto> Handle(ZapocniPregledCommand req, CancellationToken ct)
@@ -118,9 +148,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
         ProveriUcesnika(p);
         if (p.Status == StatusPregleda.Planiran)
         {
-            var verzija = await db.SablonVerzije.Where(v => v.Sablon!.Tip == p.Tip && v.Status == StatusVerzije.Objavljena)
-                .Select(v => (int?)v.Id).FirstOrDefaultAsync(ct)
-                ?? throw new BusinessRuleException($"Šablon {p.Tip} još nije uvezen.");
+            var verzija = await VazecaVerzijaAsync(p.Tip, ct) ?? throw new BusinessRuleException($"Šablon {p.Tip} još nije uvezen.");
             p.SablonVerzijaId = verzija;
             p.Status = StatusPregleda.URadu;
             p.ZapocetAt = clock.UtcNow;
@@ -137,11 +165,18 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
     {
         var p = await UcitajPregledAsync(req.PregledId, ct);
         ProveriUcesnika(p);
-        if (p.SablonVerzijaId is null)
-            return new PopunjavanjeDto(p.Id, p.Broj, p.Tip, p.Status, p.PlaniraniDatum, p.ZapocetAt, []);
+        return await IzgradiAsync(p, ct);
+    }
+
+    /// <summary>Pregled sa stavkama: započet po svojoj verziji, planiran po važećoj (telefon može da ga započne bez interneta).</summary>
+    private async Task<PopunjavanjeDto> IzgradiAsync(Pregled p, CancellationToken ct)
+    {
+        var verzijaId = p.SablonVerzijaId ?? await VazecaVerzijaAsync(p.Tip, ct);
+        if (verzijaId is null)
+            return new PopunjavanjeDto(p.Id, p.Broj, p.Tip, p.Status, p.PlaniraniDatum, p.ZapocetAt, null, []);
 
         var k = await RasporedKontekst.UcitajAsync(db, ct);
-        var stavke = await StavkeAsync(p.SablonVerzijaId.Value, ct);
+        var stavke = await StavkeAsync(verzijaId.Value, ct);
         var odgovori = await db.Odgovori.AsNoTracking().Where(o => o.PregledId == p.Id && o.Dorada == p.Dorada).ToDictionaryAsync(o => o.StavkaId, ct);
         var van = (await db.UredjajiVanFunkcije.AsNoTracking().Where(v => v.PregledId == p.Id).Select(v => v.UredjajId).ToListAsync(ct)).ToHashSet();
         var slike = (await db.Fotografije.AsNoTracking().Where(f => f.PregledId == p.Id).Select(f => new { f.StavkaId, f.Id }).ToListAsync(ct))
@@ -158,12 +193,13 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                     slike[s.StavkaId].ToList())).ToList())).ToList());
         }).ToList();
 
-        return new PopunjavanjeDto(p.Id, p.Broj, p.Tip, p.Status, p.PlaniraniDatum, p.ZapocetAt, sekcije);
+        return new PopunjavanjeDto(p.Id, p.Broj, p.Tip, p.Status, p.PlaniraniDatum, p.ZapocetAt, verzijaId, sekcije);
     }
 
     /// <inheritdoc />
     public async Task<SinhronizacijaRezultat> Handle(SinhronizacijaCommand req, CancellationToken ct)
     {
+        _uredjajKlijenta = string.IsNullOrWhiteSpace(req.UredjajKlijenta) ? null : req.UredjajKlijenta;
         var prihvacene = new List<Guid>();
         var odbijene = new List<OdbijenaOperacija>();
         foreach (var op in req.Operacije)
@@ -187,10 +223,39 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
             {
                 // Odbijena operacija ne zaustavlja ostale; klijent dobija razlog za korisnika.
                 db.ChangeTracker.Clear();
-                odbijene.Add(new OdbijenaOperacija(op.OpId, ex is BusinessRuleException b ? string.Join(" ", b.Greske) : ex.Message));
+                var razlog = ex is BusinessRuleException b ? string.Join(" ", b.Greske) : ex.Message;
+                odbijene.Add(new OdbijenaOperacija(op.OpId, razlog));
+                // Pregled je u međuvremenu prebačen ili poništen: urađeno se čuva kao sporan unos (R6.8).
+                if ((ex is ForbiddenException || razlog == "Pregled je poništen.") && await db.Pregledi.AnyAsync(p => p.Id == op.PregledId, ct))
+                {
+                    db.SporniUnosi.Add(new SporanUnos
+                    {
+                        PregledId = op.PregledId, KorisnikId = currentUser.UserId!, Razlog = razlog, PrimljenoAt = clock.UtcNow,
+                        Operacija = JsonSerializer.Serialize(op, Json),
+                    });
+                    await db.SaveChangesAsync(ct);
+                }
             }
         }
+
+        await ZabeleziOdstupanjeSataAsync(req, ct);
         return new SinhronizacijaRezultat(prihvacene, odbijene, clock.UtcNow);
+    }
+
+    /// <summary>Sat telefona koji odstupa više od dozvoljenog (R5.1) se beleži kontroloru; inženjer ne vidi poruku.</summary>
+    private async Task ZabeleziOdstupanjeSataAsync(SinhronizacijaCommand req, CancellationToken ct)
+    {
+        if (req.KlijentSada is not { } klijent || req.Operacije.Count == 0) return;
+        var dozvoljeno = TimeSpan.FromMinutes((await new PodesavanjaHandler(db).Handle(new GetPodesavanjaQuery(), ct)).OdstupanjeSataMin);
+        var razlika = klijent.ToUniversalTime() - clock.UtcNow;
+        if (razlika.Duration() <= dozvoljeno) return;
+        foreach (var id in req.Operacije.Select(o => o.PregledId).Distinct())
+        {
+            var p = await db.Pregledi.FirstOrDefaultAsync(x => x.Id == id, ct);
+            if (p is not null)
+                PregledIstorija.Dodaj(db, p, "odstupanje_sata", new { sekundi = (int)razlika.TotalSeconds }, currentUser.UserId, clock.UtcNow);
+        }
+        await db.SaveChangesAsync(ct);
     }
 
     // ─── Primena operacija ────────────────────────────────────────────────
@@ -201,7 +266,14 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 ?? throw new NotFoundException("Pregled ne postoji.");
         ProveriUcesnika(p);
         if (p.Status == StatusPregleda.Ponisten) throw new BusinessRuleException("Pregled je poništen.");
+        if (op.Vrsta == "zapocni")
+        {
+            await ZapocniOpAsync(p, op, ct);
+            return;
+        }
         if (p.Status != StatusPregleda.URadu) throw new BusinessRuleException("Predat pregled se menja samo kroz doradu.");
+        if (p.UredjajKlijenta is not null && _uredjajKlijenta is not null && p.UredjajKlijenta != _uredjajKlijenta)
+            throw new BusinessRuleException(PorukaDrugiTelefon);
         var k = await RasporedKontekst.UcitajAsync(db, ct);
         var stavke = await StavkeAsync(p.SablonVerzijaId!.Value, ct);
         var klijentAt = op.KlijentAt.ToUniversalTime();
@@ -276,6 +348,39 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 throw new BusinessRuleException($"Nepoznata operacija „{op.Vrsta}“.");
         }
     }
+
+    /// <summary>
+    /// Početak sa telefona (R4.1, R10.5): vreme početka je vreme sa telefona, verzija je ona po kojoj je telefon popunjavao
+    /// (ako se šablon promenio dok je bio bez interneta, pregled ostaje na staroj), a pregled se vezuje za taj telefon.
+    /// </summary>
+    private async Task ZapocniOpAsync(Pregled p, OperacijaInput op, CancellationToken ct)
+    {
+        if (p.Status == StatusPregleda.URadu)
+        {
+            if (p.UredjajKlijenta is not null && _uredjajKlijenta is not null && p.UredjajKlijenta != _uredjajKlijenta)
+                throw new BusinessRuleException(PorukaDrugiTelefon);
+            return;
+        }
+        if (p.Status != StatusPregleda.Planiran) throw new BusinessRuleException("Predat pregled se menja samo kroz doradu.");
+
+        int? verzija = null;
+        if (op.Podaci.ValueKind == JsonValueKind.Object && op.Podaci.TryGetProperty("verzijaId", out var v) && v.ValueKind == JsonValueKind.Number)
+        {
+            var trazena = v.GetInt32();
+            verzija = await db.SablonVerzije.Where(x => x.Id == trazena && x.Sablon!.Tip == p.Tip && x.Status != StatusVerzije.Nacrt)
+                .Select(x => (int?)x.Id).FirstOrDefaultAsync(ct);
+        }
+        verzija ??= await VazecaVerzijaAsync(p.Tip, ct) ?? throw new BusinessRuleException($"Šablon {p.Tip} još nije uvezen.");
+
+        p.SablonVerzijaId = verzija;
+        p.Status = StatusPregleda.URadu;
+        p.ZapocetAt = op.KlijentAt.ToUniversalTime();
+        p.UredjajKlijenta = _uredjajKlijenta;
+        PregledIstorija.Dodaj(db, p, "pocetak", new { verzijaId = verzija, uredjajKlijenta = _uredjajKlijenta }, currentUser.UserId, clock.UtcNow);
+    }
+
+    private Task<int?> VazecaVerzijaAsync(string tip, CancellationToken ct) =>
+        db.SablonVerzije.Where(v => v.Sablon!.Tip == tip && v.Status == StatusVerzije.Objavljena).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
 
     /// <summary>Predaja (R4.3, R3.15): sve stavke odgovorene osim uređaja van funkcije; napomena uz svaki neispravan.</summary>
     private async Task PredajAsync(Pregled p, IReadOnlyList<StavkaInfo> stavke, RasporedKontekst k, DateTime predajaAt, CancellationToken ct)

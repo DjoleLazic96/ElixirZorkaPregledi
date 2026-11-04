@@ -34,6 +34,17 @@ public static class PopunjavanjeEndpoints
                 Results.Ok(await m.Send(new SinhronizacijaCommand(i.UredjajKlijenta, i.KlijentSada, i.Operacije ?? []))))
             .WithTags("Popunjavanje").RequireAuthorization(pravo).WithSummary("Operacije pregleda (idempotentno po opId)");
 
+        app.MapGet("/api/v1/moj-paket", async (HttpContext http, IMediator m) =>
+            {
+                // ETag = heš sadržaja: telefon pri svakoj sinhronizaciji pita, a preuzima samo kad se nešto promenilo.
+                var paket = await m.Send(new GetMojPaketQuery());
+                var telo = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(paket.Pregledi, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+                var etag = $"\"{Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(telo))[..32]}\"";
+                http.Response.Headers.ETag = etag;
+                return http.Request.Headers.IfNoneMatch.ToString() == etag ? Results.StatusCode(StatusCodes.Status304NotModified) : Results.Ok(paket);
+            })
+            .WithTags("Popunjavanje").RequireAuthorization(pravo).WithSummary("Paket za rad bez interneta (ETag)");
+
         app.MapPost("/api/v1/fotografije", async (HttpRequest req, IMediator m) =>
             {
                 if (!req.HasFormContentType) return Results.BadRequest();

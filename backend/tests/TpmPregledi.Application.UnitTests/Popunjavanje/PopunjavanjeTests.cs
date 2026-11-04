@@ -184,3 +184,84 @@ public class PopunjavanjeTests
         (await o.H.Db.Fotografije.CountAsync()).Should().Be(5);
     }
 }
+
+/// <summary>Rad bez interneta (R10.1–R10.5, R6.8, R5.1): paket, početak sa telefona, jedan telefon, sporan unos, sat.</summary>
+public class RadBezInternetaTests
+{
+    private static readonly DateTime T0 = new(2026, 11, 9, 7, 0, 0, DateTimeKind.Utc);
+
+    private static OperacijaInput Op(int pregledId, string vrsta, object podaci, int minut) =>
+        new(Guid.NewGuid(), vrsta, pregledId, T0.AddMinutes(minut), JsonSerializer.SerializeToElement(podaci, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+    private sealed class Citac : ISablonUvozCitac
+    {
+        public IReadOnlyList<UvozRed> Procitaj(Stream xlsx) =>
+            [new(2, "DP1", "10", 1, "Elevator", "10-C-13", "Pregled rada zatezne sekcije", "Ispravno", "Neispravno", "")];
+    }
+
+    private static async Task<(IdentityHarness H, string Ana, string Bora, int PregledId)> PripremiAsync()
+    {
+        var h = IdentityHarness.New();
+        h.Db.Database.EnsureCreated();
+        var ana = await h.SeedUserAsync("ana", "Inzenjer2026!", Roles.Inzenjer);
+        var bora = await h.SeedUserAsync("bora", "Inzenjer2026!", Roles.Inzenjer);
+        await new UvoziSabloneHandler(h.Db, new Citac(), new FakeCurrentUser(), new FakeClock()).Handle(new UvoziSabloneCommand(Stream.Null), default);
+        var danas = new FakeClock().Today;
+        var p = new Pregled { Broj = "DP1-2026-0001", Tip = "DP1", PlaniraniDatum = danas, PrvobitniDatum = danas, DodeljenId = ana.Id };
+        h.Db.Pregledi.Add(p);
+        await h.Db.SaveChangesAsync();
+        return (h, ana.Id, bora.Id, p.Id);
+    }
+
+    [Fact]
+    public async Task Paket_sadrzi_planiran_pregled_sa_vazecom_verzijom_a_pocetak_sa_telefona_ga_vezuje()
+    {
+        var (h, ana, _, id) = await PripremiAsync();
+        await using var _ = h;
+        var sut = new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana }, new FakeClock());
+
+        var paket = await sut.Handle(new GetMojPaketQuery(), default);
+        var p = paket.Pregledi.Single();
+        p.Status.Should().Be("planiran");
+        p.VerzijaId.Should().NotBeNull();
+        p.Sekcije.Single().Uredjaji.Single().Stavke.Should().ContainSingle();
+
+        var r = await sut.Handle(new SinhronizacijaCommand("telefon-1", T0, [Op(id, "zapocni", new { verzijaId = p.VerzijaId }, 0)]), default);
+        r.Odbijene.Should().BeEmpty();
+        var pregled = await h.Db.Pregledi.AsNoTracking().SingleAsync();
+        pregled.UredjajKlijenta.Should().Be("telefon-1");
+        pregled.ZapocetAt.Should().Be(T0, "vreme početka je vreme sa telefona");
+
+        var drugi = await sut.Handle(new SinhronizacijaCommand("telefon-2", null,
+            [Op(id, "odgovor", new { stavkaId = p.Sekcije[0].Uredjaji[0].Stavke[0].StavkaId, vrednost = 0 }, 1)]), default);
+        drugi.Odbijene.Single().Razlog.Should().Be(PopunjavanjeHandler.PorukaDrugiTelefon);
+    }
+
+    [Fact]
+    public async Task Operacije_posle_prebacivanja_se_cuvaju_kao_sporan_unos()
+    {
+        var (h, ana, bora, id) = await PripremiAsync();
+        await using var _ = h;
+        var p = await h.Db.Pregledi.SingleAsync();
+        p.DodeljenId = bora;
+        await h.Db.SaveChangesAsync();
+
+        var r = await new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana }, new FakeClock())
+            .Handle(new SinhronizacijaCommand("telefon-1", null, [Op(id, "zapocni", new { }, 0)]), default);
+
+        r.Odbijene.Should().ContainSingle();
+        (await h.Db.SporniUnosi.SingleAsync()).KorisnikId.Should().Be(ana);
+    }
+
+    [Fact]
+    public async Task Sat_telefona_koji_odstupa_vise_od_dozvoljenog_se_belezi()
+    {
+        var (h, ana, _, id) = await PripremiAsync();
+        await using var _ = h;
+        var clock = new FakeClock();
+        await new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana }, clock)
+            .Handle(new SinhronizacijaCommand("telefon-1", clock.UtcNow.AddMinutes(-30), [Op(id, "zapocni", new { }, 0)]), default);
+
+        (await h.Db.PregledDogadjaji.CountAsync(d => d.Vrsta == "odstupanje_sata")).Should().Be(1);
+    }
+}

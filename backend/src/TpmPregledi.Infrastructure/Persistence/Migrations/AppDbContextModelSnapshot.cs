@@ -783,6 +783,11 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(8)")
                         .HasColumnName("tip");
 
+                    b.Property<string>("UredjajKlijenta")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("uredjaj_klijenta");
+
                     b.Property<DateTime?>("ZapocetAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("zapocet_at");
@@ -1228,6 +1233,54 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                     b.ToTable("sinhronizacija_operacija", (string)null);
                 });
 
+            modelBuilder.Entity("TpmPregledi.Domain.Entities.SporanUnos", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("KorisnikId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("korisnik_id");
+
+                    b.Property<string>("Odluka")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("odluka");
+
+                    b.Property<string>("Operacija")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("operacija");
+
+                    b.Property<int>("PregledId")
+                        .HasColumnType("integer")
+                        .HasColumnName("pregled_id");
+
+                    b.Property<DateTime>("PrimljenoAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("primljeno_at");
+
+                    b.Property<string>("Razlog")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("razlog");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sporan_unos");
+
+                    b.HasIndex("PregledId")
+                        .HasDatabaseName("ix_sporan_unos_pregled_id");
+
+                    b.ToTable("sporan_unos", (string)null);
+                });
+
             modelBuilder.Entity("TpmPregledi.Domain.Entities.Uredjaj", b =>
                 {
                     b.Property<int>("Id")
@@ -1563,6 +1616,10 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("created_by_ip");
 
+                    b.Property<bool>("Dugotrajan")
+                        .HasColumnType("boolean")
+                        .HasColumnName("dugotrajan");
+
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
@@ -1817,6 +1874,16 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_sablon_verzija_sablon_sablon_id");
 
                     b.Navigation("Sablon");
+                });
+
+            modelBuilder.Entity("TpmPregledi.Domain.Entities.SporanUnos", b =>
+                {
+                    b.HasOne("TpmPregledi.Domain.Entities.Pregled", null)
+                        .WithMany()
+                        .HasForeignKey("PregledId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sporan_unos_pregled_pregled_id");
                 });
 
             modelBuilder.Entity("TpmPregledi.Domain.Entities.Uredjaj", b =>

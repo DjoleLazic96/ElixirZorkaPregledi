@@ -13,11 +13,13 @@ public interface IJwtTokenService
     /// <param name="user">Korisnik za kog se izdaje par.</param>
     /// <param name="roles">Role korisnika (ulaze u JWT kao <c>role</c> claim).</param>
     /// <param name="ipAddress">IP adresa zahteva (upisuje se uz refresh token).</param>
+    /// <param name="zapamti">„Zapamti me na ovom uređaju“ — dugotrajan refresh token.</param>
     /// <param name="ct">Token za otkazivanje.</param>
     Task<TokenPair> IssueTokenPairAsync(
         ApplicationUser user,
         IReadOnlyList<string> roles,
         string? ipAddress,
+        bool zapamti = false,
         CancellationToken ct = default);
 
     /// <summary>

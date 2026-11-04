@@ -12,7 +12,8 @@ namespace TpmPregledi.Application.Features.Auth.Commands;
 /// <summary>Prijava korisničkim imenom i lozinkom. Telo zahteva se vezuje direktno na komandu.</summary>
 /// <param name="UserName">Korisničko ime.</param>
 /// <param name="Password">Lozinka.</param>
-public sealed record LoginCommand(string UserName, string Password) : IRequest<LoginResult>;
+/// <param name="ZapamtiMe">„Zapamti me na ovom uređaju“ (R1.11).</param>
+public sealed record LoginCommand(string UserName, string Password, bool ZapamtiMe = false) : IRequest<LoginResult>;
 
 /// <summary>
 /// Rezultat prijave: <see cref="Response"/> ide u telo odgovora, a sirovi refresh token u
@@ -86,7 +87,7 @@ public sealed class LoginCommandHandler(
             await jwt.DeleteInactiveAsync(user.Id, ct);
 
             var roles = (await userManager.GetRolesAsync(user)).ToList();
-            var pair  = await jwt.IssueTokenPairAsync(user, roles, currentUser.IpAddress, ct);
+            var pair  = await jwt.IssueTokenPairAsync(user, roles, currentUser.IpAddress, req.ZapamtiMe, ct);
 
             // Interceptor ovde upisuje UPDATE red za korisnika („jedna prijava = dva reda“).
             user.LastLoginAt = clock.UtcNow;
