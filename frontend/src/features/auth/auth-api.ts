@@ -6,8 +6,8 @@ import type { CurrentUserResponse, LoginResponse, PromenaLozinkeInput } from '..
  * lako mock-ovao u testovima `AuthProvider`-a.
  */
 
-export async function login(userName: string, password: string): Promise<LoginResponse> {
-  const r = await api.post<LoginResponse>('/auth/login', { userName, password });
+export async function login(userName: string, password: string, zapamtiMe = false): Promise<LoginResponse> {
+  const r = await api.post<LoginResponse>('/auth/login', { userName, password, zapamtiMe });
   return r.data;
 }
 

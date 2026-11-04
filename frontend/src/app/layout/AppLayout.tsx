@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useToast } from '../providers/ToastProvider';
+import { imaPravo } from '../../lib/permissions';
+import { obrisiLokalno, sinhronizuj, useStanjeSinhronizacije } from '../../offline/sinhronizacija';
 import { ChevronDown, Info, KeyRound, LogOut, UserRound } from 'lucide-react';
 import { OAplikaciji } from '../../components/OAplikaciji';
 import { PromenaLozinke } from '../../components/PromenaLozinke';
@@ -13,6 +16,26 @@ import { DonjiMeni, Sidebar } from './Sidebar';
  */
 export function AppLayout() {
   const { me, logout } = useAuth();
+  const toast = useToast();
+  const sinh = useStanjeSinhronizacije();
+  const inzenjer = me ? imaPravo(me, 'pregledi.popunjavanje') : false;
+
+  // Inženjer: paket i red za slanje se sinhronizuju odmah, na svakih minut i pri povratku veze (R10.4).
+  useEffect(() => {
+    if (!inzenjer) return;
+    void sinhronizuj().catch(() => {});
+    const t = window.setInterval(() => void sinhronizuj().catch(() => {}), 60_000);
+    return () => window.clearInterval(t);
+  }, [inzenjer]);
+
+  async function odjavi() {
+    // Odjava bi obrisala neposlato urađeno; zato se čeka da red bude prazan.
+    if (inzenjer && !(await obrisiLokalno())) {
+      toast.error('Imate promene koje još nisu poslate. Odjavite se kad se pošalju (potreban je internet).');
+      return;
+    }
+    await logout();
+  }
   const location = useLocation();
 
   const [meniOtvoren, setMeniOtvoren] = useState(false);
@@ -68,7 +91,7 @@ export function AppLayout() {
                 icon={LogOut}
                 onClick={() => {
                   setMeniOtvoren(false);
-                  void logout();
+                  void odjavi();
                 }}
               >
                 Odjavi se
@@ -76,6 +99,12 @@ export function AppLayout() {
             </div>
           </AnchoredDropdown>
         </header>
+        {/* „Bez interneta“ je traka ispod zaglavlja, ne u zaglavlju (spec §8.1). */}
+        {!sinh.online && (
+          <div role="status" className="bg-amber-100 px-4 py-1.5 text-xs text-amber-900 md:px-6">
+            Bez interneta{inzenjer && ` — čeka slanje: ${sinh.promena} promena, ${sinh.slika} slika`}
+          </div>
+        )}
 
         <main className="flex-1 overflow-y-auto p-4 pb-20 md:p-6 md:pb-6 [scrollbar-gutter:stable]">
           {/* `key` na putanji remount-uje omotač pri svakoj navigaciji, pa se

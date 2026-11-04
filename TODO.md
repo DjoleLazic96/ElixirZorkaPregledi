@@ -23,7 +23,7 @@
 - [ ] mobilni raspored (donji meni umesto bočnog) — čeka PREDLOG „mobilni prikaz“; do tada je skelet na telefonu neupotrebljiv (bočni meni 240 px)
 - [x] 2026-11-04 — faza 03: raspored, kalendar, odsustva, neradni dani, prebacivanja, prenos propuštenog DP-a (`03-raspored.md`); obaveštenja o pomeranju čekaju fazu 09
 - [x] 2026-11-04 — faza 04: popunjavanje sa internetom, slike, aktivno vreme, mobilni raspored (`04-popunjavanje.md`)
-- [ ] faza 05: rad bez interneta (PWA, outbox, provera sata telefona) — čeka PREDLOZE „PWA“, „duža sesija“, „biblioteke“
+- [x] 2026-11-04 — faza 05: rad bez interneta, PWA, Zapamti me, jedan telefon, sporan unos, sat telefona (`05-rad-bez-interneta.md`); odluka o spornom unosu je faza 06
 - [ ] predaja, overa, dorada, poništavanje; izveštaji PDF/Word
 - [ ] akcije, kvarovi, ekran uređaja, analitika, Dashboard
 - [ ] obaveštenja (push, mejl), pozadinski poslovi, pretraga, podešavanja

@@ -24,6 +24,15 @@ Gore su sekcije (npr. **10 3/55** = popunjeno 3 od 55). Uz svaku aktivnost su dv
 sa dva inženjera predaje se kad su sve sekcije gotove; poruka kaže koja sekcija nedostaje i kod koga. Predat pregled se menja
 samo kroz doradu.
 
-## 2.4 PZ sa dva inženjera
+## 2.4 Bez interneta
+
+Pri prijavi na službenom telefonu štiklirajte **Zapamti me na ovom uređaju** — ostajete prijavljeni i radite bez signala.
+Aplikaciju dodajte na početni ekran (Chrome → meni → **Dodaj na početni ekran**). Dok ima interneta, telefon sam preuzima
+preglede za danas i narednih 7 dana. Bez interneta popunjavate isto kao inače; ispod zaglavlja piše **Bez interneta — čeka
+slanje: N promena, M slika**, a predat pregled ima status **Predato – čeka slanje**. Kad se veza vrati, sve se šalje samo.
+Na ekranu pregleda piše **Poslednja sinhronizacija: HH:MM**. Odjava je moguća tek kad se sve pošalje.
+Započet pregled se nastavlja samo na telefonu na kom je započet.
+
+## 2.5 PZ sa dva inženjera
 
 Svako vidi sve sekcije, a upisuje samo u svoje; kod tuđe sekcije piše ko je radi.

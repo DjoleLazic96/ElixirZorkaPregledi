@@ -30,7 +30,7 @@ Isto za korisnike: zauzeto korisničko ime → 422. 409 je rezervisan za konkure
 ### `/auth`
 | Metod | Ruta | Politika | Svrha |
 |---|---|---|---|
-| POST | `/auth/login` | anonimno, `auth-login` 10/min | `{ userName, password }` → `LoginResponse` + Set-Cookie |
+| POST | `/auth/login` | anonimno, `auth-login` 10/min | `{ userName, password, zapamtiMe? }` (zapamtiMe = refresh 180 dana) → `LoginResponse` + Set-Cookie |
 | POST | `/auth/refresh` | cookie, `auth-refresh` 30/min | rotacija → `LoginResponse` |
 | POST | `/auth/logout` | Authenticated | revokacija + brisanje cookie-ja → 204 |
 | GET | `/auth/me` | Authenticated | `{ user, roles, prava }` (prava iz baze) |
@@ -112,9 +112,10 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 ### Popunjavanje (faza 04, pravo `pregledi.popunjavanje`)
 | Metod | Ruta | Svrha |
 |---|---|---|
+| GET | `/moj-paket` | `{ pregledi[], generisanoAt }` — dodeljeni za danas + 7 dana i započeti; `ETag`, `If-None-Match` → 304 |
 | POST | `/pregledi/{id}/zapocni` | status `u_radu`, vreme početka, važeća verzija šablona; samo dodeljeni ili učesnik (403) |
 | GET | `/pregledi/{id}/popunjavanje` | sekcije (`moja`, `radi`) → uređaji (`vanFunkcije`, `prosliPutVanFunkcije`) → stavke (polja, odgovor, ID-jevi slika) |
-| POST | `/sinhronizacija` `{ uredjajKlijenta, klijentSada, operacije[{opId, vrsta, pregledId, klijentAt, podaci}] }` | `{ prihvacene[], odbijene[{opId, razlog}], serverSada }`; vrste `odgovor` (`stavkaId`, `vrednost`, `napomena`, `polja`), `van_funkcije` (`uredjajId`, `vanFunkcije`), `sve_ispravno` (`sekcija`), `predaja`; ponovljen `opId` = već primenjeno |
+| POST | `/sinhronizacija` `{ uredjajKlijenta, klijentSada, operacije[{opId, vrsta, pregledId, klijentAt, podaci}] }` | `{ prihvacene[], odbijene[{opId, razlog}], serverSada }`; vrste `zapocni` (`verzijaId`; vreme početka = `klijentAt`, vezuje `uredjajKlijenta`), `odgovor` (`stavkaId`, `vrednost`, `napomena`, `polja`), `van_funkcije` (`uredjajId`, `vanFunkcije`), `sve_ispravno` (`sekcija`), `predaja`; ponovljen `opId` = već primenjeno |
 | POST | `/fotografije` multipart (`fajl`, `klijentId`, `pregledId`, `stavkaId`, `izvor`) | ≤ 3 MB (400 „Slika je prevelika.“), JPEG/PNG/WebP, najviše 5 po stavci (422) |
 | GET | `/fotografije/{id}` | slika (RequireKorisnik — svi vide sve preglede) |
 

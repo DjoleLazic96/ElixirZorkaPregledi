@@ -12,7 +12,9 @@ import { Ucitavanje } from '../../components/ui/Spinner';
 import { Textarea } from '../../components/ui/Textarea';
 import { porukaGreske } from '../../lib/apiError';
 import { cn } from '../../lib/cn';
-import { formatirajDatum } from '../../lib/datum';
+import { formatirajDatum, formatirajVreme } from '../../lib/datum';
+import { nedostaje } from '../../offline/lokalno';
+import { useStanjeSinhronizacije } from '../../offline/sinhronizacija';
 import { smanjiSliku } from '../../lib/slika';
 import {
   useOperacija, useOtpremiSliku, usePopunjavanje, useZapocni,
@@ -69,7 +71,7 @@ export function PopunjavanjePage() {
         <Card>
           <CardBody className="space-y-3">
             <p className="text-sm text-gray-700">Datum i vreme početka upisuju se automatski i ne mogu da se menjaju.</p>
-            <Button className="min-h-11 w-full sm:w-auto" onClick={() => void zapocni.mutateAsync().catch((e) => toast.error(porukaGreske(e, 'Pregled nije započet.')))} disabled={zapocni.isPending}>
+            <Button className="min-h-11 w-full sm:w-auto" onClick={() => void zapocni.mutateAsync(p.verzijaId).catch((e) => toast.error(porukaGreske(e, 'Pregled nije započet.')))} disabled={zapocni.isPending}>
               Započni pregled
             </Button>
           </CardBody>
@@ -77,8 +79,19 @@ export function PopunjavanjePage() {
       </div>
     );
 
+  if (p.status === 'predato_ceka')
+    return <PageHeader title={p.broj} description="Predato – čeka slanje. Pregled se šalje sam čim se veza vrati i do tada se ne menja." />;
   if (p.status !== 'u_radu')
     return <PageHeader title={p.broj} description="Pregled je predat; menja se samo kroz doradu." />;
+
+  async function predaj() {
+    const n = nedostaje(p);
+    if (n.odgovora > 0 || n.napomena > 0) {
+      toast.error(`Pregled još nije potpun: nedostaje ${n.odgovora} odgovora i ${n.napomena} obaveznih napomena.`);
+      return;
+    }
+    if (await posalji({ vrsta: 'predaja', podaci: {} }, navigator.onLine ? 'Pregled je predat.' : 'Predato – čeka slanje.')) navigate('/kalendar');
+  }
 
   const ukupno = napredak(p);
   const aktivna = sekcija ?? p.sekcije.find((s) => s.moja)?.sifra ?? p.sekcije[0]?.sifra;
@@ -90,12 +103,18 @@ export function PopunjavanjePage() {
         title={p.broj}
         description={`Popunjeno ${ukupno.gotovo} od ${ukupno.ukupno} stavki`}
         actions={
-          <Button className="min-h-11" disabled={operacija.isPending}
-            onClick={() => void posalji({ vrsta: 'predaja', podaci: {} }, 'Pregled je predat.').then((ok) => ok && navigate('/kalendar'))}>
+          <Button className="min-h-11" disabled={operacija.isPending} onClick={() => void predaj()}>
             Predaj pregled
           </Button>
         }
       />
+
+      <StanjeSlanja />
+      {pregled.odbijene.length > 0 && (
+        <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          Server nije prihvatio neke promene: {[...new Set(pregled.odbijene.map((o) => o.razlog))].join(' ')}
+        </div>
+      )}
 
       {nastavak === 'pitaj' && ukupno.gotovo > 0 && ukupno.gotovo < ukupno.ukupno && (
         <Card>
@@ -140,6 +159,17 @@ export function PopunjavanjePage() {
         </div>
       )}
     </div>
+  );
+}
+
+/** „Poslednja sinhronizacija: HH:MM“ i šta čeka slanje (R10.3, R10.4). */
+function StanjeSlanja() {
+  const st = useStanjeSinhronizacije();
+  return (
+    <p className="text-xs text-gray-500">
+      {st.poslednja ? `Poslednja sinhronizacija: ${formatirajVreme(st.poslednja)}` : 'Još nije sinhronizovano.'}
+      {(st.promena > 0 || st.slika > 0) && ` · čeka slanje: ${st.promena} promena, ${st.slika} slika`}
+    </p>
   );
 }
 

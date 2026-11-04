@@ -27,7 +27,7 @@ const REFRESH_LEAD_MS = 60_000;
 interface AuthState {
   /** `null` = još nije poznato, `undefined` = nije ulogovan, objekat = ulogovan. */
   me: CurrentUserResponse | null | undefined;
-  login: (userName: string, password: string) => Promise<void>;
+  login: (userName: string, password: string, zapamtiMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   /** `true` dok proveravamo postojeću sesiju pri pokretanju. */
   initializing: boolean;
@@ -122,8 +122,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  const login = useCallback(async (userName: string, password: string) => {
-    const r = await apiLogin(userName, password);
+  const login = useCallback(async (userName: string, password: string, zapamtiMe = false) => {
+    const r = await apiLogin(userName, password, zapamtiMe);
     setAccessToken(r.accessToken);
     setTokenExpiresAt(r.expiresAt);
     setMe({ user: r.user, roles: r.roles, prava: r.prava });

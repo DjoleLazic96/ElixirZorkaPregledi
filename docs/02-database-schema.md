@@ -26,6 +26,7 @@
 | `zahtev_prebacivanja` | zahtevi za prebacivanje pregleda | `ToTable` |
 | `odgovor`, `uredjaj_van_funkcije`, `fotografija` | odgovori na stavke, „nije u funkciji“, slike uz stavke | `ToTable` |
 | `sinhronizacija_operacija` | primljene operacije sa klijenta (idempotentnost po `op_id`) | `ToTable` |
+| `sporan_unos` | operacije stigle posle prebacivanja/poništavanja (R6.8) | `ToTable` |
 
 ```
 AspNetUsers 1──* refresh_token (user_id, CASCADE)
@@ -146,7 +147,7 @@ Ključ je par (naziv, oznaka), ne sama oznaka: DP1, DP2 i PZ1 su prepisani doslo
 - `pregled_ucesnik` — PK (pregled, korisnik), `sekcije text[]` (PZ sa dva inženjera).
 - `pregled_dogadjaj` — `pregled_id`, `vrsta` (`dodela`, `prebacivanje`, `prenos`, `promena_pz`, `ucesnik`, `izmena_rasporeda`), `podaci jsonb` (staro/novo), `korisnik_id` (null = sistem), `at`.
 
-`pregled` dobija u fazi 04: `zapocet_at`, `predat_at`, `aktivno_sekundi`, `delova`, `dorada`.
+`pregled` dobija u fazi 04: `zapocet_at`, `predat_at`, `aktivno_sekundi`, `delova`, `dorada`; u fazi 05 `uredjaj_klijenta` (telefon koji je započeo). `refresh_token.dugotrajan` (faza 05) — „Zapamti me“. `sporan_unos` — `pregled_id`, `korisnik_id`, `operacija jsonb`, `razlog`, `primljeno_at`, `odluka` (null = čeka).
 
 ### `odgovor`, `uredjaj_van_funkcije`, `fotografija`, `sinhronizacija_operacija`
 - `odgovor` — `pregled_id`, `stavka_id`, `vrednost` smallint (0 ispravan, 1 neispravan), `napomena`, `polja jsonb` (ključ = ID dodatnog polja), `korisnik_id`, `klijent_at`, `server_at`, `op_id`, `dorada`; jedinstveno (pregled, stavka, dorada) `ux_odgovor_stavka_dorada`; `[Auditable]`. Promena piše `izmena_odgovora` (staro/novo) u `pregled_dogadjaj`.
@@ -184,6 +185,7 @@ Sekcije, šabloni i tri dodatna polja su seed u migracijama (`HasData`); regista
 |---|---|
 | `InitialCreate` | Identity, `refresh_token`, `audit_log`, `kategorija` |
 | `Osnova` | `korisnik_pravo`, `podesavanje`, `brojac`, `sekcija` (+ seed sekcija) |
+| `RadBezInterneta` | `pregled.uredjaj_klijenta`, `refresh_token.dugotrajan`, `sporan_unos` |
 | `Popunjavanje` | kolone popunjavanja na `pregled`, `odgovor`, `uredjaj_van_funkcije`, `fotografija`, `sinhronizacija_operacija` |
 | `Raspored` | neradni dani, odsustva, pregledi, učesnici, istorija pregleda, zahtevi za prebacivanje |
 | `OpremaISabloni` | registar, katalog, dodatna polja, šabloni i verzije, istorijat, `fajl`; briše `kategorija` |

@@ -1,9 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../api/client';
+import { useMutation } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { db, dodajOperaciju, dodajSliku, obezbediPregled, useLokalno } from '../../offline/sinhronizacija';
 
 /**
- * Popunjavanje pregleda. Svaka radnja je operacija sa `opId` i vremenom sa telefona i ide kroz `/sinhronizacija` —
- * isti ugovor koji rad bez interneta (faza 05) puni iz reda za slanje.
+ * Popunjavanje pregleda radi nad lokalnom kopijom u IndexedDB-u (rad bez interneta, faza 05): svaka radnja se odmah
+ * vidi i staje u red za slanje kroz `/sinhronizacija`.
  */
 export interface PoljeDto {
   id: number;
@@ -51,9 +52,11 @@ export interface PopunjavanjeDto {
   id: number;
   broj: string;
   tip: string;
+  /** Server: planiran, u_radu, ceka_overu…; samo na telefonu: `predato_ceka` („Predato – čeka slanje“). */
   status: string;
   planiraniDatum: string;
   zapocetAt: string | null;
+  verzijaId: number | null;
   sekcije: SekcijaPopunjavanjaDto[];
 }
 
@@ -64,60 +67,39 @@ export interface SinhronizacijaRezultat {
 }
 
 export type Operacija =
+  | { vrsta: 'zapocni'; podaci: { verzijaId: number | null } }
   | { vrsta: 'odgovor'; podaci: { stavkaId: number; vrednost: 0 | 1; napomena?: string | null; polja?: OdgovorDto['polja'] } }
   | { vrsta: 'van_funkcije'; podaci: { uredjajId: number; vanFunkcije: boolean } }
   | { vrsta: 'sve_ispravno'; podaci: { sekcija: string } }
   | { vrsta: 'predaja'; podaci: Record<string, never> };
 
+/** Pregled iz lokalne kopije; ako ga nema, preuzima se sa servera (potrebna je veza samo prvi put). */
 export function usePopunjavanje(id: number) {
-  return useQuery({
-    queryKey: ['popunjavanje', id],
-    queryFn: async () => (await api.get<PopunjavanjeDto>(`/pregledi/${id}/popunjavanje`)).data,
-  });
+  const pregled = useLokalno(() => db.pregledi.get(id), [id], undefined as PopunjavanjeDto | undefined);
+  const [greska, setGreska] = useState<unknown>(null);
+  const [ucitava, setUcitava] = useState(true);
+  useEffect(() => {
+    let ziv = true;
+    obezbediPregled(id).catch((e) => ziv && setGreska(e)).finally(() => ziv && setUcitava(false));
+    return () => { ziv = false; };
+  }, [id]);
+  const odbijene = useLokalno(() => db.odbijene.where('pregledId').equals(id).toArray(), [id], []);
+  return { data: pregled, isLoading: ucitava && !pregled, isError: !pregled && greska !== null, error: greska, odbijene };
 }
 
 export function useZapocni(id: number) {
-  const qc = useQueryClient();
   return useMutation({
-    mutationFn: async () => (await api.post<PopunjavanjeDto>(`/pregledi/${id}/zapocni`)).data,
-    onSuccess: (data) => {
-      qc.setQueryData(['popunjavanje', id], data);
-      void qc.invalidateQueries({ queryKey: ['raspored'] });
-    },
+    mutationFn: async (verzijaId: number | null) => dodajOperaciju(id, { vrsta: 'zapocni', podaci: { verzijaId } }),
   });
 }
 
-/** Šalje jednu operaciju; odbijena operacija se vraća kao greška sa razlogom za korisnika. */
+/** Radnja u pregledu: lokalno odmah, server kad stigne veza; razlog odbijanja stiže u `odbijene`. */
 export function useOperacija(pregledId: number) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (op: Operacija) => {
-      const r = (
-        await api.post<SinhronizacijaRezultat>('/sinhronizacija', {
-          uredjajKlijenta: null,
-          klijentSada: new Date().toISOString(),
-          operacije: [{ opId: crypto.randomUUID(), pregledId, klijentAt: new Date().toISOString(), ...op }],
-        })
-      ).data;
-      if (r.odbijene.length > 0) throw new Error(r.odbijene[0].razlog);
-      return r;
-    },
-    onSettled: () => void qc.invalidateQueries({ queryKey: ['popunjavanje', pregledId] }),
-  });
+  return useMutation({ mutationFn: async (op: Operacija) => dodajOperaciju(pregledId, op) });
 }
 
 export function useOtpremiSliku(pregledId: number) {
-  const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: { stavkaId: number; slika: Blob; izvor: 'kamera' | 'galerija' }) => {
-      const telo = new FormData();
-      telo.append('fajl', v.slika, 'slika.jpg');
-      telo.append('klijentId', crypto.randomUUID());
-      telo.append('pregledId', String(pregledId));
-      telo.append('stavkaId', String(v.stavkaId));
-      telo.append('izvor', v.izvor);
-      return (await api.post<{ id: number }>('/fotografije', telo)).data;
-    },
-    onSettled: () => void qc.invalidateQueries({ queryKey: ['popunjavanje', pregledId] }),
+    mutationFn: async (v: { stavkaId: number; slika: Blob; izvor: 'kamera' | 'galerija' }) => dodajSliku(pregledId, v.stavkaId, v.slika, v.izvor),
   });
 }
