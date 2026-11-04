@@ -132,7 +132,7 @@ function Dan({ dan, r, danas, uMesecu, onPregled, spisak }: DanProps) {
             key={p.id}
             type="button"
             onClick={() => onPregled(p)}
-            className={cn('block min-h-8 w-full rounded border px-1.5 py-0.5 text-left text-xs', bojaPregleda(p, danas))}
+            className={cn('block min-h-11 w-full rounded border px-1.5 py-0.5 text-left text-xs md:min-h-8', bojaPregleda(p, danas))}
           >
             <span className="block whitespace-nowrap font-semibold">{p.broj}</span>
             <span className="block truncate">{p.dodeljen}</span>

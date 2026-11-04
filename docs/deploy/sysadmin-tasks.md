@@ -11,11 +11,12 @@
 | 5 | Backup `data/backups/` van hosta (NFS/CIFS/rsync), dnevno | oporavak posle gubitka hosta | ⏳ |
 | 6 | (opciono) cron za `deploy/scripts/backup.sh` ako app nalog ne sme da ima crontab | dnevni dump | ⏳ |
 | 8 | Aplikacija u Entra ID sa aplikacijskom dozvolom **Mail.Send** (Microsoft Graph) i sanduče pošiljaoca → `GRAPH_*` u `.env` | mejl obaveštenja (do tada samo zvono i push) | ⏳ |
+| 9 | Izlaz backend kontejnera na internet, samo HTTPS (443) ka: `fcm.googleapis.com`, `updates.push.services.mozilla.com` (Web Push na telefone), `login.microsoftonline.com`, `graph.microsoft.com` (mejl) | obaveštenja na telefonu i mejlom (R9.1) | ⏳ |
 | 7 | Health za IT monitoring: `GET https://tpm-pregledi.elixirgroup.rs/api/v1/health/ready` → `{"status":"ready"}` | nadzor | — |
 
 ## Šta NE tražimo
 
-- Izmene Traefik-a, LDAP/AD integraciju, izlaz hosta ka internetu (image dolazi kao tar), registry.
+- Izmene Traefik-a, LDAP/AD integraciju, registry; izlaz ka internetu samo ka adresama iz #9 (image dolazi kao tar).
 
 ## Istorija
 

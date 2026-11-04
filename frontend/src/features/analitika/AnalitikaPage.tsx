@@ -72,8 +72,22 @@ function Trajanja({ stavke }: { stavke: TrajanjeDto[] }) {
 function TabelaIspunjenja({ redovi, prva }: { redovi: IspunjenjeRedDto[]; prva: string }) {
   if (redovi.length === 0) return <p className="text-sm text-gray-500">Nema planiranih pregleda u periodu.</p>;
   const kol = ['Planirano', 'Na dan', 'Kasnije', 'Propušteno', 'Preneto', '% na dan', 'Overeno u roku', '% u roku', 'Do overe (h)'];
+  const vrednosti = (r: IspunjenjeRedDto) => [String(r.planirano), String(r.naDan), String(r.kasnije), String(r.propusteno), String(r.preneto),
+    formatirajProcenat(r.procenatNaDan, 1), `${r.overenoURoku} / ${r.overeno}`, formatirajProcenat(r.procenatURoku, 1), formatirajBroj(r.prosekOvereSati, 1)];
   return (
-    <div className="overflow-x-auto">
+    <>
+    {/* Na telefonu kartica po redu: naziv polja levo, vrednost pored (§8.1 t. 4). */}
+    <ul className="space-y-3 text-sm md:hidden">
+      {redovi.map((r) => (
+        <li key={r.naziv} className="rounded-md border border-gray-200 p-3">
+          <p className="mb-1 font-semibold">{r.naziv}</p>
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+            {kol.map((k, i) => <div key={k} className="contents"><dt className="text-gray-500">{k}</dt><dd className="text-right tabular-nums">{vrednosti(r)[i]}</dd></div>)}
+          </dl>
+        </li>
+      ))}
+    </ul>
+    <div className="hidden overflow-x-auto md:block">
       <table className="w-full text-sm">
         <thead className="text-xs text-gray-500">
           <tr><th className="px-2 py-2 text-left">{prva}</th>{kol.map((k) => <th key={k} className="whitespace-nowrap px-2 py-2 text-right">{k}</th>)}</tr>
@@ -92,5 +106,6 @@ function TabelaIspunjenja({ redovi, prva }: { redovi: IspunjenjeRedDto[]; prva: 
         </tbody>
       </table>
     </div>
+    </>
   );
 }

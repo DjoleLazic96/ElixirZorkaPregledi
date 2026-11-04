@@ -51,11 +51,11 @@ export function Pagination({
         od <strong className="tabular-nums">{total}</strong> {mnozina(total, itemLabel)}
       </span>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 text-xs text-gray-600">
           <span>Po stranici:</span>
           <Select
-            className="h-9 min-w-20"
+            className="h-11 min-w-20 md:h-9"
             aria-label="Broj stavki po stranici"
             value={pageSize}
             options={pageSizeOptions.map((v) => ({ value: v, label: String(v) }))}
@@ -63,7 +63,7 @@ export function Pagination({
           />
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           <Button
             variant="ghost"
             size="sm"

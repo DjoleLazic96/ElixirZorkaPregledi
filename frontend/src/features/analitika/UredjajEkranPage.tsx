@@ -144,7 +144,21 @@ function PreglediUredjaja({ e }: { e: UredjajEkranDto }) {
               <div className="sm:justify-self-end"><IzvozDugme url={`/uredjaji/${e.id}/pregledi.xlsx`} ime={`Pregledi ${e.prikaz}.xlsx`} /></div>
             </div>
             {lista.length === 0 ? <p className="text-sm text-gray-500">Nema pregleda.</p> : (
-              <div className="overflow-x-auto">
+              <>
+              {/* Na telefonu kartice (§8.1 t. 4), redosled je po datumu. */}
+              <ul className="divide-y divide-gray-100 text-sm md:hidden">
+                {lista.map((p) => (
+                  <li key={p.pregledId} className="space-y-1 py-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Link className="whitespace-nowrap font-medium text-primary-700 hover:underline" to={`/pregledi/${p.pregledId}?uredjaj=${e.id}`}>{p.broj}</Link>
+                      <Badge tone={tonStatusa(p.status)}>{statusLabela(p.status)}</Badge>
+                    </div>
+                    <p className="text-gray-600">{formatirajDatum(p.datum)} · {p.inzenjer}</p>
+                    <p className="inline-flex items-center gap-1.5"><span className={`inline-block h-2.5 w-2.5 rounded-sm ${STANJA[p.stanje].boja}`} aria-hidden />{STANJA[p.stanje].labela}{p.neispravnih > 1 && ` (${p.neispravnih})`}</p>
+                  </li>
+                ))}
+              </ul>
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full text-sm">
                   <thead className="text-xs text-gray-500"><tr>{th('broj', 'Broj')}{th('datum', 'Datum')}{th('tip', 'Tip')}{th('inzenjer', 'Inženjer')}<th className="px-3 py-2 text-left">Stanje uređaja</th><th className="px-3 py-2 text-left">Status</th></tr></thead>
                   <tbody className="divide-y divide-gray-100">
@@ -163,6 +177,7 @@ function PreglediUredjaja({ e }: { e: UredjajEkranDto }) {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </div>
         ) : (

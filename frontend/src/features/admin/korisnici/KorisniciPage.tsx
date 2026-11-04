@@ -181,7 +181,7 @@ export function KorisniciPage() {
                         {k.poslednjaPrijava ? relativnoVreme(k.poslednjaPrijava) : 'nikad'}
                       </td>
                       <td className="px-3 py-2 text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex flex-wrap justify-end gap-1">
                           <Button variant="ghost" size="sm" onClick={() => otvoriFormu(k)}>
                             Izmeni
                           </Button>

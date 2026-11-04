@@ -44,7 +44,7 @@ export function Zvono() {
         <div role="dialog" aria-label="Obaveštenja" className="text-sm">
           <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
             <span className="font-semibold">Obaveštenja</span>
-            {(d?.neprocitanih ?? 0) > 0 && <button type="button" className="text-xs text-primary-700 hover:underline" onClick={() => procitano.mutate(null)}>Označi sve kao pročitano</button>}
+            {(d?.neprocitanih ?? 0) > 0 && <button type="button" className="min-h-11 text-xs text-primary-700 hover:underline md:min-h-0" onClick={() => procitano.mutate(null)}>Označi sve kao pročitano</button>}
           </div>
           {(d?.cekaOdluku ?? 0) > 0 && (
             <button type="button" onClick={() => { setOtvoreno(false); navigate('/'); }}

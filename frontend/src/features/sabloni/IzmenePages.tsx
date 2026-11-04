@@ -379,7 +379,16 @@ export function IstorijatTab() {
           <DatePicker aria-label="Do" value={f.do} placeholder="Do" onChange={(v) => setF({ ...f, do: v })} />
         </div>
         {ist.isLoading ? <Ucitavanje /> : !ist.data?.length ? <p className="text-sm text-gray-500">Nema događaja za zadate filtere.</p> : (
-          <div className="overflow-x-auto">
+          <>
+          <ul className="divide-y divide-gray-100 text-sm md:hidden">
+            {ist.data.map((d) => (
+              <li key={d.id} className="py-2">
+                <p className="text-xs text-gray-500">{formatirajVreme(d.at)} · {d.sablon}{d.verzija && ` v${d.verzija}`} · {d.korisnik}</p>
+                <p className="break-words">{d.opis}</p>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto md:block">
             <table className={cn('w-full text-sm', ist.isFetching && 'opacity-60')}>
               <thead className="text-xs text-gray-500"><tr><th className="px-2 py-2 text-left">Vreme</th><th className="px-2 py-2 text-left">Šablon</th><th className="px-2 py-2 text-left">Verzija</th><th className="px-2 py-2 text-left">Opis</th><th className="px-2 py-2 text-left">Ko</th></tr></thead>
               <tbody className="divide-y divide-gray-100">
@@ -395,6 +404,7 @@ export function IstorijatTab() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </CardBody>
     </Card>

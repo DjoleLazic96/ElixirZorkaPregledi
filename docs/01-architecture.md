@@ -20,7 +20,7 @@
 | Projekat | Odgovornost | Ključni fajlovi |
 |---|---|---|
 | `TpmPregledi.Domain` | entiteti i bazne klase; Identity tipovi; konstante rola | `Common/AuditableEntity.cs`, `SoftDeletableEntity.cs`, `AuditableAttribute.cs`; `Entities/Oprema.cs`, `Sabloni.cs`, `AuditLog.cs`; `Identity/ApplicationUser.cs`, `RefreshToken.cs`, `Roles.cs` |
-| `TpmPregledi.Application` | komande/upiti/handleri po feature-u; interfejsi; validacija; izuzeci; paginacija | `Features/{Auth,Korisnici,Audit,ServerStanje,Version,Sekcije,Podesavanja,Uredjaji,Aktivnosti,DodatnaPolja,Sabloni,Raspored}/`; pravila rasporeda bez baze u `Domain/Entities/RasporedPravila.cs`; izveštaji u `Infrastructure/Izvestaji/IzvestajPregleda.cs` (QuestPDF, OpenXML, ClosedXML); rad bez interneta: PWA (`vite-plugin-pwa`), IndexedDB i red za slanje u `frontend/src/offline/` (paket `GET /moj-paket` sa ETag-om, lokalna primena operacija, slanje na `online` i svakih 60 s); popunjavanje kroz operacije (`Features/Popunjavanje`, `POST /sinhronizacija`, idempotentno po `opId`); fajlovi na volumenu `Fajlovi:Putanja` (`Infrastructure/Fajlovi/FajlSkladiste.cs`); frontend ispod 768 px ima donji meni (`app/layout/Sidebar.tsx` `DonjiMeni`, stavke u `nav.ts`); pozadinski posao `Infrastructure/Poslovi/PrenosPropustenogDpPosao.cs` (BackgroundService, svakog minuta proverava kraj radnog dana); `Common/Behaviors/ValidationBehavior.cs`; `Common/Exceptions/AppExceptions.cs`; `Common/Pagination/StranicaDto.cs`; `Common/DatumHelper.cs`; `Common/Interfaces/*` |
+| `TpmPregledi.Application` | komande/upiti/handleri po feature-u; interfejsi; validacija; izuzeci; paginacija | `Features/{Auth,Korisnici,Audit,ServerStanje,Version,Sekcije,Podesavanja,Uredjaji,Aktivnosti,DodatnaPolja,Sabloni,Raspored,Popunjavanje,Pregledi,Akcije,Analitika,Obavestenja}/`; pravila rasporeda bez baze u `Domain/Entities/RasporedPravila.cs`; izveštaji u `Infrastructure/Izvestaji/IzvestajPregleda.cs` (QuestPDF, OpenXML, ClosedXML); rad bez interneta: PWA (`vite-plugin-pwa`), IndexedDB i red za slanje u `frontend/src/offline/` (paket `GET /moj-paket` sa ETag-om, lokalna primena operacija, slanje na `online` i svakih 60 s); popunjavanje kroz operacije (`Features/Popunjavanje`, `POST /sinhronizacija`, idempotentno po `opId`); fajlovi na volumenu `Fajlovi:Putanja` (`Infrastructure/Fajlovi/FajlSkladiste.cs`); frontend ispod 768 px ima donji meni (`app/layout/Sidebar.tsx` `DonjiMeni`, stavke u `nav.ts`); pozadinski posao `Infrastructure/Poslovi/PrenosPropustenogDpPosao.cs` (BackgroundService, svakog minuta proverava kraj radnog dana); `Common/Behaviors/ValidationBehavior.cs`; `Common/Exceptions/AppExceptions.cs`; `Common/Pagination/StranicaDto.cs`; `Common/DatumHelper.cs`; `Common/Interfaces/*` |
 | `TpmPregledi.Infrastructure` | EF Core + Postgres; Identity/JWT; audit; hardver; vreme; verzija | `Persistence/AppDbContext.cs`, `Interceptors/AuditSaveChangesInterceptor.cs`, `Migrations/`, `Seed/SeedData.cs`; `Identity/JwtTokenService.cs`, `CurrentUserService.cs`; `Audit/AuditDogadjaji.cs`; `ServerStanje/*`; `Time/SystemDateTimeProvider.cs`; `Version/AppVersion.cs`; `DependencyInjection.cs` |
 | `TpmPregledi.Api` | kompozicioni koren, endpointi, middleware | `Program.cs`; `Endpoints/*Endpoints.cs`; `Middleware/ExceptionHandlingMiddleware.cs` |
 
@@ -63,7 +63,7 @@ HTTP → ForwardedHeaders → HSTS → sigurnosni hederi → Serilog request log
 
 React 19 + TS + Vite 8 + Tailwind 4; React Router 7; TanStack Query 5; axios. `src/`: `api/` (klijent + tipovi), `app/` (rute, layout,
 provideri), `components/` (ui kit + Zasticeno, ErrorBoundary, NijePronadjeno, OAplikaciji, PromenaLozinke), `features/` (auth, sabloni —
-PRIMER, admin/korisnici, audit-log, stanje-servera), `lib/` (cn, permissions, apiError, datum, broj, period, download, verzija).
+PRIMER, admin, audit-log, stanje-servera, raspored, popunjavanje, pregledi, akcije, analitika, obavestenja), `lib/` (cn, permissions, apiError, datum, broj, period, download, verzija).
 Backend je autoritativan za pristup; frontend ogleda (`Zasticeno` na svakoj ruti, `NAV visibleIf`). Dev: Vite proxy `/api` → `:8080`.
 
 ## 7. Dualnost imenovanja
@@ -83,6 +83,19 @@ Greška → `Log.Fatal` + exit 1.
 Privatni Postgres `.local-pg-data` na `55434` (`scripts/dev-db-init.cmd`), `dotnet run --project src/TpmPregledi.Api` (:8080, Scalar na `/swagger`),
 `npm run dev` (:5173). Dev nalog `admin` / `DevTpmPregledi2026!`.
 
-## 10. Deploy
+## 10. Rad bez interneta, pozadinski poslovi, fajlovi, obaveštenja
 
-`deploy/README.md`. Compose u korenu, Traefik `proxy-net`, `data/` jedini bind mount, image kao tar, `deploy/scripts/deploy.sh`.
+| Šta | Gde | Kako |
+|---|---|---|
+| PWA | `vite.config.ts` (`vite-plugin-pwa`), `public/push-sw.js` | app shell u service worker-u; API se nikad ne kešira; `push-sw.js` prikazuje push i otvara rutu na klik |
+| Rad bez interneta | `frontend/src/offline/` (Dexie) | `GET /moj-paket` (ETag) puni IndexedDB pregledima za danas i 7 dana; operacije idu u red, lokalno se primenjuju (`lokalno.ts`) i šalju na `POST /sinhronizacija` (idempotentno po `opId`) na `online` i svakih 60 s |
+| Pravila | `Domain/Entities/*Pravila.cs`, `AktivnoVreme` | čiste funkcije bez baze — opis i primeri u `docs/05-pravila-pregleda.md` |
+| Pozadinski poslovi | `Infrastructure/Poslovi/` (`BackgroundService`, bez Hangfire/Quartz) | `PrenosPropustenogDpPosao` (posle kraja radnog dana); `ObavestenjaPosao`: isporuka push-a i mejla na 15 s, zakazane provere i aktivacija zakazanih verzija šablona jednom u minutu — sve idempotentno |
+| Obaveštenja | `Features/Obavestenja` | `Obavesti.DodajAsync` upisuje u `obavestenje` u istoj transakciji (outbox); posao isporuke šalje Web Push (`WebPush`, VAPID iz `Push:*` ili `data/vapid.json`) i mejl (`GraphMejlSlanje`; bez `Graph:*` samo log) |
+| Fajlovi | `Infrastructure/Fajlovi/FajlSkladiste.cs` | fotografije i slike uputstava na volumenu `/app/data` (`Fajlovi:Putanja`), u bazi samo putanja i SHA-256; backup `fajlovi-*.tgz` |
+| Izveštaji | `Infrastructure/Izvestaji/IzvestajPregleda.cs` | PDF (QuestPDF), Word (OpenXML), Excel (ClosedXML) |
+
+## 11. Deploy
+
+`deploy/README.md`. Compose u korenu, Traefik `proxy-net`, `data/` jedini bind mount (baza, logovi, Data Protection, fajlovi), image kao tar,
+`deploy/scripts/deploy.sh`. Nginx: CSP dozvoljava `blob:` slike (fotografije se prikazuju kroz API sa tokenom), service worker fajlovi `no-cache`.

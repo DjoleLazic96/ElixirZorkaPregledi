@@ -25,8 +25,9 @@ const buttonVariants = cva(
           'bg-red-500 text-white hover:bg-red-600 focus:ring-red-500',
       },
       size: {
-        sm: 'h-8 px-3 text-xs',
-        md: 'h-10 px-4 text-sm',
+        // Na telefonu dugme je najmanje 44 × 44 px (spec §8.1 t. 6); od md širine kompaktno kao u blueprintu.
+        sm: 'h-11 min-w-11 px-3 text-xs md:h-8 md:min-w-0',
+        md: 'h-11 px-4 text-sm md:h-10',
       },
     },
     defaultVariants: { variant: 'primary', size: 'md' },

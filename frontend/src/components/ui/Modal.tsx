@@ -123,7 +123,7 @@ export function Modal({ open, title, onClose, children, widthClass = 'max-w-md' 
           </h2>
           <button
             type="button"
-            className="rounded p-1 text-gray-500 hover:bg-gray-100"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded text-gray-500 hover:bg-gray-100 md:h-auto md:w-auto md:p-1"
             onClick={onClose}
             aria-label="Zatvori"
           >

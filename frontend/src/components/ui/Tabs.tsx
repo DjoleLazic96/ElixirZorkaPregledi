@@ -58,7 +58,7 @@ export function Tabs<K extends string>({
             tabIndex={aktivan ? 0 : -1}
             onClick={() => onChange(item.key)}
             className={cn(
-              '-mb-px border-b-2 px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
+              '-mb-px min-h-11 border-b-2 px-3 py-2 text-sm transition-colors md:min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
               aktivan
                 ? 'border-primary-500 font-medium text-primary-700'
                 : 'border-transparent text-gray-600 hover:text-gray-900',

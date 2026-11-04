@@ -1,7 +1,8 @@
 import { Eye, EyeOff } from 'lucide-react';
+import { adresaPovratka } from './povratak';
 import { Checkbox } from '../../components/ui/Checkbox';
 import { type FormEvent, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { NAZIV_APLIKACIJE } from '../../components/OAplikaciji';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody } from '../../components/ui/Card';
@@ -12,13 +13,14 @@ import { VERZIJA } from '../../lib/verzija';
 import { useAuth } from './AuthProvider';
 
 /**
- * Stranica za prijavu. Uspeh → `/` (AppRoutes vodi na landing). Greška iz
+ * Stranica za prijavu. Uspeh → adresa sa koje je korisnik došao (npr. QR nalepnica uređaja), inače Početna. Greška iz
  * `porukaGreske` (401 nosi istu generičku poruku za sve razloge — ne otkrivamo
  * da li korisnik postoji). Kad je sesija istekla, iznad forme stoji objašnjenje.
  */
 export function LoginPage() {
   const { login, sesijaIstekla } = useAuth();
   const navigate = useNavigate();
+  const povratak = adresaPovratka(useLocation().state);
 
   const [userName, setUserName] = useState('');
   const [password, setPassword] = useState('');
@@ -33,7 +35,7 @@ export function LoginPage() {
     setSaljem(true);
     try {
       await login(userName, password, zapamti);
-      navigate('/', { replace: true });
+      navigate(povratak, { replace: true });
     } catch (err) {
       setGreska(porukaGreske(err, 'Prijava nije uspela.'));
     } finally {

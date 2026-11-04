@@ -15,7 +15,7 @@ export function UputstvoDugme({ aktivnostId, aktivnost, smeDaMenja, offlineTekst
   return (
     <>
       <button type="button" aria-label={`Uputstvo — ${aktivnost}`} onClick={() => setOtvoreno(true)}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-primary-700">
+        className="inline-flex h-11 w-11 shrink-0 items-center md:h-7 md:w-7 justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-primary-700">
         <HelpCircle size={16} aria-hidden />
       </button>
       {otvoreno && <UputstvoDijalog aktivnostId={aktivnostId} aktivnost={aktivnost} smeDaMenja={smeDaMenja} offlineTekst={offlineTekst} onClose={() => setOtvoreno(false)} />}

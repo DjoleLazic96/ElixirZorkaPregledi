@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { adresaPovratka } from '../features/auth/povratak';
 import { NijePronadjeno } from '../components/NijePronadjeno';
 import { Ucitavanje } from '../components/ui/Spinner';
 import { Zasticeno } from '../components/Zasticeno';
@@ -29,10 +30,21 @@ import { AppLayout } from './layout/AppLayout';
 /**
  * Mapa ruta (blueprint 13 §4).
  *   - inicijalizacija → ceo ekran „Učitavanje…" (proverava se postojeća sesija)
- *   - neulogovan → samo /login, sve ostalo preusmerava tamo
+ *   - neulogovan → samo /login, sve ostalo preusmerava tamo (adresa se pamti i posle prijave otvara)
  *   - ulogovan → landing je Početna (/) za sve role; svaka ruta ima `Zasticeno`
  *     guard, a nepoznata adresa daje 404 stranicu (ne tihi redirect)
  */
+/** Neprijavljen korisnik ide na prijavu, a adresa koju je otvorio se pamti za povratak. */
+function NaPrijavu() {
+  const l = useLocation();
+  return <Navigate to="/login" replace state={{ od: l.pathname + l.search }} />;
+}
+
+/** Prijavljen korisnik na /login ide tamo odakle je došao, inače na Početnu. */
+function SaPrijave() {
+  return <Navigate to={adresaPovratka(useLocation().state)} replace />;
+}
+
 export function AppRoutes() {
   const { me, initializing } = useAuth();
 
@@ -42,7 +54,7 @@ export function AppRoutes() {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<NaPrijavu />} />
       </Routes>
     );
   }
@@ -51,7 +63,7 @@ export function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={<Navigate to={landing} replace />} />
+      <Route path="/login" element={<SaPrijave />} />
 
       <Route element={<AppLayout />}>
         <Route path="/" element={<DashboardPage />} />
