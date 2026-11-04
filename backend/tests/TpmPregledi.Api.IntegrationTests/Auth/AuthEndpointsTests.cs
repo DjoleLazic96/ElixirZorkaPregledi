@@ -82,7 +82,7 @@ public class AuthEndpointsTests(CustomWebAppFactory factory)
     [Fact]
     public async Task Pet_promasaja_zakljucava_nalog_pa_ni_tacna_lozinka_ne_prolazi()
     {
-        await factory.SeedUserAsync("lockout-user", "Lockout2026!", Roles.Korisnik);
+        await factory.SeedUserAsync("lockout-user", "Lockout2026!", Roles.Inzenjer);
         var client = factory.CreateClient();
 
         for (var i = 0; i < 5; i++)
@@ -160,7 +160,7 @@ public class AuthEndpointsTests(CustomWebAppFactory factory)
     public async Task Promena_lozinke_vraca_204_revokuje_stari_refresh_i_nova_lozinka_radi()
     {
         var ime = "promena-" + Guid.NewGuid().ToString("N")[..8];
-        await factory.SeedUserAsync(ime, "Stara2026!", Roles.Korisnik);
+        await factory.SeedUserAsync(ime, "Stara2026!", Roles.Inzenjer);
 
         var client = factory.CreateClientWithCookies();
         var login  = await LoginAsync(client, ime, "Stara2026!");

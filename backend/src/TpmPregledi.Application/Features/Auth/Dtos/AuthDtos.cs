@@ -8,11 +8,13 @@ namespace TpmPregledi.Application.Features.Auth.Dtos;
 /// <param name="ExpiresAt">UTC istek access tokena (frontend radi tihi refresh 60 s ranije).</param>
 /// <param name="User">Osnovni podaci o korisniku.</param>
 /// <param name="Roles">Role korisnika (uvek tačno jedna, ali ugovor ostaje niz).</param>
+/// <param name="Prava">Štiklirana prava (meni i dugmad na frontu; backend ih proverava sam).</param>
 public sealed record LoginResponse(
     string AccessToken,
     DateTime ExpiresAt,
     UserDto User,
-    IReadOnlyList<string> Roles);
+    IReadOnlyList<string> Roles,
+    IReadOnlyList<string> Prava);
 
 /// <summary>Sažet prikaz prijavljenog korisnika za UI (header, sidebar).</summary>
 /// <param name="Id">GUID korisnika.</param>

@@ -12,7 +12,7 @@ vi.mock('../../api/client', () => ({ api: { get: vi.fn(), post: vi.fn() } }));
 const logoutMock = vi.fn().mockResolvedValue(undefined);
 vi.mock('../../features/auth/AuthProvider', () => ({
   useAuth: () => ({
-    me: { user: { id: 'a1', userName: 'admin', fullName: 'Ana Anić', email: null }, roles: ['Admin'] },
+    me: { user: { id: 'a1', userName: 'admin', fullName: 'Ana Anić', email: null }, roles: ['Admin'], prava: ['korisnici', 'podesavanja'] },
     initializing: false,
     sesijaIstekla: false,
     login: vi.fn(),

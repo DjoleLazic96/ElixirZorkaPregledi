@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { Activity, ScrollText, Settings, Tag, type LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/cn';
-import { canSeeAdminSection, isAdmin } from '../../lib/permissions';
+import { canSeeAdminSection, isAdmin, type Pristup } from '../../lib/permissions';
 import { GIT_SHA, VERZIJA } from '../../lib/verzija';
 
 interface NavItem {
@@ -9,7 +9,7 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   /** Ako je undefined, stavka je vidljiva svim ulogovanim korisnicima. */
-  visibleIf?: (roles: readonly string[]) => boolean;
+  visibleIf?: (p: Pristup) => boolean;
 }
 
 const NAV: NavItem[] = [
@@ -22,14 +22,14 @@ const NAV: NavItem[] = [
 ];
 
 interface SidebarProps {
-  roles: readonly string[];
+  pristup: Pristup;
 }
 
 /**
  * Levi meni. Stavke bez prava se uopšte ne renderuju (ne `disabled`) — isti
  * `permissions.ts` filtrira i rute. Na dnu verzija (blueprint 11 §4), `title` = git SHA.
  */
-export function Sidebar({ roles }: SidebarProps) {
+export function Sidebar({ pristup }: SidebarProps) {
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-gray-200 bg-white">
       <div className="flex h-14 items-center border-b border-gray-200 px-5">
@@ -38,7 +38,7 @@ export function Sidebar({ roles }: SidebarProps) {
 
       <nav className="flex-1 overflow-y-auto p-3" aria-label="Glavna navigacija">
         <ul className="space-y-1">
-          {NAV.filter((i) => i.visibleIf === undefined || i.visibleIf(roles)).map((item) => (
+          {NAV.filter((i) => i.visibleIf === undefined || i.visibleIf(pristup)).map((item) => (
             <li key={item.to}>
               <NavLink
                 to={item.to}

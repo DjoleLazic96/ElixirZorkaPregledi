@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const r = await apiLogin(userName, password);
     setAccessToken(r.accessToken);
     setTokenExpiresAt(r.expiresAt);
-    setMe({ user: r.user, roles: r.roles });
+    setMe({ user: r.user, roles: r.roles, prava: r.prava });
     setSesijaIstekla(false);
   }, []);
 

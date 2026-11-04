@@ -4,7 +4,7 @@
  * definišu sopstvene oblike. Nema generatora koda (generatori daju nevažeći TS
  * za query parametar `do`), pa se izmena na backendu ručno preslikava ovde.
  */
-import type { Rola } from '../lib/permissions';
+import type { Pravo, Rola } from '../lib/permissions';
 
 // ─── Auth (tehničke rute, engleska polja — identične u svim aplikacijama) ──
 export interface UserDto {
@@ -20,11 +20,14 @@ export interface LoginResponse {
   expiresAt: string;
   user: UserDto;
   roles: string[];
+  prava: string[];
 }
 
 export interface CurrentUserResponse {
   user: UserDto;
   roles: string[];
+  /** Iz baze — mogu biti novija od onih u JWT-u (važe posle sledećeg osvežavanja tokena). */
+  prava: string[];
 }
 
 /** `POST /auth/change-password` → 204; 400 vraća `errors.currentPassword|newPassword`. */
@@ -71,6 +74,7 @@ export interface KorisnikDto {
   ime: string;
   email: string | null;
   rola: Rola;
+  prava: Pravo[];
   aktivan: boolean;
   /** ISO ili null ako se korisnik nikad nije prijavio. */
   poslednjaPrijava: string | null;
@@ -92,9 +96,36 @@ export interface KorisnikIzmenaInput {
   rola: Rola;
 }
 
+/** `PUT /korisnici/{id}/prava` — ceo novi skup. */
+export interface PostaviPravaInput {
+  prava: Pravo[];
+}
+
 /** `POST /korisnici/{id}/reset-lozinka` → 204 */
 export interface ResetLozinkaInput {
   novaLozinka: string;
+}
+
+// ─── Sekcije (`/sekcije`) ──────────────────────────────────────────────────
+export interface SekcijaDto {
+  id: number;
+  sifra: string;
+  naziv: string;
+}
+
+// ─── Podešavanja (`/podesavanja`, pravo „podesavanja“) ───────────────────
+/** Vremena su „HH:mm:ss“ (TimeOnly). */
+export interface PodesavanjaDto {
+  krajRadnogDana: string;
+  upozorenjeDp: string;
+  upozorenjePz: string;
+  dpNaDanPz: boolean;
+  granicaPauzeMin: number;
+  odstupanjeSataMin: number;
+  rokOvereSati: number;
+  ponovljeniKvarBroj: number;
+  ponovljeniKvarDana: number;
+  vanFunkcijeDana: number;
 }
 
 // ─── Audit log (`/audit`, Admin) ──────────────────────────────────────────

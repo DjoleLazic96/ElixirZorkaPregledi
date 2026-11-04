@@ -13,6 +13,8 @@ public static class EntitetLabele
     {
         ["ApplicationUser"] = "Korisnik",
         ["Kategorija"]      = "Kategorija",   // PRIMER feature-a — kopiraj ili obriši
+        ["KorisnikPravo"]   = "Pravo korisnika",
+        ["Podesavanje"]     = "Podešavanje",
         ["Auth"]            = "Prijava",
         ["Sistem"]          = "Sistem",
     };

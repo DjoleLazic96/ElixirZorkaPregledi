@@ -10,7 +10,7 @@ namespace TpmPregledi.Application.UnitTests.Korisnici;
 public class KorisnikValidatorsTests
 {
     private static KreirajKorisnikaCommand ValidKreiraj() =>
-        new("pera", "Pera Perić", "pera@test.local", "Korisnik2026!", "Korisnik");
+        new("pera", "Pera Perić", "pera@test.local", "Korisnik2026!", "Inzenjer");
 
     [Fact]
     public void Kreiraj_validan_prolazi()
@@ -43,7 +43,9 @@ public class KorisnikValidatorsTests
 
     [Theory]
     [InlineData("Admin")]
-    [InlineData("Korisnik")]
+    [InlineData("Inzenjer")]
+    [InlineData("Supervizor")]
+    [InlineData("Direktor")]
     public void Kreiraj_prihvata_dozvoljene_role(string rola)
         => new KreirajKorisnikaValidator().Validate(ValidKreiraj() with { Rola = rola }).IsValid.Should().BeTrue();
 

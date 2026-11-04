@@ -14,7 +14,7 @@ namespace TpmPregledi.Application.UnitTests.Audit;
 public class AuthAuditTests
 {
     private static LoginCommandHandler Handler(IdentityHarness h, FakeAuditDogadjaji audit, FakeJwtTokenService? jwt = null) =>
-        new(h.Users, jwt ?? new FakeJwtTokenService(), FakeCurrentUser.Anoniman, new FakeClock(), audit);
+        new(h.Users, jwt ?? new FakeJwtTokenService(), FakeCurrentUser.Anoniman, new FakeClock(), audit, h.Db);
 
     [Fact]
     public async Task Uspesna_prijava_belezi_LOGIN_jednom_i_cisti_neaktivne_tokene()

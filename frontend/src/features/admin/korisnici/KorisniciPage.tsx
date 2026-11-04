@@ -22,14 +22,17 @@ import {
   useIzmeniKorisnika,
   useKorisnici,
   useKreirajKorisnika,
+  usePostaviPrava,
   useResetLozinke,
 } from './hooks';
 import { KorisnikForm, type KorisnikFormResult } from './KorisnikForm';
+import { PravaDialog } from './PravaDialog';
+import type { Pravo } from '../../../lib/permissions';
 
 /**
  * Stranica „Korisnici" (Admin). Stranica drži mutacije, toastove i grešku forme;
  * `KorisnikForm` je prezentaciona i remontira se preko `key`. Deaktivacija i
- * aktivacija traže potvrdu; reset lozinke ide kroz zaseban mali modal.
+ * aktivacija traže potvrdu; reset lozinke i prava idu kroz zasebne male modale.
  */
 export function KorisniciPage() {
   const [prikaziNeaktivne, setPrikaziNeaktivne] = useState(false);
@@ -45,6 +48,21 @@ export function KorisniciPage() {
   const [uredjivan, setUredjivan] = useState<KorisnikDto | null>(null);
   const [formaGreska, setFormaGreska] = useState<string | null>(null);
   const [resetZa, setResetZa] = useState<KorisnikDto | null>(null);
+  const [pravaZa, setPravaZa] = useState<KorisnikDto | null>(null);
+  const [pravaGreska, setPravaGreska] = useState<string | null>(null);
+  const postaviPrava = usePostaviPrava();
+
+  async function sacuvajPrava(prava: Pravo[]) {
+    if (!pravaZa) return;
+    setPravaGreska(null);
+    try {
+      await postaviPrava.mutateAsync({ id: pravaZa.id, input: { prava } });
+      toast.success('Prava su sačuvana.');
+      setPravaZa(null);
+    } catch (err) {
+      setPravaGreska(porukaGreske(err, 'Čuvanje prava nije uspelo.'));
+    }
+  }
 
   function otvoriFormu(k: KorisnikDto | null) {
     setUredjivan(k);
@@ -139,6 +157,7 @@ export function KorisniciPage() {
                     <th className="px-3 py-2 font-medium">Ime</th>
                     <th className="px-3 py-2 font-medium">E-mail</th>
                     <th className="px-3 py-2 font-medium">Rola</th>
+                    <th className="px-3 py-2 font-medium">Prava</th>
                     <th className="px-3 py-2 font-medium">Status</th>
                     <th className="px-3 py-2 font-medium">Poslednja prijava</th>
                     <th className="px-3 py-2 text-right font-medium">Akcije</th>
@@ -151,6 +170,7 @@ export function KorisniciPage() {
                       <td className="px-3 py-2 text-gray-700">{k.ime}</td>
                       <td className="px-3 py-2 text-gray-700">{k.email ?? '—'}</td>
                       <td className="px-3 py-2 text-gray-700">{ROLA_LABELE[k.rola] ?? k.rola}</td>
+                      <td className="px-3 py-2 text-gray-700">{k.prava.length}</td>
                       <td className="px-3 py-2">
                         {k.aktivan ? <Badge tone="primary">Aktivan</Badge> : <Badge tone="gray">Neaktivan</Badge>}
                       </td>
@@ -164,6 +184,16 @@ export function KorisniciPage() {
                         <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="sm" onClick={() => otvoriFormu(k)}>
                             Izmeni
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setPravaGreska(null);
+                              setPravaZa(k);
+                            }}
+                          >
+                            Prava
                           </Button>
                           <Button
                             variant="ghost"
@@ -208,6 +238,17 @@ export function KorisniciPage() {
       )}
 
       {resetZa && <ResetLozinkeModal korisnik={resetZa} onClose={() => setResetZa(null)} />}
+
+      {pravaZa && (
+        <PravaDialog
+          key={pravaZa.id}
+          korisnik={pravaZa}
+          saving={postaviPrava.isPending}
+          greska={pravaGreska}
+          onSubmit={(p) => void sacuvajPrava(p)}
+          onClose={() => setPravaZa(null)}
+        />
+      )}
     </Card>
   );
 }

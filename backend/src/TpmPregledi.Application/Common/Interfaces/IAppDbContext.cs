@@ -19,6 +19,18 @@ public interface IAppDbContext
     /// <summary>Audit log (append-only).</summary>
     DbSet<AuditLog> AuditLog { get; }
 
+    /// <summary>Prava korisnika (štikliranje, R1.6).</summary>
+    DbSet<KorisnikPravo> KorisnikPrava { get; }
+
+    /// <summary>Sekcije pogona (10…70).</summary>
+    DbSet<Sekcija> Sekcije { get; }
+
+    /// <summary>Brojači brojeva pregleda, akcija i kvarova.</summary>
+    DbSet<Brojac> Brojaci { get; }
+
+    /// <summary>Podešavanja aplikacije (ključ → JSON).</summary>
+    DbSet<Podesavanje> Podesavanja { get; }
+
     /// <summary>PRIMER feature-a — kopiraj ili obriši: šifarnik kategorija.</summary>
     DbSet<Kategorija> Kategorije { get; }
 

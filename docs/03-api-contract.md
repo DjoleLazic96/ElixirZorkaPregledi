@@ -33,19 +33,33 @@ Isto za korisnike: zauzeto korisničko ime → 422. 409 je rezervisan za konkure
 | POST | `/auth/login` | anonimno, `auth-login` 10/min | `{ userName, password }` → `LoginResponse` + Set-Cookie |
 | POST | `/auth/refresh` | cookie, `auth-refresh` 30/min | rotacija → `LoginResponse` |
 | POST | `/auth/logout` | Authenticated | revokacija + brisanje cookie-ja → 204 |
-| GET | `/auth/me` | Authenticated | `{ user, roles }` |
+| GET | `/auth/me` | Authenticated | `{ user, roles, prava }` (prava iz baze) |
 | POST | `/auth/change-password` | Authenticated | `{ currentPassword, newPassword }` → 204; 400 `errors.currentPassword` / `errors.newPassword` |
 
-### `/korisnici` (RequireAdmin)
+### `/korisnici` (pravo `korisnici`)
 | Metod | Ruta | Svrha |
 |---|---|---|
 | GET | `/korisnici?aktivan=` | niz `KorisnikDto` |
 | POST | `/korisnici` | `KorisnikInput` + `lozinka` → 201 |
-| PUT | `/korisnici/{id}` | `{ ime, email?, rola }` → 200 |
+| PUT | `/korisnici/{id}` | `{ ime, email?, rola }` → 200; promena role vraća podrazumevana prava nove role |
+| PUT | `/korisnici/{id}/prava` | `{ prava[] }` → 200 `KorisnikDto`; 400 nepoznato pravo; 422 „samo Inženjer popunjava“, „ne možete sebi oduzeti upravljanje korisnicima“; revokuje refresh tokene |
 | POST | `/korisnici/{id}/deaktiviraj` · `/aktiviraj` | 200 `KorisnikDto`; 422 guardovi |
 | POST | `/korisnici/{id}/reset-lozinka` | `{ novaLozinka }` → 204; 400 politika lozinke |
 
 Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivirati sopstveni nalog.", „Ne možete ukloniti rolu Administrator poslednjem aktivnom administratoru.", „Ne možete deaktivirati poslednjeg aktivnog administratora."
+
+`KorisnikDto` ima i `prava[]`. `LoginResponse` (login, refresh) ima `prava[]`; JWT nosi claim `pravo` (više vrednosti).
+
+### `/sekcije` (RequireKorisnik)
+| Metod | Ruta | Svrha |
+|---|---|---|
+| GET | `/sekcije` | `[{ id, sifra, naziv }]` po redosledu |
+
+### `/podesavanja` (pravo `podesavanja`)
+| Metod | Ruta | Svrha |
+|---|---|---|
+| GET | `/podesavanja` | `PodesavanjaDto` (vremena „HH:mm:ss“) |
+| PUT | `/podesavanja` | ceo `PodesavanjaDto` → 200; 400 van opsega (npr. granica pauze 1–240 min) |
 
 ### `/audit` (RequireAdmin)
 | Metod | Ruta | Svrha |

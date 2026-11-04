@@ -33,7 +33,7 @@ describe('KorisnikForm', () => {
     expect(screen.getByText('E-mail adresa nije ispravna.')).toBeInTheDocument();
   });
 
-  it('poziva onSubmit sa validnim podacima; podrazumevana rola je Korisnik, prazan e-mail → null', async () => {
+  it('poziva onSubmit sa validnim podacima; podrazumevana rola je Inženjer, prazan e-mail → null', async () => {
     const onSubmit = renderNova();
     await userEvent.type(screen.getByLabelText('Korisničko ime'), 'petar');
     await userEvent.type(screen.getByLabelText('Ime i prezime'), 'Petar Petrović');
@@ -45,7 +45,7 @@ describe('KorisnikForm', () => {
       ime: 'Petar Petrović',
       email: null,
       lozinka: 'Lozinka12',
-      rola: 'Korisnik',
+      rola: 'Inzenjer',
     });
   });
 
@@ -66,6 +66,7 @@ describe('KorisnikForm', () => {
       ime: 'Petar Petrović',
       email: 'petar@elixirgroup.rs',
       rola: 'Admin',
+      prava: [],
       aktivan: true,
       poslednjaPrijava: null,
     };

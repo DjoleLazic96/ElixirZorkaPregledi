@@ -11,7 +11,7 @@ vi.mock('../../api/client', () => ({ api: { get: vi.fn(), post: vi.fn(), put: vi
 let roles: string[] = ['Admin'];
 vi.mock('../auth/AuthProvider', () => ({
   useAuth: () => ({
-    me: { user: { id: 'a1', userName: 'admin', fullName: 'Admin', email: null }, roles },
+    me: { user: { id: 'a1', userName: 'admin', fullName: 'Admin', email: null }, roles, prava: [] },
     initializing: false,
     sesijaIstekla: false,
     login: vi.fn(),
@@ -128,8 +128,8 @@ describe('KategorijePage — prava i akcije', () => {
     vi.mocked(api.get).mockResolvedValue(odgovor(STRANICA));
   });
 
-  it('Korisnik ne vidi dugme „Nova kategorija" ni kolonu sa akcijama', async () => {
-    roles = ['Korisnik'];
+  it('Inženjer ne vidi dugme „Nova kategorija" ni kolonu sa akcijama', async () => {
+    roles = ['Inzenjer'];
     renderSaProviderima(<KategorijePage />, { ruta: '/kategorije' });
     await screen.findByText('Sirovine');
     expect(screen.queryByRole('button', { name: 'Nova kategorija' })).not.toBeInTheDocument();

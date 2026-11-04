@@ -3,13 +3,14 @@ import { NijePronadjeno } from '../components/NijePronadjeno';
 import { Ucitavanje } from '../components/ui/Spinner';
 import { Zasticeno } from '../components/Zasticeno';
 import { AdminLayout } from '../features/admin/AdminLayout';
+import { PodesavanjaPage } from '../features/admin/podesavanja/PodesavanjaPage';
 import { KorisniciPage } from '../features/admin/korisnici/KorisniciPage';
 import { AuditLogPage } from '../features/audit-log/AuditLogPage';
 import { useAuth } from '../features/auth/AuthProvider';
 import { LoginPage } from '../features/auth/LoginPage';
 import { KategorijePage } from '../features/kategorije/KategorijePage';
 import { StanjeServeraPage } from '../features/stanje-servera/StanjeServeraPage';
-import { isAdmin, isKorisnik } from '../lib/permissions';
+import { canSeeAdminSection, imaPravo, isAdmin, isKorisnik } from '../lib/permissions';
 import { AppLayout } from './layout/AppLayout';
 
 /**
@@ -33,7 +34,6 @@ export function AppRoutes() {
     );
   }
 
-  const roles = me.roles;
   const landing = '/kategorije';
 
   return (
@@ -46,7 +46,7 @@ export function AppRoutes() {
         <Route
           path="/kategorije"
           element={
-            <Zasticeno allowed={isKorisnik(roles)} landing={landing}>
+            <Zasticeno allowed={isKorisnik(me)} landing={landing}>
               <KategorijePage />
             </Zasticeno>
           }
@@ -55,20 +55,35 @@ export function AppRoutes() {
         <Route
           path="/admin"
           element={
-            <Zasticeno allowed={isAdmin(roles)} landing={landing}>
+            <Zasticeno allowed={canSeeAdminSection(me)} landing={landing}>
               <AdminLayout />
             </Zasticeno>
           }
         >
-          <Route index element={<Navigate to="korisnici" replace />} />
-          <Route path="korisnici" element={<KorisniciPage />} />
+          <Route index element={<Navigate to={imaPravo(me, 'korisnici') ? 'korisnici' : 'podesavanja'} replace />} />
+          <Route
+            path="korisnici"
+            element={
+              <Zasticeno allowed={imaPravo(me, 'korisnici')} landing={landing}>
+                <KorisniciPage />
+              </Zasticeno>
+            }
+          />
+          <Route
+            path="podesavanja"
+            element={
+              <Zasticeno allowed={imaPravo(me, 'podesavanja')} landing={landing}>
+                <PodesavanjaPage />
+              </Zasticeno>
+            }
+          />
         </Route>
 
         {/* Dijagnostika je u levom meniju, van AdminLayout tabova. */}
         <Route
           path="/audit-log"
           element={
-            <Zasticeno allowed={isAdmin(roles)} landing={landing}>
+            <Zasticeno allowed={isAdmin(me)} landing={landing}>
               <AuditLogPage />
             </Zasticeno>
           }
@@ -76,7 +91,7 @@ export function AppRoutes() {
         <Route
           path="/stanje-servera"
           element={
-            <Zasticeno allowed={isAdmin(roles)} landing={landing}>
+            <Zasticeno allowed={isAdmin(me)} landing={landing}>
               <StanjeServeraPage />
             </Zasticeno>
           }

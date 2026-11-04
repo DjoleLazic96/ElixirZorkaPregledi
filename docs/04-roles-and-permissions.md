@@ -1,61 +1,90 @@
 # 04 — Role i pristupna prava
 
-> Stvarno stanje koda. Standard: Elixir blueprint 07. **Backend je autoritativan; frontend ogleda** (`Zasticeno` na rutama, `NAV visibleIf`).
+> Stvarno stanje koda. Standard: Elixir blueprint 07, uz odstupanje „četiri role i prava štikliranjem“ (`docs/odluke.md`, 2026-11-04).
+> **Backend je autoritativan; frontend ogleda** (`Zasticeno` na rutama, `NAV visibleIf`, tabovi Administracije).
 
 ## 1. Role
 
 | Rola (kod/žica) | Labela u UI | Namena |
 |---|---|---|
-| `Admin` | Administrator | sve, uključujući korisnike, audit log, stanje servera, izmene šifarnika |
-| `Korisnik` | Korisnik | čita šifarnike i radi u aplikaciji; ne administrira |
+| `Inzenjer` | Inženjer | radi preglede na telefonu (jedini koji popunjava, R1.8) |
+| `Supervizor` | Supervizor | raspored, overa, dorada, odsustva, akcije |
+| `Direktor` | Direktor | sve što i Supervizor, plus šabloni i objava |
+| `Admin` | Administrator | korisnici, prava, podešavanja, audit log, stanje servera |
 
-Tačno jedna rola po korisniku (`rola` u `KorisnikDto`; login/me vraćaju `roles: []` sa jednim elementom). Konstante: `Domain/Identity/Roles.cs`.
+Tačno jedna rola po korisniku. Rola određuje **samo podrazumevani skup prava** pri kreiranju naloga i pri promeni role;
+šta korisnik sme proverava se po pravu. Konstante: `Domain/Identity/Roles.cs`, `Domain/Identity/Prava.cs`.
 
-## 2. Politike (`Program.cs`)
+## 2. Prava i podrazumevani skup (R1.5)
 
-| Politika | Role |
+| Pravo | Labela | Inženjer | Supervizor | Direktor | Admin |
+|---|---|---|---|---|---|
+| `pregledi.popunjavanje` | Popunjavanje pregleda | ✔ | — | — | — |
+| `analitika` | Analitika | ✔ | ✔ | ✔ | ✔ |
+| `overa` | Overa, dorada i poništavanje pregleda | — | ✔ | ✔ | — |
+| `raspored.uredjivanje` | Raspored i PZ | — | ✔ | ✔ | — |
+| `odsustva.odobravanje` | Odsustva | — | ✔ | ✔ | — |
+| `akcije.zatvaranje` | Zatvaranje i dodela akcija | — | ✔ | ✔ | — |
+| `sabloni.nacrt` | Registar opreme i nacrt šablona | — | — | ✔ | ✔ |
+| `sabloni.objava` | Objava šablona | — | — | ✔ | — |
+| `neradni_dani` | Neradni dani | — | — | ✔ | ✔ |
+| `korisnici` | Korisnici i prava | — | — | — | ✔ |
+| `podesavanja` | Podešavanja | — | — | — | ✔ |
+
+Admin štiklira prava po korisniku (`PUT /korisnici/{id}/prava`). Čitanje pregleda, neispravnosti, uređaja i analitike je za sve
+ulogovane (R1.7).
+
+## 3. Politike (`Program.cs`)
+
+| Politika | Uslov |
 |---|---|
-| `RequireAdmin` | Admin |
-| `RequireKorisnik` | Admin, Korisnik |
+| `Pravo:<pravo>` | claim `pravo` sa tom vrednošću (po jedna politika za svako pravo iz `Prava.Sva`) |
+| `RequireAdmin` | rola Admin — samo sistemski ekrani skeleta (audit log, stanje servera) i primer `kategorije` |
+| `RequireKorisnik` | bilo koja od četiri role |
 | `Authenticated` | bilo koji ulogovan |
 
-## 3. Matrica
+Prava su u JWT-u (claim `pravo`), pa ih politika proverava bez upita u bazu. Promena prava (i role) revokuje refresh tokene
+korisnika: nova prava važe najkasnije kad istekne trenutni access token (15 min). Isti prihvaćen rizik kao za role.
 
-| Resurs / akcija | Korisnik | Admin | Politika endpointa |
-|---|---|---|---|
-| Prijava, refresh, odjava, `/me`, promena sopstvene lozinke | ✔ | ✔ | anonimno / Authenticated |
-| `/version`, `/health*` | ✔ (i anonimno) | ✔ | anonimno |
-| Kategorije — čitanje | ✔ | ✔ | RequireKorisnik |
-| Kategorije — kreiranje, izmena, deaktivacija, aktivacija | — | ✔ | RequireAdmin |
-| Korisnici — sve | — | ✔ | RequireAdmin |
-| Audit log | — | ✔ | RequireAdmin |
-| Stanje servera | — | ✔ | RequireAdmin |
+## 4. Matrica ruta
 
-Frontend: `Korisnik` vidi u meniju samo Kategorije (bez dugmeta „Nova kategorija" i akcija); `/admin/*`, `/audit-log`, `/stanje-servera` ga preusmeravaju na landing (`/kategorije`).
+| Resurs / akcija | Politika endpointa |
+|---|---|
+| Prijava, refresh, odjava, `/me`, promena sopstvene lozinke | anonimno / Authenticated |
+| `/version`, `/health*` | anonimno |
+| Sekcije — čitanje | RequireKorisnik |
+| Korisnici i prava — sve | `Pravo:korisnici` |
+| Podešavanja — čitanje i izmena | `Pravo:podesavanja` |
+| Audit log, stanje servera | RequireAdmin |
+| Kategorije (primer, briše se u fazi 02) — čitanje / izmene | RequireKorisnik / RequireAdmin |
 
-## 4. Zaštite pri upravljanju korisnicima (`KorisnikGuards.cs`, sve → 422 `greske[]`)
+Frontend: „Administracija“ se vidi uz pravo `korisnici` ili `podesavanja`; tab „Korisnici“ uz `korisnici`, tab „Podešavanja“ uz `podesavanja`.
+
+## 5. Zaštite pri upravljanju korisnicima (`KorisnikGuards.cs`, sve → 422 `greske[]`)
 
 1. „Ne možete promeniti sopstvenu rolu."
-2. „Ne možete deaktivirati sopstveni nalog."
-3. „Ne možete ukloniti rolu Administrator poslednjem aktivnom administratoru."
+2. „Ne možete deaktivirati sami sebe."
+3. „Ne možete skinuti rolu Admin poslednjem aktivnom administratoru."
 4. „Ne možete deaktivirati poslednjeg aktivnog administratora."
+5. „Pravo „Popunjavanje pregleda“ može da ima samo Inženjer." (R1.8)
+6. „Ne možete sebi oduzeti pravo upravljanja korisnicima." (sprečava da se Admin zaključa)
 
-Redosled pri promeni role: prvo dodaj novu, pa skini staru. Poznato ograničenje: read-then-mutate bez row lock-a (TOCTOU) — prihvaćen rizik (`SECURITY.md`).
-Guardovi 3 i 4 su kroz API dostižni samo sa još važećim JWT-om deaktiviranog admina (do 15 min): aktivan akter koji nije cilj znači da postoje
-bar dva aktivna admina. Ostaju kao odbrana u dubinu i tako su integraciono testirani.
+Redosled pri promeni role: prvo dodaj novu, pa skini staru, pa podrazumevana prava nove role. Poznato ograničenje: read-then-mutate
+bez row lock-a (TOCTOU) — prihvaćen rizik (`SECURITY.md`).
 
-## 5. Lozinke i sesija
+## 6. Lozinke i sesija
 
 Politika: min 8, cifra, veliko i malo slovo. Lockout 5 pokušaja / 10 min. Neuspešna prijava uvek vraća istu poruku i piše `LOGIN_FAIL` u audit.
-Access token 15 min; refresh 7 dana sa rotacijom; reset lozinke (admin), promena lozinke, deaktivacija i promena role revokuju sve refresh tokene.
-Korisničko ime je nepromenljivo; korisnici se ne brišu nego deaktiviraju.
+Access token 15 min; refresh 7 dana sa rotacijom; reset lozinke (admin), promena lozinke, deaktivacija, promena role i promena prava revokuju
+sve refresh tokene. Korisničko ime je nepromenljivo; korisnici se ne brišu nego deaktiviraju.
 
-## 6. Inicijalni admin
+## 7. Inicijalni admin
 
-`Admin__InitialUsername/Email/Password` iz `.env`; seed samo ako nijedan admin ne postoji; odbija praznu ili `Admin123!`. Posle prvog deploy-a
-admin menja lozinku (korisnički meni → Promena lozinke).
+`Admin__InitialUsername/Email/Password` iz `.env`; seed samo ako nijedan admin ne postoji; odbija praznu ili `Admin123!`. Pri startu nalog bez
+ijednog prava dobija podrazumevana prava svoje role (tako i inicijalni admin). Posle prvog deploy-a admin menja lozinku.
 
-## 7. Dodavanje nove role
+## 8. Dodavanje novog prava
 
-`Roles.cs` → politika u `Program.cs` → `.RequireAuthorization` na rutama → ova matrica → `AuthorizationPolicyTests` → frontend `lib/permissions.ts`
-(`type Rola`, labela, `can…`) → `NAV visibleIf` → `Zasticeno` → radio u `KorisnikForm` → testovi → `docs/user/01-prijava-i-role.md`. Bez migracije podataka.
+`Prava.cs` (konstanta + `Sva` + `Podrazumevana`) → politika se pravi sama iz `Prava.Sva` → `.RequireAuthorization(PravoPolitika.Za(...))` na rutama →
+ova matrica → `AuthorizationMatrixTests` → frontend `lib/permissions.ts` (`Pravo`, `PRAVA`, `PODRAZUMEVANA_PRAVA`) → `Zasticeno`/`NAV` →
+`docs/user/05-upravljanje-korisnicima.md`. Postojeći nalozi ga ne dobijaju sami — Admin ga štiklira.

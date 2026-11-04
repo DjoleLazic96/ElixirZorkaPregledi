@@ -22,6 +22,7 @@ public sealed record DeaktivirajKorisnikaCommand(string Id) : IRequest<KorisnikD
 public sealed class DeaktivirajKorisnikaHandler(
     UserManager<ApplicationUser> userManager,
     ICurrentUser currentUser,
+    IAppDbContext db,
     IJwtTokenService jwt)
     : IRequestHandler<DeaktivirajKorisnikaCommand, KorisnikDto>
 {
@@ -34,7 +35,7 @@ public sealed class DeaktivirajKorisnikaHandler(
         var rola = await KorisnikHelpers.RolaAsync(userManager, user);
 
         if (!user.IsActive)
-            return KorisnikDto.Od(user, rola);
+            return KorisnikDto.Od(user, rola, await KorisnikPrava.ProcitajAsync(db, user.Id, ct));
 
         KorisnikGuards.ZabraniSamodeaktivaciju(user.Id, currentUser.UserId);
 
@@ -50,6 +51,6 @@ public sealed class DeaktivirajKorisnikaHandler(
 
         await jwt.RevokeAllAsync(user.Id, ct);
 
-        return KorisnikDto.Od(user, rola);
+        return KorisnikDto.Od(user, rola, await KorisnikPrava.ProcitajAsync(db, user.Id, ct));
     }
 }

@@ -1,6 +1,7 @@
 using TpmPregledi.Application.Common.Exceptions;
 using TpmPregledi.Application.Common.Interfaces;
 using TpmPregledi.Application.Features.Auth.Dtos;
+using TpmPregledi.Application.Features.Korisnici;
 using TpmPregledi.Domain.Identity;
 using FluentValidation;
 using MediatR;
@@ -55,7 +56,8 @@ public sealed class LoginCommandHandler(
     IJwtTokenService jwt,
     ICurrentUser currentUser,
     IDateTimeProvider clock,
-    IAuditDogadjaji audit)
+    IAuditDogadjaji audit,
+    IAppDbContext db)
     : IRequestHandler<LoginCommand, LoginResult>
 {
     /// <inheritdoc />
@@ -94,7 +96,8 @@ public sealed class LoginCommandHandler(
                 AccessToken: pair.AccessToken,
                 ExpiresAt:   pair.AccessTokenExpiresAt,
                 User:        new UserDto(user.Id, user.UserName ?? "", user.FullName, user.Email),
-                Roles:       roles);
+                Roles:       roles,
+                Prava:       await KorisnikPrava.ProcitajAsync(db, user.Id, ct));
 
             await audit.PrijavaUspehAsync(user.Id, user.UserName ?? req.UserName, currentUser.IpAddress, ct);
 

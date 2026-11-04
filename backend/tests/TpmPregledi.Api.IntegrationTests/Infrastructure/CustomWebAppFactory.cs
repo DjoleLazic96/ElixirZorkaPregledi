@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Identity;
@@ -99,13 +100,13 @@ public sealed class CustomWebAppFactory : WebApplicationFactory<Program>, IAsync
     /// <summary>Korisnik sa rolom <c>Korisnik</c> (seed-uje ga pri prvom pozivu).</summary>
     public async Task<HttpClient> KorisnikClientAsync()
     {
-        await SeedUserAsync(KorisnikUserName, KorisnikPassword, Roles.Korisnik);
+        await SeedUserAsync(KorisnikUserName, KorisnikPassword, Roles.Inzenjer);
         return await AuthenticatedClientAsync(KorisnikUserName, KorisnikPassword);
     }
 
     // ─── Podaci ────────────────────────────────────────────────────────────
 
-    /// <summary>Kreira korisnika sa rolom kroz <see cref="UserManager{TUser}"/>; idempotentno.</summary>
+    /// <summary>Kreira korisnika sa rolom i podrazumevanim pravima te role (kao „Novi korisnik“ u aplikaciji); idempotentno.</summary>
     public async Task<ApplicationUser> SeedUserAsync(string userName, string password, string role)
     {
         await using var scope = Services.CreateAsyncScope();
@@ -133,6 +134,13 @@ public sealed class CustomWebAppFactory : WebApplicationFactory<Program>, IAsync
 
         if (!await users.IsInRoleAsync(user, role))
             await users.AddToRoleAsync(user, role);
+
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        if (!await db.KorisnikPrava.AnyAsync(p => p.KorisnikId == user.Id))
+        {
+            db.KorisnikPrava.AddRange(Prava.Podrazumevana(role).Select(p => new KorisnikPravo { KorisnikId = user.Id, Pravo = p }));
+            await db.SaveChangesAsync();
+        }
 
         return user;
     }

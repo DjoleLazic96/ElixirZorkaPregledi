@@ -21,11 +21,13 @@ import { AppRoutes } from './AppRoutes';
 
 const KORISNIK: CurrentUserResponse = {
   user: { id: 'u1', userName: 'pera', fullName: 'Pera Perić', email: null },
-  roles: ['Korisnik'],
+  roles: ['Inzenjer'],
+  prava: ['pregledi.popunjavanje', 'analitika'],
 };
 const ADMIN: CurrentUserResponse = {
   user: { id: 'a1', userName: 'admin', fullName: 'Administrator', email: null },
   roles: ['Admin'],
+  prava: ['analitika', 'sabloni.nacrt', 'neradni_dani', 'korisnici', 'podesavanja'],
 };
 
 function renderAt(ruta: string, me: CurrentUserResponse | null | undefined, initializing = false) {

@@ -6,7 +6,8 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
-- 
+- Četiri role: Inženjer, Supervizor, Direktor i Administrator; administrator svakom korisniku štiklira prava (**Administracija → Korisnici → Prava**).
+- **Administracija → Podešavanja**: vremena upozorenja, kraj radnog dana, granica pauze, rok za overu i pragovi obaveštenja.
 
 ### Izmenjeno
 - 
@@ -18,6 +19,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - 
 
 ### Napomene za nadogradnju
+- Postojeći nalozi sa rolom „Korisnik“ postaju „Inženjer“; nalozi bez prava dobijaju podrazumevana prava svoje role pri prvom startu.
 - 
 
 ## [0.1.0] — 2026-10-12

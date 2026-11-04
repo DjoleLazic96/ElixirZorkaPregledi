@@ -6,8 +6,8 @@ using TpmPregledi.Api.IntegrationTests.Infrastructure;
 namespace TpmPregledi.Api.IntegrationTests.Auth;
 
 /// <summary>
-/// Matrica prava za SVAKU zaštićenu rutu (blueprint 07 §4, 12 §3 #18): anoniman → 401, Korisnik na
-/// Admin ruti → 403, Korisnik na dozvoljenoj ruti i Admin svuda → ni 401 ni 403 (400/404/2xx je OK —
+/// Matrica prava za SVAKU zaštićenu rutu (blueprint 07 §4, 12 §3 #18): anoniman → 401, Inženjer (podrazumevana
+/// prava) na Admin ruti → 403, Inženjer na dozvoljenoj ruti i Admin svuda → ni 401 ni 403 (400/404/2xx je OK —
 /// ovde se testira samo autorizacija, ne telo). Nova ruta = novi red u <see cref="Rute"/>.
 /// </summary>
 [Collection(nameof(PostgresCollection))]
@@ -25,6 +25,11 @@ public class AuthorizationMatrixTests(CustomWebAppFactory factory)
         ("GET",  "/api/v1/auth/me",                            BiloKo),
         ("POST", "/api/v1/auth/logout",                        BiloKo),
         ("POST", "/api/v1/auth/change-password",               BiloKo),
+
+        ("GET",  "/api/v1/sekcije",                            Korisnik),
+        ("GET",  "/api/v1/podesavanja",                        Admin),
+        ("PUT",  "/api/v1/podesavanja",                        Admin),
+        ("PUT",  $"/api/v1/korisnici/{NemaId}/prava",          Admin),
 
         ("GET",  "/api/v1/korisnici",                          Admin),
         ("POST", "/api/v1/korisnici",                          Admin),

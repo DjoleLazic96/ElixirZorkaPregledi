@@ -15,6 +15,7 @@ const KORISNICI: KorisnikDto[] = [
     ime: 'Ana Anić',
     email: 'ana@elixirgroup.rs',
     rola: 'Admin',
+    prava: [],
     aktivan: true,
     poslednjaPrijava: new Date(Date.now() - 5 * 60_000).toISOString(),
   },
@@ -23,7 +24,8 @@ const KORISNICI: KorisnikDto[] = [
     korisnickoIme: 'pera',
     ime: 'Pera Perić',
     email: null,
-    rola: 'Korisnik',
+    rola: 'Inzenjer',
+    prava: [],
     aktivan: false,
     poslednjaPrijava: null,
   },
@@ -41,7 +43,7 @@ describe('KorisniciPage', () => {
 
     expect(await screen.findByText('Ana Anić')).toBeInTheDocument();
     expect(screen.getByText('Administrator')).toBeInTheDocument();
-    expect(screen.getByText('Korisnik')).toBeInTheDocument();
+    expect(screen.getByText('Inženjer')).toBeInTheDocument();
     expect(screen.getByText('Neaktivan')).toBeInTheDocument();
     expect(screen.getByText('pre 5 min')).toBeInTheDocument();
     expect(screen.getByText('nikad')).toBeInTheDocument();
@@ -87,7 +89,7 @@ describe('KorisniciPage', () => {
       ime: 'Mika Mikić',
       email: null,
       lozinka: 'Lozinka12',
-      rola: 'Korisnik',
+      rola: 'Inzenjer',
     });
     expect(await screen.findByText('Korisnik je kreiran.')).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { name: 'Novi korisnik' })).not.toBeInTheDocument();
@@ -101,7 +103,7 @@ describe('KorisniciPage', () => {
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Izmeni' })[0]);
     const dijalog = screen.getByRole('dialog', { name: 'Izmena korisnika' });
-    await userEvent.click(within(dijalog).getByRole('radio', { name: /^Korisnik/ }));
+    await userEvent.click(within(dijalog).getByRole('radio', { name: /^Inženjer/ }));
     await userEvent.click(within(dijalog).getByRole('button', { name: 'Sačuvaj' }));
 
     expect(await within(dijalog).findByText('Ne možete promeniti sopstvenu rolu.')).toBeInTheDocument();

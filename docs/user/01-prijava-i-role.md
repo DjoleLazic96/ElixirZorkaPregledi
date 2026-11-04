@@ -38,14 +38,16 @@ Ako ste zaboravili lozinku, obratite se administratoru — on može da postavi n
 
 ## 1.4 Šta vidi koja rola
 
-| Stavka u levom meniju | Korisnik | Administrator |
-|---|---|---|
-| Kategorije | ✔ (samo pregled) | ✔ (i izmene) |
-| Administracija | — | ✔ |
-| Audit log | — | ✔ |
-| Stanje servera | — | ✔ |
+Postoje četiri role: **Inženjer**, **Supervizor**, **Direktor** i **Administrator**. Rola daje početni skup prava, a administrator
+može svakom korisniku da doda ili oduzme pojedinačna prava (vidi poglavlje 5).
 
-Ako ne vidite stavku, Vaša rola nema pristup toj funkciji.
+| Stavka u levom meniju | Ko je vidi |
+|---|---|
+| Kategorije | svi (izmene samo Administrator) |
+| Administracija | ko ima pravo „Korisnici i prava“ ili „Podešavanja“ (podrazumevano Administrator) |
+| Audit log, Stanje servera | Administrator |
+
+Ako ne vidite stavku, nemate pravo za tu funkciju. Kad Vam administrator promeni prava, odjavite se i prijavite ponovo (ili sačekajte do 15 minuta).
 
 ## 1.5 O aplikaciji
 

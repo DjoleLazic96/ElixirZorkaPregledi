@@ -10,11 +10,16 @@
 | `AspNetUsers`, `AspNetRoles`, `AspNetUserRoles`, `AspNetUserClaims`… | ASP.NET Identity (imena tabela Identity-jeva, kolone snake_case) | Identity |
 | `refresh_token` | refresh tokeni (heš) | `ToTable` |
 | `audit_log` | audit zapisi | `ToTable` |
-| `kategorija` | **PRIMER šifarnika** — obrazac za domenske tabele; obriši kad ne treba | `ToTable` |
+| `korisnik_pravo` | štiklirana prava korisnika (R1.6) | `ToTable` |
+| `podesavanje` | podešavanja aplikacije (ključ → jsonb) | `ToTable` |
+| `brojac` | poslednji redni broj po vrsti i godini (`DP1-2026-0142`, `A-…`, `K-…`) | `ToTable` |
+| `sekcija` | sekcije pogona 10…70 (seed u migraciji) | `ToTable` |
+| `kategorija` | **PRIMER šifarnika** — briše se u fazi 02 | `ToTable` |
 
 ```
 AspNetUsers 1──* refresh_token (user_id, CASCADE)
 AspNetUsers ·· audit_log.user_id (bez FK — snapshot)
+AspNetUsers 1──* korisnik_pravo (korisnik_id, CASCADE)
 kategorija (samostalna)
 ```
 
@@ -54,6 +59,33 @@ Indeksi: `ix_audit_log_entity_entity_id`, `ix_audit_log_created_at` (DESC). Appe
 
 ## 3. Domenske tabele (srpske kolone)
 
+### `korisnik_pravo`
+| Kolona | Tip | Napomena |
+|---|---|---|
+| `korisnik_id` | text, PK, FK → `AspNetUsers` | |
+| `pravo` | varchar(64), PK | vrednost iz `Domain/Identity/Prava.cs`; `[Auditable]` |
+
+### `podesavanje`
+| Kolona | Tip | Napomena |
+|---|---|---|
+| `kljuc` | varchar(64), PK | ime svojstva `PodesavanjaDto` u camelCase-u (`granicaPauzeMin`…) |
+| `vrednost` | jsonb | ključ koji ne postoji uzima podrazumevanu vrednost iz `PodesavanjaDto.Podrazumevana`; `[Auditable]` |
+
+### `brojac`
+| Kolona | Tip | Napomena |
+|---|---|---|
+| `vrsta` | varchar(8), PK | `DP1`…`PZ4`, `A`, `K` |
+| `godina` | int, PK | |
+| `poslednji` | int | dodela: `INSERT … ON CONFLICT DO UPDATE … RETURNING` u transakciji zapisa (`BrojacService`) |
+
+### `sekcija`
+| Kolona | Tip | Napomena |
+|---|---|---|
+| `id` | int identity | |
+| `sifra` | varchar(8), `ux_sekcija_sifra` | 10, 20, 21, 30, 40, 50, 60, 70 (`HasData`) |
+| `naziv` | varchar(100) | „Sekcija 21“ |
+| `redosled` | int | |
+
 ### `kategorija` — PRIMER
 | Kolona | Tip | Napomena |
 |---|---|---|
@@ -79,7 +111,8 @@ Indeksi: `ix_audit_log_entity_entity_id`, `ix_audit_log_created_at` (DESC). Appe
 
 ## 5. Seed
 
-Role `Admin`, `Korisnik`; inicijalni admin iz `Admin:*` (samo ako nijedan admin ne postoji; odbija praznu/`Admin123!`); audit `START`.
+Role `Inzenjer`, `Supervizor`, `Direktor`, `Admin`; nalozi sa starom rolom `Korisnik` prelaze u `Inzenjer`, a nalog bez ijednog prava
+dobija podrazumevana prava svoje role; inicijalni admin iz `Admin:*` (samo ako nijedan admin ne postoji; odbija praznu/`Admin123!`); audit `START`.
 Nema seed-a kategorija — dodaj `Application/Common/Seed/<Sta>SeedSource.cs` + poziv u `SeedData` kad domen ima šifarnike (samo ako je tabela prazna).
 
 ## 6. Migracije
@@ -87,3 +120,4 @@ Nema seed-a kategorija — dodaj `Application/Common/Seed/<Sta>SeedSource.cs` + 
 | Ime | Sadržaj |
 |---|---|
 | `InitialCreate` | Identity, `refresh_token`, `audit_log`, `kategorija` |
+| `Osnova` | `korisnik_pravo`, `podesavanje`, `brojac`, `sekcija` (+ seed sekcija) |

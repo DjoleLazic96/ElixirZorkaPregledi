@@ -7,18 +7,20 @@
 
 ### Pre početka razvoja
 - [ ] Vlasnik projekta (Miroslav Zec) odobrava spec `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md`
-- [ ] Vlasnik blueprinta odlučuje o PREDLOZIMA u `docs/odluke.md` (PWA i rad bez interneta, mobilni prikaz, fotografije, push, četiri role + prava, duža sesija, biblioteke)
+- [ ] Vlasnik blueprinta odlučuje o PREDLOZIMA u `docs/odluke.md` (PWA i rad bez interneta, mobilni prikaz, fotografije, push, duža sesija, biblioteke); četiri role + prava odobreno 2026-11-04
 - [ ] Port 55434 upisati u registar blueprinta (03 §1)
-- [ ] GitHub organizacija i remote (odluka vlasnika projekta)
+- [x] 2026-11-04 — GitHub remote: https://github.com/DjoleLazic96/ElixirZorkaPregledi (javan)
 
 ### Faza 01 — skelet
 - [x] 2026-10-27 — kopiran skelet, `preimenuj.ps1` izvršen, zaostaci „skelet" očišćeni, git init (lokalno)
-- [ ] dev klaster radi, `dotnet run` + `npm run dev`, prijava `admin`
+- [x] 2026-11-04 — dev klaster radi, `dotnet run` + `npm run dev`, prijava `admin`
 - [ ] CI zelen na prvom PR-u (posle remote-a)
 
 ### Faza 02 — prva isporuka (ceo spec)
 - [x] 2026-11-04 — plan `docs/superpowers/plans/`: `00-overview.md` (faze 01–11), detaljno `01-osnova.md` i `02-oprema-i-sabloni.md`
-- [ ] role i prava; registar opreme, katalog, šabloni sa verzijama i uvoz
+- [x] 2026-11-04 — faza 01: četiri role, prava štikliranjem, podešavanja, sekcije, brojači (`01-osnova.md`)
+- [ ] faza 02: registar opreme, katalog, šabloni sa verzijama i uvoz (`02-oprema-i-sabloni.md`)
+- [ ] mobilni raspored (donji meni umesto bočnog) — čeka PREDLOG „mobilni prikaz“; do tada je skelet na telefonu neupotrebljiv (bočni meni 240 px)
 - [ ] raspored, kalendar, odsustva, neradni dani, prebacivanja
 - [ ] popunjavanje i rad bez interneta (PWA, sinhronizacija, slike)
 - [ ] predaja, overa, dorada, poništavanje; izveštaji PDF/Word

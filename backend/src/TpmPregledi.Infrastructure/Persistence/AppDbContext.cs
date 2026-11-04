@@ -40,7 +40,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     /// <inheritdoc />
     public DbSet<AuditLog> AuditLog => Set<AuditLog>();
 
+    /// <inheritdoc />
+    public DbSet<KorisnikPravo> KorisnikPrava => Set<KorisnikPravo>();
+
+    /// <inheritdoc />
+    public DbSet<Podesavanje> Podesavanja => Set<Podesavanje>();
+
+    /// <inheritdoc />
+    public DbSet<Brojac> Brojaci => Set<Brojac>();
+
     // ─── Domen ─────────────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public DbSet<Sekcija> Sekcije => Set<Sekcija>();
 
     /// <inheritdoc />
     public DbSet<Kategorija> Kategorije => Set<Kategorija>();   // PRIMER feature-a — kopiraj ili obriši
@@ -52,6 +64,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
         ConfigureIdentity(b);
         ConfigureSistem(b);
+        ConfigureOsnova(b);
         ConfigureKategorija(b);
     }
 
@@ -99,6 +112,46 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // user_id namerno BEZ FK ka AspNetUsers — red mora da preživi sve.
             e.HasIndex(x => new { x.Entity, x.EntityId });
             e.HasIndex(x => x.CreatedAt).IsDescending();
+        });
+    }
+
+    // ─── Osnova: prava, sekcije, brojači, podešavanja ──────────────────────
+
+    private static void ConfigureOsnova(ModelBuilder b)
+    {
+        b.Entity<KorisnikPravo>(e =>
+        {
+            e.ToTable("korisnik_pravo");
+            e.HasKey(x => new { x.KorisnikId, x.Pravo });
+            e.Property(x => x.Pravo).HasMaxLength(64);
+            e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.KorisnikId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<Sekcija>(e =>
+        {
+            e.ToTable("sekcija");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Sifra).IsRequired().HasMaxLength(8);
+            e.Property(x => x.Naziv).IsRequired().HasMaxLength(100);
+            e.HasIndex(x => x.Sifra).IsUnique().HasDatabaseName("ux_sekcija_sifra");
+            // Sekcije sa obrazaca; nema ekrana za izmenu, pa seed ide kroz migraciju.
+            e.HasData(new[] { "10", "20", "21", "30", "40", "50", "60", "70" }
+                .Select((s, i) => new Sekcija { Id = i + 1, Sifra = s, Naziv = $"Sekcija {s}", Redosled = i + 1 }));
+        });
+
+        b.Entity<Brojac>(e =>
+        {
+            e.ToTable("brojac");
+            e.HasKey(x => new { x.Vrsta, x.Godina });
+            e.Property(x => x.Vrsta).HasMaxLength(8);
+        });
+
+        b.Entity<Podesavanje>(e =>
+        {
+            e.ToTable("podesavanje");
+            e.HasKey(x => x.Kljuc);
+            e.Property(x => x.Kljuc).HasMaxLength(64);
+            e.Property(x => x.Vrednost).IsRequired().HasColumnType("jsonb");
         });
     }
 

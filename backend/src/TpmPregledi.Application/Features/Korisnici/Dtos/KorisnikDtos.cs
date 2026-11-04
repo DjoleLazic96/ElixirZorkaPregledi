@@ -10,7 +10,8 @@ namespace TpmPregledi.Application.Features.Korisnici.Dtos;
 /// <param name="KorisnickoIme">Korisničko ime (jedinstveno, nepromenljivo).</param>
 /// <param name="Ime">Puno ime i prezime.</param>
 /// <param name="Email">E-mail (opciono).</param>
-/// <param name="Rola">Rola: <c>Admin</c> ili <c>Korisnik</c>.</param>
+/// <param name="Rola">Rola: <c>Inzenjer</c>, <c>Supervizor</c>, <c>Direktor</c> ili <c>Admin</c>.</param>
+/// <param name="Prava">Štiklirana prava (vrednosti iz <c>Prava</c>).</param>
 /// <param name="Aktivan">Deaktiviran korisnik ne može da se prijavi.</param>
 /// <param name="PoslednjaPrijava">UTC trenutak poslednje uspešne prijave (null ako se nikad nije prijavio).</param>
 public sealed record KorisnikDto(
@@ -19,16 +20,18 @@ public sealed record KorisnikDto(
     string Ime,
     string? Email,
     string Rola,
+    IReadOnlyList<string> Prava,
     bool Aktivan,
     DateTime? PoslednjaPrijava)
 {
     /// <summary>Jedno mesto za mapiranje entitet → DTO (koriste ga svi handleri).</summary>
-    public static KorisnikDto Od(ApplicationUser u, string rola) => new(
+    public static KorisnikDto Od(ApplicationUser u, string rola, IReadOnlyList<string> prava) => new(
         Id:               u.Id,
         KorisnickoIme:    u.UserName ?? string.Empty,
         Ime:              u.FullName,
         Email:            u.Email,
         Rola:             rola,
+        Prava:            prava,
         Aktivan:          u.IsActive,
         PoslednjaPrijava: u.LastLoginAt);
 }
@@ -38,7 +41,7 @@ public sealed record KorisnikDto(
 /// <param name="Ime">Puno ime i prezime.</param>
 /// <param name="Email">E-mail (opciono).</param>
 /// <param name="Lozinka">Početna lozinka (min 8, cifra, veliko i malo slovo) — odmah važi.</param>
-/// <param name="Rola"><c>Admin</c> ili <c>Korisnik</c>.</param>
+/// <param name="Rola">Jedna od četiri role; nalog dobija podrazumevana prava te role.</param>
 public sealed record KreirajKorisnikaInput(
     string KorisnickoIme,
     string Ime,
@@ -52,11 +55,15 @@ public sealed record KreirajKorisnikaInput(
 /// </summary>
 /// <param name="Ime">Puno ime i prezime.</param>
 /// <param name="Email">E-mail (opciono).</param>
-/// <param name="Rola">Nova rola — zamenjuje postojeću.</param>
+/// <param name="Rola">Nova rola — zamenjuje postojeću; pri promeni role prava se vraćaju na podrazumevana.</param>
 public sealed record IzmeniKorisnikaInput(
     string Ime,
     string? Email,
     string Rola);
+
+/// <summary>Telo <c>PUT /api/v1/korisnici/{id}/prava</c> — ceo novi skup prava.</summary>
+/// <param name="Prava">Vrednosti iz <c>Prava.Sva</c>.</param>
+public sealed record PostaviPravaInput(IReadOnlyList<string> Prava);
 
 /// <summary>Telo <c>POST /api/v1/korisnici/{id}/reset-lozinka</c>. Lozinka ide u telo, nikad u URL.</summary>
 /// <param name="NovaLozinka">Nova lozinka (ista politika kao pri kreiranju).</param>

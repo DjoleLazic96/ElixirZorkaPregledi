@@ -145,6 +145,6 @@ public class GetAuditLogQueryTests
         EntitetLabele.Za("NestoNepoznato").Should().Be("NestoNepoznato");
 
         EntitetLabele.Sve().Should().Contain(e => e.Entitet == "ApplicationUser" && e.Labela == "Korisnik")
-            .And.HaveCount(4);
+            .And.HaveCount(6);
     }
 }

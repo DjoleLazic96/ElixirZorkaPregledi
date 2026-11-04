@@ -29,7 +29,7 @@ export function AppLayout() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar roles={me.roles} />
+      <Sidebar pristup={me} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-14 items-center justify-end border-b border-gray-200 bg-white px-6">

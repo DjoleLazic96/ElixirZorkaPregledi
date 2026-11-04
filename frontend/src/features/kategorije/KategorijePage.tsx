@@ -43,7 +43,7 @@ const SORT_KOLONE: ReadonlyArray<KategorijaSort> = ['sifra', 'naziv'];
 
 export function KategorijePage() {
   const { me } = useAuth();
-  const smeDaMenja = canEditKategorije(me?.roles ?? []);
+  const smeDaMenja = canEditKategorije(me ?? { roles: [], prava: [] });
   const toast = useToast();
   const confirm = useConfirm();
 

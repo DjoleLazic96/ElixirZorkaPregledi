@@ -10,11 +10,9 @@ namespace TpmPregledi.Application.UnitTests.Domain;
 public class RolesAndAuditableTests
 {
     [Fact]
-    public void Roles_definise_tacno_Admin_i_Korisnik()
+    public void Roles_definise_tacno_cetiri_role()
     {
-        Roles.Admin.Should().Be("Admin");
-        Roles.Korisnik.Should().Be("Korisnik");
-        Roles.All.Should().Equal("Admin", "Korisnik");
+        Roles.All.Should().Equal("Inzenjer", "Supervizor", "Direktor", "Admin");
     }
 
     [Theory]
