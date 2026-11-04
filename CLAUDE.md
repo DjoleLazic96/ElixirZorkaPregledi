@@ -33,7 +33,7 @@ cd frontend; npm run lint; npm test
 bash deploy/scripts/export-images.sh                      # build image-a u tar (treba Docker)
 ```
 
-- Dev nalozi: `admin` / `DevTpmPregledi2026!` (Admin); probni `provera.inzenjer`, `provera.supervizor`, `provera.direktor` / `DevProvera2026!` (`python scripts/dev-probni-nalozi.py`, samo lokalna baza). Dev DB: `tpm-pregledi` / `tpm-pregledi` / `tpm-pregledi-dev-only` na `localhost:55434`.
+- Dev nalozi: `admin` / `DevTpmPregledi2026!` (Admin); probni `provera.inzenjer`, `provera.supervizor`, `provera.direktor` / `DevProvera2026!` (`python scripts/dev-probni-nalozi.py`, samo lokalna baza). Dev DB: baza `tpm_pregledi`, korisnik `tpm_pregledi`, lozinka `tpm-pregledi-dev-only` na `localhost:55434`.
 - Scalar UI: `http://localhost:8080/swagger` (samo Development).
 - Nova migracija: `cd backend; dotnet ef migrations add <Opis> --project src/TpmPregledi.Infrastructure --startup-project src/TpmPregledi.Api --output-dir Persistence/Migrations` (`dotnet tool restore` prvi put).
 

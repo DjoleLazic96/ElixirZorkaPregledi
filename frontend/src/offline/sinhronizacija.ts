@@ -1,3 +1,4 @@
+import { noviId } from '../lib/id';
 import Dexie, { liveQuery, type Table } from 'dexie';
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
@@ -60,7 +61,7 @@ export function uredjajKlijenta(): string {
   try {
     let id = localStorage.getItem('tpm.uredjajKlijenta');
     if (!id) {
-      id = crypto.randomUUID();
+      id = noviId();
       localStorage.setItem('tpm.uredjajKlijenta', id);
     }
     return id;
@@ -75,14 +76,14 @@ export async function dodajOperaciju(pregledId: number, op: Operacija): Promise<
   await db.transaction('rw', db.pregledi, db.red, async () => {
     const p = await db.pregledi.get(pregledId);
     if (p) await db.pregledi.put(primeniLokalno(p, op, sada));
-    await db.red.add({ opId: crypto.randomUUID(), pregledId, klijentAt: sada, op });
+    await db.red.add({ opId: noviId(), pregledId, klijentAt: sada, op });
   });
   void sinhronizuj();
 }
 
 /** Slika ide u IndexedDB i šalje se pri sinhronizaciji; lokalno se odmah broji uz stavku. */
 export async function dodajSliku(pregledId: number, stavkaId: number, blob: Blob, izvor: 'kamera' | 'galerija'): Promise<void> {
-  const klijentId = crypto.randomUUID();
+  const klijentId = noviId();
   await db.transaction('rw', db.pregledi, db.slike, async () => {
     await db.slike.add({ klijentId, pregledId, stavkaId, izvor, blob });
     const p = await db.pregledi.get(pregledId);
