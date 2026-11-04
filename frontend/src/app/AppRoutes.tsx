@@ -9,6 +9,8 @@ import { AuditLogPage } from '../features/audit-log/AuditLogPage';
 import { useAuth } from '../features/auth/AuthProvider';
 import { LoginPage } from '../features/auth/LoginPage';
 import { PopunjavanjePage } from '../features/popunjavanje/PopunjavanjePage';
+import { PregledDetaljPage } from '../features/pregledi/PregledDetaljPage';
+import { PreglediPage } from '../features/pregledi/PreglediPage';
 import { KalendarPage } from '../features/raspored/KalendarPage';
 import { MojaOdsustvaPage, NeradniDaniPage } from '../features/raspored/OdsustvaINeradniPages';
 import { RasporedPage } from '../features/raspored/RasporedPage';
@@ -64,6 +66,8 @@ export function AppRoutes() {
             </Zasticeno>
           }
         />
+        <Route path="/pregledi" element={<Zasticeno allowed={isKorisnik(me)} landing={landing}><PreglediPage /></Zasticeno>} />
+        <Route path="/pregledi/:id" element={<Zasticeno allowed={isKorisnik(me)} landing={landing}><PregledDetaljPage /></Zasticeno>} />
         <Route
           path="/kalendar"
           element={

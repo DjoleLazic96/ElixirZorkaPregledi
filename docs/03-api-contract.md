@@ -121,6 +121,20 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 
 Odbijene operacije: „Pregled još nije potpun: nedostaje N odgovora i M obaveznih napomena.“, „PZ se predaje kad su sve sekcije gotove. Nedostaje: sekcija 70 (Ime).“, „Sekciju 20 radi Ime.“, „Predat pregled se menja samo kroz doradu.“, „Pregled je poništen.“
 
+### Arhiva, overa, dorada, izveštaji (faza 06)
+| Metod | Ruta | Politika | Svrha |
+|---|---|---|---|
+| GET | `/pregledi?od&do&tip&status&inzenjerId&pretraga&stranica&velicina` | RequireKorisnik | `StranicaDto<PregledRedDto>` (sa brojem neispravnih) |
+| GET | `/pregledi/{id}` | RequireKorisnik | detalj: zaglavlje, aktivno vreme i delovi, upozorenja, sekcije sa odgovorima/poljima/slikama, istorija, sporni unosi, zahtevi za doradu |
+| GET | `/pregledi/{id}/izvoz?format=pdf\|docx` | RequireKorisnik | izveštaj sa rezimeom problematičnih stavki |
+| GET | `/izvoz/pregledi.xlsx?…filteri` | RequireKorisnik | arhiva u Excel (filtrirano) |
+| POST | `/pregledi/{id}/overi` | overa | `ceka_overu` → `overen` |
+| POST | `/pregledi/{id}/vrati-na-doradu` `{ inzenjerId, razlog }` | overa | pre i posle overe; 422 „Pregled je overio Direktor; samo Direktor može da poništi tu overu.“ |
+| POST | `/pregledi/{id}/zahtev-za-doradu` `{ razlog }` | pregledi.popunjavanje (inženjer koji je radio) | |
+| POST | `/pregledi/{id}/zahtev-za-doradu/odluka` `{ odobreno }` | overa | posle overe: onaj ko je overio ili Direktor |
+| POST | `/pregledi/{id}/ponisti` `{ razlog }` | overa | u radu / čeka overu / overen / vraćen |
+| POST | `/pregledi/{id}/sporan-unos/{unosId}/odluka` `{ primeni }` | overa | sporan odgovor se upisuje u tekuću doradu ili odbacuje |
+
 ### `/_diag` (samo Development)
 Rute kojima integracioni testovi dokazuju politike: `/_diag/korisnik` (RequireKorisnik), `/_diag/admin-only` (RequireAdmin).
 

@@ -178,7 +178,7 @@ export function PregledKartica({ pregled, onClose }: { pregled: PregledKalendarD
             {pregled.napomena && (<><dt className="text-gray-500">Napomena</dt><dd className="break-words">{pregled.napomena}</dd></>)}
           </dl>
           <div className="flex flex-wrap justify-end gap-2 pt-2">
-            {moj && (planiran || pregled.status === 'u_radu') && imaPravo(pristup, 'pregledi.popunjavanje') && (
+            {moj && (planiran || pregled.status === 'u_radu' || pregled.status === 'vracen_na_doradu') && imaPravo(pristup, 'pregledi.popunjavanje') && (
               <Button onClick={() => navigate(`/pregled/${pregled.id}/popuni`)}>Popuni pregled</Button>
             )}
             {moj && planiran && imaPravo(pristup, 'pregledi.popunjavanje') && (
@@ -187,6 +187,7 @@ export function PregledKartica({ pregled, onClose }: { pregled: PregledKalendarD
             {imaPravo(pristup, 'raspored.uredjivanje') && (planiran || pregled.status === 'u_radu') && (
               <Button variant="secondary" onClick={() => setMod('izmena')}>Promeni u rasporedu</Button>
             )}
+            {pregled.status !== 'planiran' && <Button variant="secondary" onClick={() => navigate(`/pregledi/${pregled.id}`)}>Otvori pregled</Button>}
             <Button variant="ghost" onClick={onClose}>Zatvori</Button>
           </div>
         </div>

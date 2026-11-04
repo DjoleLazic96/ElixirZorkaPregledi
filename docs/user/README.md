@@ -27,6 +27,7 @@ Nalog Vam otvara administrator. Detalji: [1. Prijava i role](01-prijava-i-role.m
 |---|---|---|
 | [1. Prijava i role](01-prijava-i-role.md) | svi | prijava, odjava, promena lozinke, šta koja rola vidi, „O aplikaciji" |
 | [2. Popunjavanje pregleda](02-popunjavanje-pregleda.md) | inženjeri | početak, odgovori, napomene, slike, „nije u funkciji“, predaja |
+| [3. Arhiva, overa i dorada](03-overa-i-dorada.md) | svi (odluke: Supervizor, Direktor) | arhiva, detalj, overa, dorada, poništavanje, PDF/Word/Excel |
 | [4. Raspored, kalendar i odsustva](04-raspored-i-odsustva.md) | svi (izmene: Supervizor, Direktor) | kalendar, predlog i potvrda rasporeda, PZ, prenos, prebacivanje, odsustva, neradni dani |
 | [8. Šabloni i uređaji](08-sabloni-i-uredjaji.md) | svi (izmene: Direktor, Administrator) | šabloni pregleda, registar opreme, katalog aktivnosti, uvoz |
 | [5. Upravljanje korisnicima](05-upravljanje-korisnicima.md) | administrator | nalozi, role, deaktivacija, reset lozinke |

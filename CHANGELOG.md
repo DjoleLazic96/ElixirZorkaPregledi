@@ -6,6 +6,8 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- **Pregledi**: arhiva sa filterima i izvozom u Excel, detalj pregleda sa aktivnim vremenom, upozorenjima, problematičnim stavkama, slikama i istorijom; PDF i Word izveštaj.
+- Overa, vraćanje na doradu, zahtev za doradu, poništavanje i odluka o spornim unosima.
 - **Rad bez interneta**: aplikacija se dodaje na početni ekran telefona, pregledi za danas i narednih 7 dana su na telefonu, a urađeno se samo šalje kad se veza vrati („Predato – čeka slanje“, traka „Bez interneta“, „Poslednja sinhronizacija“).
 - Prijava: **Zapamti me na ovom uređaju** i dugme „oko“ uz lozinku.
 - **Popunjavanje pregleda** na telefonu: odgovori, napomene, dodatna polja, slike, „Nije u funkciji“, „Sve neoznačeno u sekciji je ispravno“ i predaja; aplikacija meri aktivno vreme.

@@ -81,7 +81,7 @@ export function PopunjavanjePage() {
 
   if (p.status === 'predato_ceka')
     return <PageHeader title={p.broj} description="Predato – čeka slanje. Pregled se šalje sam čim se veza vrati i do tada se ne menja." />;
-  if (p.status !== 'u_radu')
+  if (p.status !== 'u_radu' && p.status !== 'vracen_na_doradu')
     return <PageHeader title={p.broj} description="Pregled je predat; menja se samo kroz doradu." />;
 
   async function predaj() {

@@ -66,6 +66,9 @@ korisnika: nova prava važe najkasnije kad istekne trenutni access token (15 min
 | Unos i brisanje neradnih dana | `Pravo:neradni_dani` |
 | Početak, popunjavanje, sinhronizacija, slanje slika | `Pravo:pregledi.popunjavanje` + dodeljeni inženjer ili učesnik PZ-a (inače 403); na PZ-u samo svoje sekcije |
 | Prikaz slike | RequireKorisnik |
+| Arhiva, detalj, PDF/Word/Excel | RequireKorisnik |
+| Overa, vrati na doradu, odluka o doradi, poništavanje, sporan unos | `Pravo:overa`; Supervizor ne dira overu Direktora (422) |
+| Zahtev za doradu | `Pravo:pregledi.popunjavanje` + inženjer koji je radio pregled |
 
 Frontend: „Administracija“ se vidi uz pravo `korisnici` ili `podesavanja`; tab „Korisnici“ uz `korisnici`, tab „Podešavanja“ uz `podesavanja`.
 
