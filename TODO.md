@@ -17,7 +17,7 @@
 - [ ] CI zelen na prvom PR-u (posle remote-a)
 
 ### Faza 02 — prva isporuka (ceo spec)
-- [ ] plan `docs/superpowers/plans/` (višefazni: `00-overview.md` + planovi po celinama)
+- [x] 2026-11-04 — plan `docs/superpowers/plans/`: `00-overview.md` (faze 01–11), detaljno `01-osnova.md` i `02-oprema-i-sabloni.md`
 - [ ] role i prava; registar opreme, katalog, šabloni sa verzijama i uvoz
 - [ ] raspored, kalendar, odsustva, neradni dani, prebacivanja
 - [ ] popunjavanje i rad bez interneta (PWA, sinhronizacija, slike)
@@ -40,7 +40,7 @@
 - [ ] prostor i bekap za fotografije (~5 GB godišnje)
 
 ### Odloženo
-- [ ] sređivanje šablona (ručne ispravke iz `../Analiza napomena DP-PZ.xlsx`) i uvoz ažurne verzije
+- [x] 2026-11-04 — šabloni prepisani sa najsvežijih obrazaca → `docs/sabloni/sabloni-za-uvoz.xlsx` (DP1, DP2, PZ1 doslovno + Sautelma; PZ2–PZ4 sa ispravkama korisnika); uvoz je faza 02
 
 ## Završeno
 
