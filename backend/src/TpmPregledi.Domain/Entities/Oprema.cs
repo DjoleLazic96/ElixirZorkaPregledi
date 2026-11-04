@@ -67,7 +67,7 @@ public class Aktivnost : AuditableEntity
     /// <summary>Odgovor koji znači kvar, npr. „Ne okreće“ (uz njega je napomena obavezna).</summary>
     public string OdgovorNeispravan { get; set; } = string.Empty;
 
-    /// <summary>Uputstvo (R2.4) — unosi se u fazi 10.</summary>
+    /// <summary>Uputstvo (R2.4): tekst; važi u svim šablonima, izmena ne pravi novu verziju.</summary>
     public string? UputstvoTekst { get; set; }
 
     /// <summary>Ko je poslednji izmenio uputstvo.</summary>
@@ -75,6 +75,9 @@ public class Aktivnost : AuditableEntity
 
     /// <summary>Kada je uputstvo poslednji put izmenjeno (UTC).</summary>
     public DateTime? UputstvoAzuriranoAt { get; set; }
+
+    /// <summary>Referentne slike uputstva (ID-jevi iz <c>fajl</c>, najviše 3).</summary>
+    public long[] UputstvoSlike { get; set; } = [];
 }
 
 /// <summary>

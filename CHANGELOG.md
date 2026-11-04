@@ -6,6 +6,10 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- **Nova verzija šablona u aplikaciji**: nacrt (dodavanje, izbacivanje, izmena i redosled stavki), pregled razlika i objava sa datumom od kog važi; započeti pregledi se završavaju po staroj verziji.
+- **Predlozi izmena šablona** uz obavezan razlog; Direktor i Administrator ih odobravaju ili odbijaju.
+- **Istorijat šablona** sa filterima i izbor starije verzije za pregled.
+- **Uputstva za aktivnosti** (tekst i do 3 slike) iza ikonice „?“, i u popunjavanju bez interneta.
 - **Obaveštenja**: zvono u zaglavlju (sa brojem stvari koje čekaju Vašu odluku), obaveštenja na telefonu i mejlom.
 - Inženjer dobija obaveštenje o dodeli i promeni dodele, prenosu, vraćanju na doradu i ishodu svojih zahteva.
 - Automatske provere: pregled nije započet do 13h, podsetnik za overu, istekao rok akcije, hitna akcija, ponovljeni kvar, uređaj dugo van funkcije, dnevni rezime i podsetnik za raspored sledeće nedelje.

@@ -13,7 +13,8 @@ namespace TpmPregledi.Application.Features.Aktivnosti;
 /// <param name="OdgovorIspravan">Odgovor „u redu“.</param>
 /// <param name="OdgovorNeispravan">Odgovor „kvar“.</param>
 /// <param name="BrojStavki">U koliko stavki važećih verzija se koristi.</param>
-public sealed record AktivnostDto(int Id, string Naziv, string OdgovorIspravan, string OdgovorNeispravan, int BrojStavki);
+/// <param name="ImaUputstvo">Uneto je uputstvo (tekst ili slike).</param>
+public sealed record AktivnostDto(int Id, string Naziv, string OdgovorIspravan, string OdgovorNeispravan, int BrojStavki, bool ImaUputstvo = false);
 
 /// <summary>Telo za kreiranje i izmenu aktivnosti.</summary>
 /// <param name="Naziv">Naziv.</param>
@@ -131,5 +132,5 @@ public sealed class AktivnostiHandler(IAppDbContext db) :
             .ToDictionaryAsync(x => x.Key, x => x.Broj, ct);
 
     private static AktivnostDto Dto(Aktivnost a, Dictionary<int, int> broj) =>
-        new(a.Id, a.Naziv, a.OdgovorIspravan, a.OdgovorNeispravan, broj.GetValueOrDefault(a.Id));
+        new(a.Id, a.Naziv, a.OdgovorIspravan, a.OdgovorNeispravan, broj.GetValueOrDefault(a.Id), a.UputstvoTekst is not null || a.UputstvoSlike.Length > 0);
 }

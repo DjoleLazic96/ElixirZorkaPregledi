@@ -8,9 +8,9 @@ const P: PopunjavanjeDto = {
     sifra: '10', moja: true, radi: 'Ana',
     uredjaji: [
       { uredjajId: 1, naziv: 'Elevator', oznaka: '10-C-13', vanFunkcije: false, prosliPutVanFunkcije: false, otvoreneAkcije: [],
-        stavke: [{ stavkaId: 11, aktivnost: 'A', odgovorIspravan: 'Ispravno', odgovorNeispravan: 'Neispravno', polja: [], odgovor: null, fotografije: [] }] },
+        stavke: [{ stavkaId: 11, aktivnost: 'A', odgovorIspravan: 'Ispravno', odgovorNeispravan: 'Neispravno', polja: [], odgovor: null, fotografije: [], aktivnostId: 1, uputstvo: null, uputstvoSlika: 0 }] },
       { uredjajId: 2, naziv: 'Puž', oznaka: '30-F-01 M2', vanFunkcije: false, prosliPutVanFunkcije: false, otvoreneAkcije: [],
-        stavke: [{ stavkaId: 12, aktivnost: 'B', odgovorIspravan: 'Ispravno', odgovorNeispravan: 'Neispravno', polja: [], odgovor: null, fotografije: [] }] },
+        stavke: [{ stavkaId: 12, aktivnost: 'B', odgovorIspravan: 'Ispravno', odgovorNeispravan: 'Neispravno', polja: [], odgovor: null, fotografije: [], aktivnostId: 1, uputstvo: null, uputstvoSlika: 0 }] },
     ],
   }],
 };

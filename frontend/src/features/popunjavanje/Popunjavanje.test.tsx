@@ -13,7 +13,7 @@ vi.mock('../../api/client', () => ({ api: { get: vi.fn(), post: vi.fn() } }));
 const STAVKA: StavkaPopunjavanjaDto = {
   stavkaId: 7, aktivnost: 'Pregled rolni', odgovorIspravan: 'Okreće', odgovorNeispravan: 'Ne okreće',
   polja: [{ id: 1, naziv: 'Broj rolni koje ne okreću', tip: 'broj', jedinica: 'kom.', oznake: [], prikaz: 'uz_neispravan', obavezno: false }],
-  odgovor: null, fotografije: [],
+  odgovor: null, fotografije: [], aktivnostId: 3, uputstvo: 'Proveriti svaku rolnu.', uputstvoSlika: 0,
 };
 
 describe('StavkaRed', () => {

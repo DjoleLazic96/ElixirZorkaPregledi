@@ -36,8 +36,11 @@ public sealed record OdgovorDto(short Vrednost, string? Napomena, JsonElement Po
 /// <param name="Polja">Dodatna polja.</param>
 /// <param name="Odgovor">Trenutni odgovor ili null.</param>
 /// <param name="Fotografije">ID-jevi slika.</param>
+/// <param name="AktivnostId">Aktivnost (za slike uputstva).</param>
+/// <param name="Uputstvo">Tekst uputstva (R2.4) — ide u paket, pa „?“ radi i bez interneta; null = nije uneto.</param>
+/// <param name="UputstvoSlika">Broj referentnih slika uputstva (učitavaju se sa interneta).</param>
 public sealed record StavkaPopunjavanjaDto(int StavkaId, string Aktivnost, string OdgovorIspravan, string OdgovorNeispravan,
-    IReadOnlyList<PoljeDto> Polja, OdgovorDto? Odgovor, IReadOnlyList<long> Fotografije);
+    IReadOnlyList<PoljeDto> Polja, OdgovorDto? Odgovor, IReadOnlyList<long> Fotografije, int AktivnostId = 0, string? Uputstvo = null, int UputstvoSlika = 0);
 
 /// <summary>Uređaj za popunjavanje.</summary>
 /// <param name="UredjajId">ID.</param>
@@ -208,7 +211,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 gu.Key, gu.First().Naziv, gu.First().Oznaka, van.Contains(gu.Key), prosli.Contains(gu.Key),
                 gu.Select(s => new StavkaPopunjavanjaDto(s.StavkaId, s.Aktivnost, s.Ok, s.Nok, s.Polja,
                     odgovori.TryGetValue(s.StavkaId, out var o) ? new OdgovorDto(o.Vrednost, o.Napomena, JsonDocument.Parse(o.Polja).RootElement.Clone()) : null,
-                    slike[s.StavkaId].ToList())).ToList(), akcije[gu.Key].ToList())).ToList());
+                    slike[s.StavkaId].ToList(), s.AktivnostId, s.Uputstvo, s.UputstvoSlika)).ToList(), akcije[gu.Key].ToList())).ToList());
         }).ToList();
 
         return new PopunjavanjeDto(p.Id, p.Broj, p.Tip, p.Status, p.PlaniraniDatum, p.ZapocetAt, verzijaId, sekcije);
@@ -510,8 +513,14 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
         }
     }
 
-    private Task<int?> VazecaVerzijaAsync(string tip, CancellationToken ct) =>
-        db.SablonVerzije.Where(v => v.Sablon!.Tip == tip && v.Status == StatusVerzije.Objavljena).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
+    /// <summary>Važeća verzija za danas; zakazana čiji je dan došao važi i pre nego što je zakazana provera prebaci (do minut kašnjenja).</summary>
+    private Task<int?> VazecaVerzijaAsync(string tip, CancellationToken ct)
+    {
+        var danas = clock.Today;
+        return db.SablonVerzije
+            .Where(v => v.Sablon!.Tip == tip && (v.Status == StatusVerzije.Objavljena || (v.Status == StatusVerzije.Zakazana && v.VaziOd <= danas)))
+            .OrderByDescending(v => v.Broj).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
+    }
 
     /// <summary>Predaja (R4.3, R3.15): sve stavke odgovorene osim uređaja van funkcije; napomena uz svaki neispravan.</summary>
     private async Task PredajAsync(Pregled p, IReadOnlyList<StavkaInfo> stavke, RasporedKontekst k, DateTime predajaAt, CancellationToken ct)
@@ -555,7 +564,14 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
 
     /// <summary>Stavka verzije sa svim što ekran i provere traže.</summary>
     private sealed record StavkaInfo(int StavkaId, string Sekcija, int UredjajId, string Naziv, string Oznaka, string Aktivnost, string Ok, string Nok,
-        IReadOnlyList<PoljeDto> Polja, Guid Kljuc, int AktivnostId);
+        IReadOnlyList<PoljeDto> Polja, Guid Kljuc, int AktivnostId)
+    {
+        /// <summary>Tekst uputstva aktivnosti.</summary>
+        public string? Uputstvo { get; init; }
+
+        /// <summary>Broj slika uputstva.</summary>
+        public int UputstvoSlika { get; init; }
+    }
 
     private async Task<IReadOnlyList<StavkaInfo>> StavkeAsync(int verzijaId, CancellationToken ct)
     {
@@ -564,11 +580,14 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
             {
                 s.Id, s.Kljuc, s.AktivnostId, Sekcija = db.Sekcije.Where(x => x.Id == s.SekcijaId).Select(x => x.Sifra).First(), s.UredjajId,
                 s.Uredjaj!.Naziv, s.Uredjaj.Oznaka, Aktivnost = s.Aktivnost!.Naziv, s.Aktivnost.OdgovorIspravan, s.Aktivnost.OdgovorNeispravan,
-                Polja = s.Polja.Select(p => p.DodatnoPolje!).ToList(),
+                Polja = s.Polja.Select(p => p.DodatnoPolje!).ToList(), s.Aktivnost.UputstvoTekst, s.Aktivnost.UputstvoSlike,
             })
             .ToListAsync(ct);
         return redovi.Select(r => new StavkaInfo(r.Id, r.Sekcija, r.UredjajId, r.Naziv, r.Oznaka, r.Aktivnost, r.OdgovorIspravan, r.OdgovorNeispravan,
-            r.Polja.Select(p => new PoljeDto(p.Id, p.Naziv, p.Tip, p.Jedinica, p.Oznake, p.Prikaz, p.Obavezno)).ToList(), r.Kljuc, r.AktivnostId)).ToList();
+            r.Polja.Select(p => new PoljeDto(p.Id, p.Naziv, p.Tip, p.Jedinica, p.Oznake, p.Prikaz, p.Obavezno)).ToList(), r.Kljuc, r.AktivnostId)
+        {
+            Uputstvo = r.UputstvoTekst, UputstvoSlika = r.UputstvoSlike.Length,
+        }).ToList();
     }
 
     private async Task<Pregled> UcitajPregledAsync(int id, CancellationToken ct) =>

@@ -32,7 +32,7 @@ Nalog Vam otvara administrator. Detalji: [1. Prijava i role](01-prijava-i-role.m
 | [5. Potrebne akcije i neispravnosti](05-akcije-i-kvarovi.md) | svi (zatvaranje: Supervizor, Direktor) | akcija na pregledu, pop-up, lista akcija, kvarovi |
 | [9. Početna, ekran uređaja, analitika i pretraga](09-uredjaj-i-analitika.md) | svi | Početna, „Moje aktivnosti“, „Čeka moju odluku“, istorija uređaja, QR, analitika, pretraga |
 | [10. Obaveštenja](10-obavestenja.md) | svi (primaoci: administrator) | zvono, obaveštenja na telefonu, ko šta dobija, primaoci |
-| [8. Šabloni i uređaji](08-sabloni-i-uredjaji.md) | svi (izmene: Direktor, Administrator) | šabloni pregleda, registar opreme, katalog aktivnosti, uvoz |
+| [8. Šabloni i uređaji](08-sabloni-i-uredjaji.md) | svi (izmene: Direktor, Administrator) | šabloni pregleda, registar opreme, katalog, uputstva, uvoz, nacrt i objava verzije, predlozi izmena, istorijat |
 | [5. Upravljanje korisnicima](05-upravljanje-korisnicima.md) | administrator | nalozi, role, deaktivacija, reset lozinke |
 | [6. Audit log i stanje servera](06-audit-log-i-stanje-servera.md) | administrator | ko je šta promenio; zdravlje servera |
 | [7. Šta je novo](07-sta-je-novo.md) | svi | izmene po verzijama |

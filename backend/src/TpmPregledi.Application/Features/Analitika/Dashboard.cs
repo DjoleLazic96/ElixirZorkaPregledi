@@ -119,7 +119,8 @@ public sealed class DashboardHandler(IAppDbContext db, ICurrentUser currentUser,
         }
 
         List<OdlukaDto>? odluke = null;
-        if (currentUser.Roles.Contains(Roles.Supervizor) || currentUser.Roles.Contains(Roles.Direktor))
+        // Supervizor i Direktor; Admin ima karticu samo zbog predloga izmena šablona (R2.8).
+        if (currentUser.Roles.Contains(Roles.Supervizor) || currentUser.Roles.Contains(Roles.Direktor) || prava.Contains(Prava.SabloniNacrt))
         {
             odluke = [];
             if (prava.Contains(Prava.Overa))
@@ -140,6 +141,9 @@ public sealed class DashboardHandler(IAppDbContext db, ICurrentUser currentUser,
             if (prava.Contains(Prava.OdsustvaOdobravanje))
                 odluke.AddRange((await db.Odsustva.AsNoTracking().Where(o => o.Status == "zahtev").ToListAsync(ct))
                     .Select(o => new OdlukaDto("odsustvo", $"Odsustvo {k.Ime(o.KorisnikId)} {o.Od:dd.MM.yyyy}–{o.Do:dd.MM.yyyy}", "/raspored", o.KreiranoAt, false)));
+            if (prava.Contains(Prava.SabloniNacrt))
+                odluke.AddRange((await db.PredloziIzmena.AsNoTracking().Where(p => p.Status == "zahtev").Select(p => new { p.Sablon!.Tip, p.Opis, p.PodneoId, p.KreiranoAt }).ToListAsync(ct))
+                    .Select(p => new OdlukaDto("predlog", $"Predlog izmene {p.Tip} ({k.Ime(p.PodneoId)}): {p.Opis}", "/sabloni/predlozi", p.KreiranoAt, false)));
             odluke = odluke.OrderByDescending(o => o.RokIstekao).ThenBy(o => o.Od).ToList();
         }
 

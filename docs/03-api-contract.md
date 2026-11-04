@@ -159,6 +159,25 @@ Popunjavanje (`GET /pregledi/{id}/popunjavanje`, paket) uz svaki uređaj vraća 
 | GET | `/dashboard` | RequireKorisnik | `DashboardDto`; `moje` samo uz pravo popunjavanja, `cekaOdluku` samo Supervizoru i Direktoru |
 | GET | `/pretraga?q` | RequireKorisnik | `PretragaRezultatDto[]` (`vrsta`: uredjaj, pregled, akcija, kvar); prazno ispod 2 znaka |
 
+### Izmene šablona (faza 10)
+| Metod | Ruta | Politika | Svrha |
+|---|---|---|---|
+| GET | `/sabloni/{tip}/verzije` | RequireKorisnik | `VerzijaKratkoDto[]` (broj, status `objavljena`/`zakazana`/`zamenjena`/`nacrt`, važi od, ko je objavio) |
+| GET | `/sabloni/{tip}/nacrt` | sabloni.nacrt | `NacrtDto` (verzija, osnovna verzija, razlike, odobreni predlozi, zakazana) ili 204 |
+| POST / DELETE | `/sabloni/{tip}/nacrt` | sabloni.nacrt | otvori (kopija poslednje verzije; postojeći se vraća) / odbaci |
+| POST | `/sabloni/{tip}/nacrt/stavke` `{ sekcijaId, uredjajId, aktivnostId, poljaIds }` | sabloni.nacrt | dodaj; 422 van upotrebe ili duplikat |
+| PUT / DELETE | `/sabloni/{tip}/nacrt/stavke/{id}` | sabloni.nacrt | PUT `{ aktivnostId, poljaIds }` izmena (ključ ostaje) / izbaci |
+| POST | `/sabloni/{tip}/nacrt/stavke/{id}/pomeri` `{ gore }` | sabloni.nacrt | jedno mesto unutar sekcije |
+| POST | `/sabloni/{tip}/nacrt/objavi` `{ vaziOd }` | sabloni.objava | danas → važi odmah; kasnije → `zakazana`; 422 prošlost, bez izmena, već zakazana |
+| GET | `/sabloni/istorijat?tip&vrsta&korisnikId&od&do` | RequireKorisnik | `SablonDogadjajDto[]` (do 1000) |
+| GET / POST | `/predlozi-izmena?status&tip` | RequireKorisnik | lista / predlog `{ tip, vrsta, stavkaId, opis, razlog }` (razlog obavezan) |
+| POST | `/predlozi-izmena/{id}/odluka` `{ odobren, odgovor }` | sabloni.nacrt | 422 ako je već odlučeno |
+| GET / PUT | `/aktivnosti/{id}/uputstvo` | RequireKorisnik / sabloni.nacrt | `UputstvoDto` (tekst, slike, ko i kada) / `{ tekst }` |
+| POST | `/aktivnosti/{id}/uputstvo/slike` (multipart `fajl`) | sabloni.nacrt | najviše 3, JPG/PNG/WebP ≤ 3 MB |
+| GET / DELETE | `/aktivnosti/{id}/uputstvo/slike/{fajlId}` | RequireKorisnik / sabloni.nacrt | slika / ukloni |
+
+Paket za popunjavanje uz stavku nosi `aktivnostId`, `uputstvo` (tekst) i `uputstvoSlika` (broj slika). `AktivnostDto` ima `imaUputstvo`.
+
 ### Obaveštenja (faza 09)
 | Metod | Ruta | Politika | Svrha |
 |---|---|---|---|

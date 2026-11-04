@@ -101,6 +101,9 @@ public static class VrsteObavestenja
     /// <summary>Ishod zahteva (odsustvo, prebacivanje, dorada).</summary>
     public const string IshodZahteva = "ishod_zahteva";
 
+    /// <summary>Novi predlog izmene šablona (Direktoru i Adminu).</summary>
+    public const string PredlogSablona = "predlog_sablona";
+
     /// <summary>Probno obaveštenje (provera push-a na telefonu).</summary>
     public const string Probno = "probno";
 

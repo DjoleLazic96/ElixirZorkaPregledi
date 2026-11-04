@@ -77,6 +77,9 @@ korisnika: nova prava važe najkasnije kad istekne trenutni access token (15 min
 | „Moje aktivnosti“ / „Čeka moju odluku“ na Dashboardu | pravo popunjavanja / rola Supervizor ili Direktor, stavke po pravima |
 | Zvono, push pretplata, probno obaveštenje | RequireKorisnik (samo svoja obaveštenja i pretplate) |
 | Primaoci obaveštenja | `Pravo:podesavanja` |
+| Nacrt šablona, uputstva za aktivnosti, odluka o predlogu izmene | `Pravo:sabloni.nacrt` (Direktor, Admin) |
+| Objava verzije šablona | `Pravo:sabloni.objava` (Direktor) |
+| Verzije, istorijat, predlog izmene, čitanje uputstva | RequireKorisnik |
 
 Frontend: „Administracija“ se vidi uz pravo `korisnici` ili `podesavanja`; tab „Korisnici“ uz `korisnici`, tab „Podešavanja“ uz `podesavanja`.
 

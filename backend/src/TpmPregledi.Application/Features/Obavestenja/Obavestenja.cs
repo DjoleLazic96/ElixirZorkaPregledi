@@ -245,13 +245,14 @@ public sealed class ObavestenjaHandler(IAppDbContext db, ICurrentUser currentUse
     /// <summary>Broj na zvoncu za „Čeka moju odluku“: iste stavke kao kartica na Početnoj, po pravima, samo za Supervizora i Direktora.</summary>
     private async Task<int> CekaOdlukuAsync(string ja, CancellationToken ct)
     {
-        if (!currentUser.Roles.Contains(Roles.Supervizor) && !currentUser.Roles.Contains(Roles.Direktor)) return 0;
         var prava = (await db.KorisnikPrava.Where(p => p.KorisnikId == ja).Select(p => p.Pravo).ToListAsync(ct)).ToHashSet();
+        if (!currentUser.Roles.Contains(Roles.Supervizor) && !currentUser.Roles.Contains(Roles.Direktor) && !prava.Contains(Prava.SabloniNacrt)) return 0;
         var broj = 0;
         if (prava.Contains(Prava.Overa))
             broj += await db.Pregledi.CountAsync(p => p.Status == StatusPregleda.CekaOveru, ct) + await db.ZahteviDorade.CountAsync(z => z.Status == "zahtev", ct);
         if (prava.Contains(Prava.RasporedUredjivanje)) broj += await db.ZahteviPrebacivanja.CountAsync(z => z.Status == "zahtev", ct);
         if (prava.Contains(Prava.OdsustvaOdobravanje)) broj += await db.Odsustva.CountAsync(o => o.Status == "zahtev", ct);
+        if (prava.Contains(Prava.SabloniNacrt)) broj += await db.PredloziIzmena.CountAsync(p => p.Status == "zahtev", ct);
         return broj;
     }
 }

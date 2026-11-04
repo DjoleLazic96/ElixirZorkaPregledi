@@ -19,10 +19,11 @@ import { PreglediPage } from '../features/pregledi/PreglediPage';
 import { KalendarPage } from '../features/raspored/KalendarPage';
 import { MojaOdsustvaPage, NeradniDaniPage } from '../features/raspored/OdsustvaINeradniPages';
 import { RasporedPage } from '../features/raspored/RasporedPage';
+import { NacrtPage } from '../features/sabloni/IzmenePages';
 import { SabloniPage } from '../features/sabloni/SabloniPage';
 import { UredjajiPage } from '../features/sabloni/UredjajiPage';
 import { StanjeServeraPage } from '../features/stanje-servera/StanjeServeraPage';
-import { canSeeAdminSection, imaPravo, isAdmin, isKorisnik } from '../lib/permissions';
+import { canEditOprema, canSeeAdminSection, imaPravo, isAdmin, isKorisnik } from '../lib/permissions';
 import { AppLayout } from './layout/AppLayout';
 
 /**
@@ -66,6 +67,8 @@ export function AppRoutes() {
             </Zasticeno>
           }
         />
+        <Route path="/sabloni/predlozi" element={<Zasticeno allowed={isKorisnik(me)} landing={landing}><SabloniPage pocetniTab="predlozi" /></Zasticeno>} />
+        <Route path="/sabloni/:tip/nacrt" element={<Zasticeno allowed={canEditOprema(me)} landing={landing}><NacrtPage /></Zasticeno>} />
         <Route
           path="/pregled/:id/popuni"
           element={

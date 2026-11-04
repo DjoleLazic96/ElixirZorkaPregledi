@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { UputstvoDugme } from '../sabloni/UputstvoDijalog';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Camera, Check, ImagePlus, MessageSquare, Wrench } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
@@ -258,7 +259,10 @@ export function StavkaRed({ pregledId, stavka, moja, posalji }: { pregledId: num
 
   return (
     <li className="space-y-2 border-t border-gray-100 pt-3 first:border-t-0 first:pt-0" data-nepopunjena={!o}>
-      <p className="break-words text-sm text-gray-900">{stavka.aktivnost}</p>
+      <p className="flex items-start gap-1 break-words text-sm text-gray-900">
+        <span className="min-w-0 flex-1">{stavka.aktivnost}</span>
+        <UputstvoDugme aktivnostId={stavka.aktivnostId} aktivnost={stavka.aktivnost} smeDaMenja={false} offlineTekst={stavka.uputstvo} />
+      </p>
       <div className="grid grid-cols-2 gap-2">
         {([0, 1] as const).map((v) => (
           <button key={v} type="button" disabled={!moja} onClick={() => odgovori(v)} aria-pressed={o?.vrednost === v}

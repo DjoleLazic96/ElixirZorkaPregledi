@@ -131,6 +131,25 @@ public class AuthorizationMatrixTests(CustomWebAppFactory factory)
         ("GET",  "/api/v1/podesavanja/primaoci",               Admin),
         ("PUT",  "/api/v1/podesavanja/primaoci",               Admin),
 
+        // Nacrt, uputstvo i odluka o predlogu: sabloni.nacrt (Direktor, Admin; Inženjer → 403). Objava (sabloni.objava, samo Direktor)
+        // ne staje ni u jednu kategoriju matrice, pa je ovde nema.
+        ("GET",  "/api/v1/sabloni/DP1/verzije",                Korisnik),
+        ("GET",  "/api/v1/sabloni/DP1/nacrt",                  Admin),
+        ("POST", "/api/v1/sabloni/DP1/nacrt",                  Admin),
+        ("DELETE", "/api/v1/sabloni/DP1/nacrt",                Admin),
+        ("POST", "/api/v1/sabloni/DP1/nacrt/stavke",           Admin),
+        ("PUT",  "/api/v1/sabloni/DP1/nacrt/stavke/999999",    Admin),
+        ("DELETE", "/api/v1/sabloni/DP1/nacrt/stavke/999999",  Admin),
+        ("POST", "/api/v1/sabloni/DP1/nacrt/stavke/999999/pomeri", Admin),
+        ("GET",  "/api/v1/sabloni/istorijat",                  Korisnik),
+        ("GET",  "/api/v1/predlozi-izmena",                    Korisnik),
+        ("POST", "/api/v1/predlozi-izmena",                    Korisnik),
+        ("POST", "/api/v1/predlozi-izmena/999999/odluka",      Admin),
+        ("GET",  "/api/v1/aktivnosti/999999/uputstvo",         Korisnik),
+        ("PUT",  "/api/v1/aktivnosti/999999/uputstvo",         Admin),
+        ("DELETE", "/api/v1/aktivnosti/999999/uputstvo/slike/1", Admin),
+        ("GET",  "/api/v1/aktivnosti/999999/uputstvo/slike/1", Korisnik),
+
         ("GET",  "/api/v1/_diag/admin-only",                   Admin),
         ("GET",  "/api/v1/_diag/korisnik",                     Korisnik),
     ];

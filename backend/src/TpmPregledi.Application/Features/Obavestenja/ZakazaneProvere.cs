@@ -3,6 +3,7 @@ using TpmPregledi.Application.Common.Interfaces;
 using TpmPregledi.Application.Features.Analitika;
 using TpmPregledi.Application.Features.Podesavanja;
 using TpmPregledi.Application.Features.Raspored;
+using TpmPregledi.Application.Features.Sabloni;
 using TpmPregledi.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +31,9 @@ public sealed class ZakazaneProvereHandler(IAppDbContext db, IDateTimeProvider c
         var danas = clock.Today;
         var p = await new PodesavanjaHandler(db).Handle(new GetPodesavanjaQuery(), ct);
         var k = await RasporedKontekst.UcitajAsync(db, ct);
+
+        // Zakazane verzije šablona postaju važeće svog dana (R2.6).
+        await AktivacijaVerzija.AktivirajDospeleAsync(db, danas, sada, ct);
 
         var broj = 0;
         broj += await NijeZapocetAsync(danas, sat, p, k, sada, ct);

@@ -61,6 +61,9 @@ public static class StatusVerzije
 
     /// <summary>Bila je važeća, zamenila ju je novija.</summary>
     public const string Zamenjena = "zamenjena";
+
+    /// <summary>Objavljena sa datumom u budućnosti; postaje važeća tog dana (R2.6).</summary>
+    public const string Zakazana = "zakazana";
 }
 
 /// <summary>
@@ -161,4 +164,54 @@ public class Fajl
 
     /// <summary>Kada je upisan (UTC).</summary>
     public DateTime KreiranoAt { get; set; }
+}
+
+/// <summary>
+/// Predlog izmene šablona (R2.8): Inženjer ili Supervizor predlaže dodavanje, izbacivanje ili ispravku teksta uz razlog; Direktor ili
+/// Admin odlučuje. Odobren predlog je zadatak za nacrt sledeće verzije i vezuje se za verziju kad se ona objavi.
+/// </summary>
+[Auditable]
+public class PredlogIzmene
+{
+    /// <summary>PK.</summary>
+    public int Id { get; set; }
+
+    /// <summary>Šablon.</summary>
+    public int SablonId { get; set; }
+
+    /// <summary>Navigacija.</summary>
+    public Sablon? Sablon { get; set; }
+
+    /// <summary><c>dodavanje</c>, <c>izbacivanje</c>, <c>ispravka</c>.</summary>
+    public string Vrsta { get; set; } = "ispravka";
+
+    /// <summary>Stavka na koju se odnosi (izbacivanje, ispravka), iz važeće verzije.</summary>
+    public int? StavkaId { get; set; }
+
+    /// <summary>Šta treba promeniti.</summary>
+    public string Opis { get; set; } = string.Empty;
+
+    /// <summary>Zašto (obavezno).</summary>
+    public string Razlog { get; set; } = string.Empty;
+
+    /// <summary>Ko predlaže.</summary>
+    public string PodneoId { get; set; } = string.Empty;
+
+    /// <summary>Kada (UTC).</summary>
+    public DateTime KreiranoAt { get; set; }
+
+    /// <summary><c>zahtev</c>, <c>odobren</c>, <c>odbijen</c>.</summary>
+    public string Status { get; set; } = "zahtev";
+
+    /// <summary>Ko je odlučio.</summary>
+    public string? OdlucioId { get; set; }
+
+    /// <summary>Kada je odlučeno (UTC).</summary>
+    public DateTime? OdlucenoAt { get; set; }
+
+    /// <summary>Obrazloženje odluke (opciono).</summary>
+    public string? Odgovor { get; set; }
+
+    /// <summary>Verzija u kojoj je odobren predlog sproveden (postavlja se pri objavi).</summary>
+    public int? VerzijaId { get; set; }
 }

@@ -79,6 +79,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<SablonDogadjaj> SablonDogadjaji => Set<SablonDogadjaj>();
 
     /// <inheritdoc />
+    public DbSet<PredlogIzmene> PredloziIzmena => Set<PredlogIzmene>();
+
+    /// <inheritdoc />
     public DbSet<Fajl> Fajlovi => Set<Fajl>();
 
     /// <inheritdoc />
@@ -583,6 +586,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.KorisnikId).HasMaxLength(64);
             e.HasIndex(x => new { x.SablonId, x.At });
             e.HasOne<Sablon>().WithMany().HasForeignKey(x => x.SablonId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<PredlogIzmene>(e =>
+        {
+            e.ToTable("predlog_izmene");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Vrsta).IsRequired().HasMaxLength(20);
+            e.Property(x => x.Opis).IsRequired().HasMaxLength(1000);
+            e.Property(x => x.Razlog).IsRequired().HasMaxLength(1000);
+            e.Property(x => x.PodneoId).IsRequired().HasMaxLength(64);
+            e.Property(x => x.Status).IsRequired().HasMaxLength(20);
+            e.Property(x => x.OdlucioId).HasMaxLength(64);
+            e.Property(x => x.Odgovor).HasMaxLength(500);
+            e.HasIndex(x => new { x.SablonId, x.Status });
+            e.HasOne(x => x.Sablon).WithMany().HasForeignKey(x => x.SablonId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<SablonStavka>().WithMany().HasForeignKey(x => x.StavkaId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne<SablonVerzija>().WithMany().HasForeignKey(x => x.VerzijaId).OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<Fajl>(e =>

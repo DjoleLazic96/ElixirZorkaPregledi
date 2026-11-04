@@ -19,6 +19,7 @@
 | `dodatno_polje` | dodatna polja uz aktivnosti (seed tri polja) | `ToTable` |
 | `sablon`, `sablon_verzija`, `sablon_stavka`, `sablon_stavka_polje` | šest šablona, verzije, stavke i polja na stavkama | `ToTable` |
 | `sablon_dogadjaj` | istorijat šablona | `ToTable` |
+| `predlog_izmene` | predlozi izmena šablona (R2.8) | `ToTable` |
 | `fajl` | fajlovi na volumenu (slike, faze 04 i 10) | `ToTable` |
 | `neradni_dan` | neradni dani i praznici | `ToTable` |
 | `odsustvo` | odsustva i zahtevi za odsustvo | `ToTable` |
@@ -157,6 +158,7 @@ Ključ je par (naziv, oznaka), ne sama oznaka: DP1, DP2 i PZ1 su prepisani doslo
 ### `akcija`, `akcija_dogadjaj`, `kvar` (faza 07)
 - `akcija` — `broj` unique (`A-2026-0031`), `pregled_id` (izvor), `uredjaj_id`, `aktivnost_id`, `stavka_kljuc`, `vrsta` (`ocistiti`/`podmazati`/`zameniti`/`popraviti`/`ostalo`), `hitnost` (`hitno`/`7_dana`/`sledeci_pz`/`pratiti`), `opis`, `rok` (iz hitnosti), `status` (`otvorena`/`zatvorena`/`otkazana`), `zaduzen`, `kreirao_id`, `kreirano_at`, `zatvorio_id`, `zatvoreno_at`, `razlog`, `stavka_sada_ispravna`; `[Auditable]`.
 - `akcija_dogadjaj` — `akcija_id`, `vrsta` (`otvorena`, `ostaje_otvorena`, `zaduzen`, `zatvorena`, `otkazana`), `tekst`, `korisnik_id`, `pregled_id`, `at`.
+- `predlog_izmene` (faza 10) — `sablon_id`, `vrsta` (`dodavanje`/`izbacivanje`/`ispravka`), `stavka_id` (set null), `opis`, `razlog`, `podneo_id`, `kreirano_at`, `status` (`zahtev`/`odobren`/`odbijen`), `odlucio_id`, `odluceno_at`, `odgovor`, `verzija_id` (verzija u kojoj je sproveden); `[Auditable]`. `aktivnost.uputstvo_slike bigint[]` (do 3 fajla). `sablon_verzija.status` dobija `zakazana` (objavljena sa budućim datumom).
 - `obavestenje` (faza 09) — `korisnik_id` (FK, cascade), `vrsta`, `naslov`, `tekst`, `link`, `kljuc` (idempotentnost; unique sa `korisnik_id` kad nije null), `kreirano_at`, `procitano_at`, `isporuceno_at` (null = čeka push i mejl; delimični indeks), `pokusaja`. `push_pretplata` — `korisnik_id`, `endpoint` unique, `p256dh`, `auth`, `uredjaj_klijenta`, `kreirano_at`. Primaoci po vrsti su u `podesavanje.primaociObavestenja` (JSON).
 - `kvar` — `broj` unique (`K-2026-0087`), `uredjaj_id`, `aktivnost_id`, `stavka_kljuc`, `otvorio_pregled_id`, `zatvorio_pregled_id`, `poslednji_pregled_id`, `otvoren`, `zatvoren` (date), `prijava`, `poslednja_napomena`. `refresh_token.dugotrajan` (faza 05) — „Zapamti me“. `sporan_unos` — `pregled_id`, `korisnik_id`, `operacija jsonb`, `razlog`, `primljeno_at`, `odluka` (null = čeka).
 
@@ -198,6 +200,7 @@ Sekcije, šabloni i tri dodatna polja su seed u migracijama (`HasData`); regista
 | `Osnova` | `korisnik_pravo`, `podesavanje`, `brojac`, `sekcija` (+ seed sekcija) |
 | `AkcijeIKvarovi` | `akcija`, `akcija_dogadjaj`, `kvar` |
 | `Obavestenja` | `obavestenje`, `push_pretplata` |
+| `IzmeneSablona` | `predlog_izmene`, `aktivnost.uputstvo_slike` |
 | `Overa` | kolone overe i poništavanja na `pregled`, `zahtev_dorade` |
 | `RadBezInterneta` | `pregled.uredjaj_klijenta`, `refresh_token.dugotrajan`, `sporan_unos` |
 | `Popunjavanje` | kolone popunjavanja na `pregled`, `odgovor`, `uredjaj_van_funkcije`, `fotografija`, `sinhronizacija_operacija` |

@@ -16,25 +16,32 @@ import { porukaGreske } from '../../lib/apiError';
 import { formatirajDatum } from '../../lib/datum';
 import { canEditOprema, canUvoziSablone } from '../../lib/permissions';
 import { useAuth } from '../auth/AuthProvider';
-import { useAktivnosti, useDodatnaPolja, useSablonVerzija, useSabloni, useSacuvajAktivnost, useUvoziSablone } from './hooks';
+import { Link } from 'react-router-dom';
+import { Select } from '../../components/ui/Select';
+import { useAktivnosti, useDodatnaPolja, useSabloni, useSacuvajAktivnost, useUvoziSablone } from './hooks';
+import { IstorijatTab, PredlogDijalog, PredloziTab } from './IzmenePages';
+import { STATUS_VERZIJE, useVerzija, useVerzije } from './izmene';
+import { UputstvoDugme } from './UputstvoDijalog';
 
 const TABOVI = [
   { key: 'sabloni', label: 'Šabloni' },
   { key: 'aktivnosti', label: 'Katalog aktivnosti' },
   { key: 'polja', label: 'Dodatna polja' },
+  { key: 'predlozi', label: 'Predlozi izmena' },
+  { key: 'istorijat', label: 'Istorijat' },
 ] as const;
 
 type Tab = (typeof TABOVI)[number]['key'];
 
 /**
  * „Šabloni“ (R2.1): šest šablona i važeća verzija kao na obrascu, katalog aktivnosti i dodatna polja.
- * Svi čitaju; katalog menja ko ima „sabloni.nacrt“; prvi uvoz iz Excela radi Admin. Izmene šablona
- * (nacrt, objava, predlozi) dolaze u fazi 10.
+ * Svi čitaju i predlažu izmene; katalog, uputstva i nacrt menja ko ima „sabloni.nacrt“, objavljuje Direktor
+ * („sabloni.objava“); prvi uvoz iz Excela radi Admin.
  */
-export function SabloniPage() {
+export function SabloniPage({ pocetniTab = 'sabloni' }: { pocetniTab?: Tab }) {
   const { me } = useAuth();
   const pristup = me ?? { roles: [], prava: [] };
-  const [tab, setTab] = useState<Tab>('sabloni');
+  const [tab, setTab] = useState<Tab>(pocetniTab);
 
   return (
     <div className="space-y-4">
@@ -44,9 +51,11 @@ export function SabloniPage() {
         actions={canUvoziSablone(pristup) ? <UvozDugme /> : undefined}
       />
       <Tabs items={TABOVI} value={tab} onChange={setTab} aria-label="Šabloni" />
-      {tab === 'sabloni' && <SabloniTab />}
+      {tab === 'sabloni' && <SabloniTab smeDaMenja={canEditOprema(pristup)} />}
       {tab === 'aktivnosti' && <AktivnostiTab smeDaMenja={canEditOprema(pristup)} />}
       {tab === 'polja' && <PoljaTab />}
+      {tab === 'predlozi' && <PredloziTab />}
+      {tab === 'istorijat' && <IstorijatTab />}
     </div>
   );
 }
@@ -110,7 +119,7 @@ function UvozDugme() {
 
 // ─── Šabloni ──────────────────────────────────────────────────────────────
 
-function SabloniTab() {
+function SabloniTab({ smeDaMenja }: { smeDaMenja: boolean }) {
   const sabloni = useSabloni();
   const [izabran, setIzabran] = useState<string | null>(null);
   const prvi = sabloni.data?.find((s) => s.vazecaVerzija !== null)?.tip ?? null;
@@ -135,7 +144,7 @@ function SabloniTab() {
           <SablonDugme key={s.tip} s={s} aktivan={s.tip === tip} onClick={() => setIzabran(s.tip)} />
         ))}
       </div>
-      {tip && <VerzijaPrikaz tip={tip} />}
+      {tip && <VerzijaPrikaz key={tip} tip={tip} smeDaMenja={smeDaMenja} />}
     </div>
   );
 }
@@ -160,17 +169,33 @@ function SablonDugme({ s, aktivan, onClick }: { s: SablonPregledDto; aktivan: bo
   );
 }
 
-function VerzijaPrikaz({ tip }: { tip: string }) {
-  const v = useSablonVerzija(tip);
+function VerzijaPrikaz({ tip, smeDaMenja }: { tip: string; smeDaMenja: boolean }) {
+  const [broj, setBroj] = useState<number | null>(null);
+  const v = useVerzija(tip, broj);
+  const verzije = useVerzije(tip);
+  const [predlog, setPredlog] = useState(false);
   if (v.isLoading) return <Ucitavanje />;
   if (v.isError || !v.data) return <p role="alert" className="text-sm text-red-600">{porukaGreske(v.error, 'Šablon nije učitan.')}</p>;
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">
-        {v.data.tip}, verzija {v.data.broj}
-        {v.data.vaziOd && <> · važi od {formatirajDatum(v.data.vaziOd)}</>}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+          <span>{v.data.tip}, verzija {v.data.broj} ({STATUS_VERZIJE[v.data.status] ?? v.data.status})</span>
+          {v.data.vaziOd && <span>· važi od {formatirajDatum(v.data.vaziOd)}</span>}
+          {(verzije.data?.length ?? 0) > 1 && (
+            <div className="w-56">
+              <Select aria-label="Verzija" value={broj} nullable placeholder="Važeća verzija" onChange={setBroj}
+                options={(verzije.data ?? []).filter((x) => x.status !== 'nacrt').map((x) => ({ value: x.broj, label: `Verzija ${x.broj} (${STATUS_VERZIJE[x.status] ?? x.status})` }))} />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={() => setPredlog(true)}>Predloži izmenu</Button>
+          {smeDaMenja && <Link to={`/sabloni/${tip}/nacrt`}><Button>Nacrt nove verzije</Button></Link>}
+        </div>
+      </div>
+      {predlog && <PredlogDijalog v={v.data} onClose={() => setPredlog(false)} />}
       {v.data.sekcije.map((sek) => (
         <Card key={sek.sifra}>
           <CardHeader>
@@ -185,7 +210,8 @@ function VerzijaPrikaz({ tip }: { tip: string }) {
                 <ul className="mt-2 space-y-1">
                   {u.stavke.map((s) => (
                     <li key={s.stavkaId} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
-                      <span className="min-w-0 break-words text-gray-800">
+                      <span className="flex min-w-0 items-center gap-1 break-words text-gray-800">
+                        <UputstvoDugme aktivnostId={s.aktivnostId} aktivnost={s.aktivnost} smeDaMenja={smeDaMenja} />
                         {s.aktivnost}
                         {s.polja.map((p) => (
                           <Badge key={p} tone="primary" className="ml-2">
@@ -253,7 +279,11 @@ function AktivnostiTab({ smeDaMenja }: { smeDaMenja: boolean }) {
           <ul className="divide-y divide-gray-100">
             {aktivnosti.data.map((a) => (
               <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-                <span className="min-w-0 break-words text-gray-900">{a.naziv}</span>
+                <span className="flex min-w-0 items-center gap-1 break-words text-gray-900">
+                  <UputstvoDugme aktivnostId={a.id} aktivnost={a.naziv} smeDaMenja={smeDaMenja} />
+                  {a.naziv}
+                  {!a.imaUputstvo && <Badge className="ml-1">bez uputstva</Badge>}
+                </span>
                 <span className="flex items-center gap-3 text-xs text-gray-500">
                   <span className="whitespace-nowrap">
                     {a.odgovorIspravan} / {a.odgovorNeispravan}

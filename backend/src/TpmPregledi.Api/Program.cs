@@ -228,6 +228,7 @@ try
     app.MapAkcijeEndpoints();
     app.MapAnalitikaEndpoints();
     app.MapObavestenjaEndpoints();
+    app.MapIzmeneSablonaEndpoints();
     app.MapAuditEndpoints();
     app.MapServerStanjeEndpoints();
 

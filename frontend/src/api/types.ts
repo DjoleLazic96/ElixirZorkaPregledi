@@ -248,6 +248,7 @@ export interface AktivnostDto {
   odgovorIspravan: string;
   odgovorNeispravan: string;
   brojStavki: number;
+  imaUputstvo: boolean;
 }
 
 export interface AktivnostInput {

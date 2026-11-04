@@ -30,6 +30,10 @@ export interface StavkaPopunjavanjaDto {
   polja: PoljeDto[];
   odgovor: OdgovorDto | null;
   fotografije: number[];
+  /** Uputstvo aktivnosti (R2.4): tekst je u paketu, pa radi i bez interneta; slike se učitavaju sa servera. */
+  aktivnostId: number;
+  uputstvo: string | null;
+  uputstvoSlika: number;
 }
 
 export interface AkcijaKratkoDto {
