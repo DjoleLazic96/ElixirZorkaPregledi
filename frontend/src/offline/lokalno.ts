@@ -30,6 +30,14 @@ export function primeniLokalno(p: PopunjavanjeDto, op: Operacija, sada: string):
         for (const u of s.uredjaji.filter((x) => !x.vanFunkcije))
           for (const st of u.stavke) if (!st.odgovor) st.odgovor = { vrednost: 0, napomena: null, polja: {} };
       return kopija;
+    case 'akcija':
+      // Broj akcije dodeljuje server; lokalno se ništa ne prikazuje dok ne stigne novi paket.
+      return kopija;
+    case 'akcija_odgovor':
+      // Pop-up je odgovoren: akcija nestaje sa uređaja (zatvorena ili „ostaje otvorena“ za ovaj pregled).
+      for (const s of kopija.sekcije)
+        for (const u of s.uredjaji) u.otvoreneAkcije = u.otvoreneAkcije.filter((a) => a.id !== op.podaci.akcijaId);
+      return kopija;
     case 'predaja':
       // „Predato – čeka slanje“ postoji samo na telefonu (spec §6.4); dok se ne pošalje, pregled se ne menja.
       kopija.status = 'predato_ceka';

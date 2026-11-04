@@ -25,7 +25,8 @@
 - [x] 2026-11-04 — faza 04: popunjavanje sa internetom, slike, aktivno vreme, mobilni raspored (`04-popunjavanje.md`)
 - [x] 2026-11-04 — faza 05: rad bez interneta, PWA, Zapamti me, jedan telefon, sporan unos, sat telefona (`05-rad-bez-interneta.md`); odluka o spornom unosu je faza 06
 - [x] 2026-11-04 — faza 06: arhiva, detalj, overa, dorada, zahtev za doradu, poništavanje, sporni unosi, PDF/Word/Excel (`06-overa-i-arhiva.md`); automatski PDF/rezime pri predaji i obaveštenja su faza 09
-- [ ] akcije, kvarovi, ekran uređaja, analitika, Dashboard
+- [x] 2026-11-04 — faza 07: akcije, pop-up, kvarovi, Neispravnosti (`07-akcije-i-kvarovi.md`); obaveštenja (hitna akcija, istekao rok) su faza 09
+- [ ] faza 08: ekran uređaja, analitika, Dashboard, pretraga
 - [ ] obaveštenja (push, mejl), pozadinski poslovi, pretraga, podešavanja
 - [ ] korisnička uputstva po temama
 

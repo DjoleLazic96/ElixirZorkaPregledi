@@ -69,6 +69,9 @@ korisnika: nova prava važe najkasnije kad istekne trenutni access token (15 min
 | Arhiva, detalj, PDF/Word/Excel | RequireKorisnik |
 | Overa, vrati na doradu, odluka o doradi, poništavanje, sporan unos | `Pravo:overa`; Supervizor ne dira overu Direktora (422) |
 | Zahtev za doradu | `Pravo:pregledi.popunjavanje` + inženjer koji je radio pregled |
+| Akcije i neispravnosti — čitanje, Excel | RequireKorisnik |
+| Zatvaranje, otkazivanje, zaduženi | `Pravo:akcije.zatvaranje` |
+| Otvaranje akcije i odgovor na pop-up | kroz `/sinhronizacija` (`Pravo:pregledi.popunjavanje`) |
 
 Frontend: „Administracija“ se vidi uz pravo `korisnici` ili `podesavanja`; tab „Korisnici“ uz `korisnici`, tab „Podešavanja“ uz `podesavanja`.
 

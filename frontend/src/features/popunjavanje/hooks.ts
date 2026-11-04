@@ -32,6 +32,16 @@ export interface StavkaPopunjavanjaDto {
   fotografije: number[];
 }
 
+export interface AkcijaKratkoDto {
+  id: number;
+  broj: string;
+  aktivnost: string;
+  stavkaId: number | null;
+  vrsta: string;
+  hitnost: string;
+  opis: string | null;
+}
+
 export interface UredjajPopunjavanjaDto {
   uredjajId: number;
   naziv: string;
@@ -39,6 +49,8 @@ export interface UredjajPopunjavanjaDto {
   vanFunkcije: boolean;
   prosliPutVanFunkcije: boolean;
   stavke: StavkaPopunjavanjaDto[];
+  /** Otvorene akcije — pop-up „da li je urađena“ (R4.7). */
+  otvoreneAkcije: AkcijaKratkoDto[];
 }
 
 export interface SekcijaPopunjavanjaDto {
@@ -71,7 +83,9 @@ export type Operacija =
   | { vrsta: 'odgovor'; podaci: { stavkaId: number; vrednost: 0 | 1; napomena?: string | null; polja?: OdgovorDto['polja'] } }
   | { vrsta: 'van_funkcije'; podaci: { uredjajId: number; vanFunkcije: boolean } }
   | { vrsta: 'sve_ispravno'; podaci: { sekcija: string } }
-  | { vrsta: 'predaja'; podaci: Record<string, never> };
+  | { vrsta: 'predaja'; podaci: Record<string, never> }
+  | { vrsta: 'akcija'; podaci: { stavkaId: number; vrsta: string; hitnost: string; opis: string | null } }
+  | { vrsta: 'akcija_odgovor'; podaci: { akcijaId: number; uradjeno: boolean } };
 
 /** Pregled iz lokalne kopije; ako ga nema, preuzima se sa servera (potrebna je veza samo prvi put). */
 export function usePopunjavanje(id: number) {

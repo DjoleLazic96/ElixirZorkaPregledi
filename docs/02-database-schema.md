@@ -28,6 +28,8 @@
 | `sinhronizacija_operacija` | primljene operacije sa klijenta (idempotentnost po `op_id`) | `ToTable` |
 | `sporan_unos` | operacije stigle posle prebacivanja/poništavanja (R6.8) | `ToTable` |
 | `zahtev_dorade` | zahtevi inženjera za doradu (R6.6) | `ToTable` |
+| `akcija`, `akcija_dogadjaj` | potrebne akcije i njihova istorija (R7.x) | `ToTable` |
+| `kvar` | kvarovi na stavkama, otvaraju se i zatvaraju iz predaje (R8.7) | `ToTable` |
 
 ```
 AspNetUsers 1──* refresh_token (user_id, CASCADE)
@@ -148,7 +150,12 @@ Ključ je par (naziv, oznaka), ne sama oznaka: DP1, DP2 i PZ1 su prepisani doslo
 - `pregled_ucesnik` — PK (pregled, korisnik), `sekcije text[]` (PZ sa dva inženjera).
 - `pregled_dogadjaj` — `pregled_id`, `vrsta` (`dodela`, `prebacivanje`, `prenos`, `promena_pz`, `ucesnik`, `izmena_rasporeda`), `podaci jsonb` (staro/novo), `korisnik_id` (null = sistem), `at`.
 
-`pregled` dobija u fazi 04: `zapocet_at`, `predat_at`, `aktivno_sekundi`, `delova`, `dorada`; u fazi 05 `uredjaj_klijenta` (telefon koji je započeo); u fazi 06 `overio_id`, `overeno_at`, `overio_direktor`, `ponisten_razlog`, `ponistio_id`. `zahtev_dorade` — `pregled_id`, `podneo_id`, `razlog`, `status`, `odlucio_id`, vremena; `[Auditable]`. `refresh_token.dugotrajan` (faza 05) — „Zapamti me“. `sporan_unos` — `pregled_id`, `korisnik_id`, `operacija jsonb`, `razlog`, `primljeno_at`, `odluka` (null = čeka).
+`pregled` dobija u fazi 04: `zapocet_at`, `predat_at`, `aktivno_sekundi`, `delova`, `dorada`; u fazi 05 `uredjaj_klijenta` (telefon koji je započeo); u fazi 06 `overio_id`, `overeno_at`, `overio_direktor`, `ponisten_razlog`, `ponistio_id`. `zahtev_dorade` — `pregled_id`, `podneo_id`, `razlog`, `status`, `odlucio_id`, vremena; `[Auditable]`.
+
+### `akcija`, `akcija_dogadjaj`, `kvar` (faza 07)
+- `akcija` — `broj` unique (`A-2026-0031`), `pregled_id` (izvor), `uredjaj_id`, `aktivnost_id`, `stavka_kljuc`, `vrsta` (`ocistiti`/`podmazati`/`zameniti`/`popraviti`/`ostalo`), `hitnost` (`hitno`/`7_dana`/`sledeci_pz`/`pratiti`), `opis`, `rok` (iz hitnosti), `status` (`otvorena`/`zatvorena`/`otkazana`), `zaduzen`, `kreirao_id`, `kreirano_at`, `zatvorio_id`, `zatvoreno_at`, `razlog`, `stavka_sada_ispravna`; `[Auditable]`.
+- `akcija_dogadjaj` — `akcija_id`, `vrsta` (`otvorena`, `ostaje_otvorena`, `zaduzen`, `zatvorena`, `otkazana`), `tekst`, `korisnik_id`, `pregled_id`, `at`.
+- `kvar` — `broj` unique (`K-2026-0087`), `uredjaj_id`, `aktivnost_id`, `stavka_kljuc`, `otvorio_pregled_id`, `zatvorio_pregled_id`, `poslednji_pregled_id`, `otvoren`, `zatvoren` (date), `prijava`, `poslednja_napomena`. `refresh_token.dugotrajan` (faza 05) — „Zapamti me“. `sporan_unos` — `pregled_id`, `korisnik_id`, `operacija jsonb`, `razlog`, `primljeno_at`, `odluka` (null = čeka).
 
 ### `odgovor`, `uredjaj_van_funkcije`, `fotografija`, `sinhronizacija_operacija`
 - `odgovor` — `pregled_id`, `stavka_id`, `vrednost` smallint (0 ispravan, 1 neispravan), `napomena`, `polja jsonb` (ključ = ID dodatnog polja), `korisnik_id`, `klijent_at`, `server_at`, `op_id`, `dorada`; jedinstveno (pregled, stavka, dorada) `ux_odgovor_stavka_dorada`; `[Auditable]`. Promena piše `izmena_odgovora` (staro/novo) u `pregled_dogadjaj`.
@@ -186,6 +193,7 @@ Sekcije, šabloni i tri dodatna polja su seed u migracijama (`HasData`); regista
 |---|---|
 | `InitialCreate` | Identity, `refresh_token`, `audit_log`, `kategorija` |
 | `Osnova` | `korisnik_pravo`, `podesavanje`, `brojac`, `sekcija` (+ seed sekcija) |
+| `AkcijeIKvarovi` | `akcija`, `akcija_dogadjaj`, `kvar` |
 | `Overa` | kolone overe i poništavanja na `pregled`, `zahtev_dorade` |
 | `RadBezInterneta` | `pregled.uredjaj_klijenta`, `refresh_token.dugotrajan`, `sporan_unos` |
 | `Popunjavanje` | kolone popunjavanja na `pregled`, `odgovor`, `uredjaj_van_funkcije`, `fotografija`, `sinhronizacija_operacija` |

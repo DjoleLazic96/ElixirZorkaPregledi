@@ -1,4 +1,4 @@
-import { Activity, CalendarDays, FileCheck, CalendarOff, CalendarRange, CalendarX, ClipboardList, ScrollText, Settings, Wrench, type LucideIcon } from 'lucide-react';
+import { Activity, CalendarDays, FileCheck, ListChecks, ShieldAlert, CalendarOff, CalendarRange, CalendarX, ClipboardList, ScrollText, Settings, Wrench, type LucideIcon } from 'lucide-react';
 import { canSeeAdminSection, imaPravo, isAdmin, type Pristup } from '../../lib/permissions';
 
 export interface NavItem {
@@ -12,6 +12,8 @@ export interface NavItem {
 export const NAV: NavItem[] = [
   { to: '/kalendar', label: 'Kalendar', icon: CalendarDays },
   { to: '/pregledi', label: 'Pregledi', icon: FileCheck },
+  { to: '/akcije', label: 'Akcije', icon: ListChecks },
+  { to: '/neispravnosti', label: 'Neispravnosti', icon: ShieldAlert },
   {
     to: '/raspored', label: 'Raspored', icon: CalendarRange,
     visibleIf: (p) => imaPravo(p, 'raspored.uredjivanje') || imaPravo(p, 'odsustva.odobravanje'),

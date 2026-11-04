@@ -9,6 +9,7 @@ import { AuditLogPage } from '../features/audit-log/AuditLogPage';
 import { useAuth } from '../features/auth/AuthProvider';
 import { LoginPage } from '../features/auth/LoginPage';
 import { PopunjavanjePage } from '../features/popunjavanje/PopunjavanjePage';
+import { AkcijaPage, AkcijePage, KvarPage, NeispravnostiPage } from '../features/akcije/AkcijePages';
 import { PregledDetaljPage } from '../features/pregledi/PregledDetaljPage';
 import { PreglediPage } from '../features/pregledi/PreglediPage';
 import { KalendarPage } from '../features/raspored/KalendarPage';
@@ -66,6 +67,10 @@ export function AppRoutes() {
             </Zasticeno>
           }
         />
+        <Route path="/akcije" element={<Zasticeno allowed={isKorisnik(me)} landing={landing}><AkcijePage /></Zasticeno>} />
+        <Route path="/akcije/:id" element={<Zasticeno allowed={isKorisnik(me)} landing={landing}><AkcijaPage /></Zasticeno>} />
+        <Route path="/neispravnosti" element={<Zasticeno allowed={isKorisnik(me)} landing={landing}><NeispravnostiPage /></Zasticeno>} />
+        <Route path="/neispravnosti/:id" element={<Zasticeno allowed={isKorisnik(me)} landing={landing}><KvarPage /></Zasticeno>} />
         <Route path="/pregledi" element={<Zasticeno allowed={isKorisnik(me)} landing={landing}><PreglediPage /></Zasticeno>} />
         <Route path="/pregledi/:id" element={<Zasticeno allowed={isKorisnik(me)} landing={landing}><PregledDetaljPage /></Zasticeno>} />
         <Route

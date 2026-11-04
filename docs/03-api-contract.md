@@ -115,7 +115,7 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 | GET | `/moj-paket` | `{ pregledi[], generisanoAt }` — dodeljeni za danas + 7 dana i započeti; `ETag`, `If-None-Match` → 304 |
 | POST | `/pregledi/{id}/zapocni` | status `u_radu`, vreme početka, važeća verzija šablona; samo dodeljeni ili učesnik (403) |
 | GET | `/pregledi/{id}/popunjavanje` | sekcije (`moja`, `radi`) → uređaji (`vanFunkcije`, `prosliPutVanFunkcije`) → stavke (polja, odgovor, ID-jevi slika) |
-| POST | `/sinhronizacija` `{ uredjajKlijenta, klijentSada, operacije[{opId, vrsta, pregledId, klijentAt, podaci}] }` | `{ prihvacene[], odbijene[{opId, razlog}], serverSada }`; vrste `zapocni` (`verzijaId`; vreme početka = `klijentAt`, vezuje `uredjajKlijenta`), `odgovor` (`stavkaId`, `vrednost`, `napomena`, `polja`), `van_funkcije` (`uredjajId`, `vanFunkcije`), `sve_ispravno` (`sekcija`), `predaja`; ponovljen `opId` = već primenjeno |
+| POST | `/sinhronizacija` `{ uredjajKlijenta, klijentSada, operacije[{opId, vrsta, pregledId, klijentAt, podaci}] }` | `{ prihvacene[], odbijene[{opId, razlog}], serverSada }`; vrste `akcija` (`stavkaId`, `vrsta`, `hitnost`, `opis`), `akcija_odgovor` (`akcijaId`, `uradjeno`), `zapocni` (`verzijaId`; vreme početka = `klijentAt`, vezuje `uredjajKlijenta`), `odgovor` (`stavkaId`, `vrednost`, `napomena`, `polja`), `van_funkcije` (`uredjajId`, `vanFunkcije`), `sve_ispravno` (`sekcija`), `predaja`; ponovljen `opId` = već primenjeno |
 | POST | `/fotografije` multipart (`fajl`, `klijentId`, `pregledId`, `stavkaId`, `izvor`) | ≤ 3 MB (400 „Slika je prevelika.“), JPEG/PNG/WebP, najviše 5 po stavci (422) |
 | GET | `/fotografije/{id}` | slika (RequireKorisnik — svi vide sve preglede) |
 
@@ -134,6 +134,19 @@ Odbijene operacije: „Pregled još nije potpun: nedostaje N odgovora i M obavez
 | POST | `/pregledi/{id}/zahtev-za-doradu/odluka` `{ odobreno }` | overa | posle overe: onaj ko je overio ili Direktor |
 | POST | `/pregledi/{id}/ponisti` `{ razlog }` | overa | u radu / čeka overu / overen / vraćen |
 | POST | `/pregledi/{id}/sporan-unos/{unosId}/odluka` `{ primeni }` | overa | sporan odgovor se upisuje u tekuću doradu ili odbacuje |
+
+### Akcije i neispravnosti (faza 07)
+| Metod | Ruta | Politika | Svrha |
+|---|---|---|---|
+| GET | `/akcije?status&hitnost&sekcijaId&uredjajId&sadaIspravna` | RequireKorisnik | `AkcijaDto[]` (rok, istekao rok, zaduženi, kvar na stavci) |
+| GET | `/akcije/{id}` | RequireKorisnik | akcija sa istorijom |
+| POST | `/akcije/{id}/zatvori` · `/otkazi` `{ razlog }` | akcije.zatvaranje | 422 ako nije otvorena |
+| PUT | `/akcije/{id}/zaduzen` `{ zaduzen }` | akcije.zatvaranje | osoba ili služba, ide u istoriju |
+| GET | `/kvarovi?otvoreno&sekcijaId&uredjajId&pretraga` | RequireKorisnik | `KvarDto[]` (trajanje, prijave, otvorene akcije) |
+| GET | `/kvarovi/{id}` | RequireKorisnik | kvar sa svim datumima prijave i akcijama na stavci |
+| GET | `/izvoz/akcije.xlsx` · `/izvoz/kvarovi.xlsx` | RequireKorisnik | Excel (filtrirano) |
+
+Popunjavanje (`GET /pregledi/{id}/popunjavanje`, paket) uz svaki uređaj vraća `otvoreneAkcije` za pop-up.
 
 ### `/_diag` (samo Development)
 Rute kojima integracioni testovi dokazuju politike: `/_diag/korisnik` (RequireKorisnik), `/_diag/admin-only` (RequireAdmin).

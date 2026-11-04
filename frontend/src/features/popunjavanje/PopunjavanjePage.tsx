@@ -1,6 +1,9 @@
 import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Camera, Check, ImagePlus, MessageSquare } from 'lucide-react';
+import { Camera, Check, ImagePlus, MessageSquare, Wrench } from 'lucide-react';
+import { Modal } from '../../components/ui/Modal';
+import { Select } from '../../components/ui/Select';
+import { HITNOSTI, VRSTE_AKCIJA } from '../akcije/oznake';
 import { useToast } from '../../app/providers/ToastProvider';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -197,6 +200,9 @@ function UredjajKartica({ pregledId, uredjaj, moja, posalji }: { pregledId: numb
           </p>
           <Checkbox label="Nije u funkciji" checked={uredjaj.vanFunkcije} disabled={!moja} onChange={(e) => van(e.target.checked)} />
         </div>
+        {moja && uredjaj.otvoreneAkcije.map((a) => (
+          <PopUpAkcije key={a.id} akcija={a} uredjaj={uredjaj} posalji={posalji} />
+        ))}
         {uredjaj.prosliPutVanFunkcije && !uredjaj.vanFunkcije && (
           <div className="flex flex-wrap items-center gap-2 rounded-md bg-amber-50 p-2 text-sm text-amber-900">
             Prošli put: nije u funkciji
@@ -224,6 +230,7 @@ export function StavkaRed({ pregledId, stavka, moja, posalji }: { pregledId: num
   const o = stavka.odgovor;
   const [napomena, setNapomena] = useState(o?.napomena ?? '');
   const [napomenaOtvorena, setNapomenaOtvorena] = useState(false);
+  const [akcijaOtvorena, setAkcijaOtvorena] = useState(false);
   const [polja, setPolja] = useState<OdgovorDto['polja']>(o?.polja ?? {});
   const otpremi = useOtpremiSliku(pregledId);
   const toast = useToast();
@@ -280,6 +287,7 @@ export function StavkaRed({ pregledId, stavka, moja, posalji }: { pregledId: num
           {!neispravan && !napomenaOtvorena && !napomena && (
             <Button size="sm" variant="ghost" onClick={() => setNapomenaOtvorena(true)}><MessageSquare size={14} aria-hidden /> Napomena</Button>
           )}
+          <Button size="sm" variant="ghost" onClick={() => setAkcijaOtvorena(true)}><Wrench size={14} aria-hidden /> Akcija</Button>
           <Button size="sm" variant="ghost" onClick={() => kamera.current?.click()} disabled={otpremi.isPending}><Camera size={14} aria-hidden /> Fotografiši</Button>
           <Button size="sm" variant="ghost" onClick={() => galerija.current?.click()} disabled={otpremi.isPending}><ImagePlus size={14} aria-hidden /> Iz galerije</Button>
           {stavka.fotografije.length > 0 && <Badge tone="primary">{stavka.fotografije.length} {stavka.fotografije.length === 1 ? 'slika' : 'slike'}</Badge>}
@@ -289,7 +297,53 @@ export function StavkaRed({ pregledId, stavka, moja, posalji }: { pregledId: num
             onChange={(e) => { void slika(e.target.files?.[0], 'galerija'); e.target.value = ''; }} />
         </div>
       )}
+      {akcijaOtvorena && <NovaAkcija stavka={stavka} posalji={posalji} onClose={() => setAkcijaOtvorena(false)} />}
     </li>
+  );
+}
+
+/** Nova potrebna akcija na stavci (R7.1, R7.2): vrsta, hitnost, kratak opis (opciono). */
+function NovaAkcija({ stavka, posalji, onClose }: { stavka: StavkaPopunjavanjaDto; posalji: Posalji; onClose: () => void }) {
+  const [vrsta, setVrsta] = useState<string | null>('popraviti');
+  const [hitnost, setHitnost] = useState<string | null>('7_dana');
+  const [opis, setOpis] = useState('');
+  return (
+    <Modal open title="Nova akcija" onClose={onClose}>
+      <div className="space-y-4">
+        <p className="break-words text-sm text-gray-600">{stavka.aktivnost}</p>
+        <Select aria-label="Vrsta" value={vrsta} onChange={setVrsta} options={VRSTE_AKCIJA} />
+        <Select aria-label="Hitnost" value={hitnost} onChange={setHitnost} options={HITNOSTI} />
+        <Textarea aria-label="Opis (nije obavezno)" placeholder="Opis (nije obavezno)" rows={2} value={opis} onChange={(e) => setOpis(e.target.value)} />
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>Odustani</Button>
+          <Button onClick={() => void posalji({ vrsta: 'akcija', podaci: { stavkaId: stavka.stavkaId, vrsta: vrsta ?? 'ostalo', hitnost: hitnost ?? 'pratiti', opis: opis.trim() || null } },
+            'Akcija je otvorena.').then((ok) => ok && onClose())}>Otvori akciju</Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * Pop-up otvorene akcije na uređaju (R4.7, R7.4): da li je urađena. Ako je urađena, a odgovor na toj stavci je neispravan,
+ * upozorava i nudi novu akciju (R7.14) — kvar ostaje otvoren.
+ */
+function PopUpAkcije({ akcija, uredjaj, posalji }: { akcija: UredjajPopunjavanjaDto['otvoreneAkcije'][number]; uredjaj: UredjajPopunjavanjaDto; posalji: Posalji }) {
+  const stavka = uredjaj.stavke.find((s) => s.stavkaId === akcija.stavkaId);
+  const neispravna = stavka?.odgovor?.vrednost === 1;
+  return (
+    <div role="alertdialog" aria-label={`Akcija ${akcija.broj}`} className="space-y-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm">
+      <p className="break-words">
+        <span className="whitespace-nowrap font-semibold">{akcija.broj}</span> · {akcija.aktivnost} · {VRSTE_AKCIJA.find((v) => v.value === akcija.vrsta)?.label}
+        {akcija.opis && ` — ${akcija.opis}`}
+      </p>
+      <p className="font-medium">Da li je akcija urađena?</p>
+      {neispravna && <p className="text-amber-800">Stavka je označena kao neispravna; ako je akcija urađena, otvorite novu akciju za preostali kvar.</p>}
+      <div className="flex gap-2">
+        <Button size="sm" className="min-h-11" onClick={() => void posalji({ vrsta: 'akcija_odgovor', podaci: { akcijaId: akcija.id, uradjeno: true } }, 'Akcija je zatvorena.')}>Da</Button>
+        <Button size="sm" variant="secondary" className="min-h-11" onClick={() => void posalji({ vrsta: 'akcija_odgovor', podaci: { akcijaId: akcija.id, uradjeno: false } }, 'Akcija ostaje otvorena.')}>Ne</Button>
+      </div>
+    </div>
   );
 }
 
