@@ -6,6 +6,8 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- **Popunjavanje pregleda** na telefonu: odgovori, napomene, dodatna polja, slike, „Nije u funkciji“, „Sve neoznačeno u sekciji je ispravno“ i predaja; aplikacija meri aktivno vreme.
+- Na telefonu je meni na dnu ekrana.
 - **Kalendar** (mesec na računaru, spisak na telefonu) i **Raspored**: predlog DP-a za nedelju po rotaciji, potvrda sa brojevima pregleda, zakazivanje PZ-a, zahtevi za prebacivanje i odsustva sa prebacivanjem.
 - Propušten DP se posle kraja radnog dana sam prenosi na sledeći radni dan; inženjeri ostaju na svojim danima.
 - **Moja odsustva** za inženjere i **Neradni dani** za administratora i direktora.

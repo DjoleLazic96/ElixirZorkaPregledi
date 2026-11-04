@@ -22,7 +22,8 @@
 - [x] 2026-11-04 — faza 02: registar opreme, katalog, dodatna polja, šabloni sa verzijama, uvoz iz .xlsx (`02-oprema-i-sabloni.md`)
 - [ ] mobilni raspored (donji meni umesto bočnog) — čeka PREDLOG „mobilni prikaz“; do tada je skelet na telefonu neupotrebljiv (bočni meni 240 px)
 - [x] 2026-11-04 — faza 03: raspored, kalendar, odsustva, neradni dani, prebacivanja, prenos propuštenog DP-a (`03-raspored.md`); obaveštenja o pomeranju čekaju fazu 09
-- [ ] popunjavanje i rad bez interneta (PWA, sinhronizacija, slike)
+- [x] 2026-11-04 — faza 04: popunjavanje sa internetom, slike, aktivno vreme, mobilni raspored (`04-popunjavanje.md`)
+- [ ] faza 05: rad bez interneta (PWA, outbox, provera sata telefona) — čeka PREDLOZE „PWA“, „duža sesija“, „biblioteke“
 - [ ] predaja, overa, dorada, poništavanje; izveštaji PDF/Word
 - [ ] akcije, kvarovi, ekran uređaja, analitika, Dashboard
 - [ ] obaveštenja (push, mejl), pozadinski poslovi, pretraga, podešavanja

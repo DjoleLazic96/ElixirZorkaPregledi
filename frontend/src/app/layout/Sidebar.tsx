@@ -1,33 +1,10 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Activity, ScrollText, Settings, type LucideIcon, CalendarDays, CalendarOff, CalendarRange, CalendarX, ClipboardList, Wrench } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
-import { canSeeAdminSection, isAdmin, type Pristup, imaPravo } from '../../lib/permissions';
+import type { Pristup } from '../../lib/permissions';
+import { vidljiveStavke } from './nav';
 import { GIT_SHA, VERZIJA } from '../../lib/verzija';
-
-interface NavItem {
-  to: string;
-  label: string;
-  icon: LucideIcon;
-  /** Ako je undefined, stavka je vidljiva svim ulogovanim korisnicima. */
-  visibleIf?: (p: Pristup) => boolean;
-}
-
-const NAV: NavItem[] = [
-  { to: '/kalendar', label: 'Kalendar', icon: CalendarDays },
-  {
-    to: '/raspored', label: 'Raspored', icon: CalendarRange,
-    visibleIf: (p) => imaPravo(p, 'raspored.uredjivanje') || imaPravo(p, 'odsustva.odobravanje'),
-  },
-  { to: '/moja-odsustva', label: 'Moja odsustva', icon: CalendarOff, visibleIf: (p) => imaPravo(p, 'pregledi.popunjavanje') },
-  { to: '/sabloni', label: 'Šabloni', icon: ClipboardList },
-  { to: '/uredjaji', label: 'Uređaji', icon: Wrench },
-  { to: '/neradni-dani', label: 'Neradni dani', icon: CalendarX, visibleIf: (p) => imaPravo(p, 'neradni_dani') },
-  { to: '/admin', label: 'Administracija', icon: Settings, visibleIf: canSeeAdminSection },
-  // Dijagnostika — zasebne stavke, ne pod Administracijom: nisu šifarnici i
-  // otvaraju se povremeno, pa im je mesto u glavnom meniju, ne u pod-tabovima.
-  { to: '/audit-log', label: 'Audit log', icon: ScrollText, visibleIf: isAdmin },
-  { to: '/stanje-servera', label: 'Stanje servera', icon: Activity, visibleIf: isAdmin },
-];
 
 interface SidebarProps {
   pristup: Pristup;
@@ -39,14 +16,14 @@ interface SidebarProps {
  */
 export function Sidebar({ pristup }: SidebarProps) {
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-gray-200 bg-white">
+    <aside className="hidden w-60 shrink-0 flex-col border-r border-gray-200 bg-white md:flex">
       <div className="flex h-14 items-center border-b border-gray-200 px-5">
         <span className="text-base font-semibold text-primary-600">TPM pregledi</span>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-3" aria-label="Glavna navigacija">
         <ul className="space-y-1">
-          {NAV.filter((i) => i.visibleIf === undefined || i.visibleIf(pristup)).map((item) => (
+          {vidljiveStavke(pristup).map((item) => (
             <li key={item.to}>
               <NavLink
                 to={item.to}
@@ -71,5 +48,54 @@ export function Sidebar({ pristup }: SidebarProps) {
         v{VERZIJA}
       </div>
     </aside>
+  );
+}
+
+/**
+ * Donji meni na telefonu (< 768 px, odluka „mobilni prikaz“): prve 4 stavke + „Više“ sa ostalima. Dugmad su najmanje
+ * 44 × 44 px (spec §8.1).
+ */
+export function DonjiMeni({ pristup }: SidebarProps) {
+  const [vise, setVise] = useState(false);
+  const stavke = vidljiveStavke(pristup);
+  const glavne = stavke.slice(0, 4);
+  const ostale = stavke.slice(4);
+  const klasa = ({ isActive }: { isActive: boolean }) =>
+    cn('flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[11px]', isActive ? 'text-primary-700' : 'text-gray-600');
+
+  return (
+    <>
+      {vise && (
+        <div className="fixed inset-0 z-30 bg-black/20 md:hidden" onClick={() => setVise(false)} aria-hidden />
+      )}
+      {vise && (
+        <ul className="fixed inset-x-0 bottom-16 z-40 mx-3 rounded-lg border border-gray-200 bg-white p-2 shadow-lg md:hidden" aria-label="Više">
+          {ostale.map((item) => (
+            <li key={item.to}>
+              <NavLink to={item.to} onClick={() => setVise(false)}
+                className={({ isActive }) => cn('flex min-h-11 items-center gap-3 rounded-md px-3 text-sm', isActive ? 'bg-primary-50 text-primary-700' : 'text-gray-700')}>
+                <item.icon size={16} aria-hidden />
+                {item.label}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      )}
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t border-gray-200 bg-white md:hidden" aria-label="Donji meni">
+        {glavne.map((item) => (
+          <NavLink key={item.to} to={item.to} className={klasa}>
+            <item.icon size={20} aria-hidden />
+            <span className="max-w-full truncate">{item.label}</span>
+          </NavLink>
+        ))}
+        {ostale.length > 0 && (
+          <button type="button" onClick={() => setVise((v) => !v)} aria-expanded={vise}
+            className="flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] text-gray-600">
+            {vise ? <X size={20} aria-hidden /> : <Menu size={20} aria-hidden />}
+            Više
+          </button>
+        )}
+      </nav>
+    </>
   );
 }

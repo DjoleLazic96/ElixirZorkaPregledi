@@ -1,4 +1,5 @@
 import { Fragment, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '../../app/providers/ToastProvider';
 import { Button } from '../../components/ui/Button';
@@ -153,6 +154,7 @@ export function PregledKartica({ pregled, onClose }: { pregled: PregledKalendarD
   const { me } = useAuth();
   const pristup = me ?? { roles: [], prava: [] };
   const [mod, setMod] = useState<'kartica' | 'prebacivanje' | 'izmena'>('kartica');
+  const navigate = useNavigate();
   const moj = me?.user.id === pregled.dodeljenId || pregled.ucesnici.some((u) => u.korisnikId === me?.user.id);
   const planiran = pregled.status === 'planiran';
 
@@ -176,6 +178,9 @@ export function PregledKartica({ pregled, onClose }: { pregled: PregledKalendarD
             {pregled.napomena && (<><dt className="text-gray-500">Napomena</dt><dd className="break-words">{pregled.napomena}</dd></>)}
           </dl>
           <div className="flex flex-wrap justify-end gap-2 pt-2">
+            {moj && (planiran || pregled.status === 'u_radu') && imaPravo(pristup, 'pregledi.popunjavanje') && (
+              <Button onClick={() => navigate(`/pregled/${pregled.id}/popuni`)}>Popuni pregled</Button>
+            )}
             {moj && planiran && imaPravo(pristup, 'pregledi.popunjavanje') && (
               <Button variant="secondary" onClick={() => setMod('prebacivanje')}>Zatraži prebacivanje</Button>
             )}

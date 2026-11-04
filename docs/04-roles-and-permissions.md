@@ -64,6 +64,8 @@ korisnika: nova prava važe najkasnije kad istekne trenutni access token (15 min
 | Unos odsustva, odluka o odsustvu, pregledi u odsustvu | `Pravo:odsustva.odobravanje` |
 | Zahtev za odsustvo, zahtev za prebacivanje | `Pravo:pregledi.popunjavanje` |
 | Unos i brisanje neradnih dana | `Pravo:neradni_dani` |
+| Početak, popunjavanje, sinhronizacija, slanje slika | `Pravo:pregledi.popunjavanje` + dodeljeni inženjer ili učesnik PZ-a (inače 403); na PZ-u samo svoje sekcije |
+| Prikaz slike | RequireKorisnik |
 
 Frontend: „Administracija“ se vidi uz pravo `korisnici` ili `podesavanja`; tab „Korisnici“ uz `korisnici`, tab „Podešavanja“ uz `podesavanja`.
 

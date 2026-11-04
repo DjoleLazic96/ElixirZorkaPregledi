@@ -109,6 +109,17 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 | GET · POST | `/zahtevi-prebacivanja?status` · `/zahtevi-prebacivanja` `{ pregledId, razlog, predlozenaZamenaId? }` | RequireKorisnik · pregledi.popunjavanje | svoj planiran pregled; 403 tuđi, 422 započet |
 | POST | `/zahtevi-prebacivanja/{id}/odluka` `{ odobreno, zamenaId }` | raspored.uredjivanje | kod PZ-a sa dva inženjera prebacuje se samo deo podnosioca |
 
+### Popunjavanje (faza 04, pravo `pregledi.popunjavanje`)
+| Metod | Ruta | Svrha |
+|---|---|---|
+| POST | `/pregledi/{id}/zapocni` | status `u_radu`, vreme početka, važeća verzija šablona; samo dodeljeni ili učesnik (403) |
+| GET | `/pregledi/{id}/popunjavanje` | sekcije (`moja`, `radi`) → uređaji (`vanFunkcije`, `prosliPutVanFunkcije`) → stavke (polja, odgovor, ID-jevi slika) |
+| POST | `/sinhronizacija` `{ uredjajKlijenta, klijentSada, operacije[{opId, vrsta, pregledId, klijentAt, podaci}] }` | `{ prihvacene[], odbijene[{opId, razlog}], serverSada }`; vrste `odgovor` (`stavkaId`, `vrednost`, `napomena`, `polja`), `van_funkcije` (`uredjajId`, `vanFunkcije`), `sve_ispravno` (`sekcija`), `predaja`; ponovljen `opId` = već primenjeno |
+| POST | `/fotografije` multipart (`fajl`, `klijentId`, `pregledId`, `stavkaId`, `izvor`) | ≤ 3 MB (400 „Slika je prevelika.“), JPEG/PNG/WebP, najviše 5 po stavci (422) |
+| GET | `/fotografije/{id}` | slika (RequireKorisnik — svi vide sve preglede) |
+
+Odbijene operacije: „Pregled još nije potpun: nedostaje N odgovora i M obaveznih napomena.“, „PZ se predaje kad su sve sekcije gotove. Nedostaje: sekcija 70 (Ime).“, „Sekciju 20 radi Ime.“, „Predat pregled se menja samo kroz doradu.“, „Pregled je poništen.“
+
 ### `/_diag` (samo Development)
 Rute kojima integracioni testovi dokazuju politike: `/_diag/korisnik` (RequireKorisnik), `/_diag/admin-only` (RequireAdmin).
 

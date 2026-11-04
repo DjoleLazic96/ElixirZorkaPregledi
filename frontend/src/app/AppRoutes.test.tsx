@@ -85,6 +85,6 @@ describe('AppRoutes — guardovi', () => {
     renderAt('/ne-postoji', KORISNIK);
     expect(screen.getByRole('heading', { name: 'Stranica nije pronađena.' })).toBeInTheDocument();
     // Layout (sidebar) je i dalje tu.
-    expect(screen.getByRole('link', { name: /Šabloni/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /Šabloni/ }).length).toBeGreaterThan(0);
   });
 });

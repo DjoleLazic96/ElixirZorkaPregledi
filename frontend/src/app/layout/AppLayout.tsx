@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
-import { ChevronDown, Info, KeyRound, LogOut } from 'lucide-react';
+import { ChevronDown, Info, KeyRound, LogOut, UserRound } from 'lucide-react';
 import { OAplikaciji } from '../../components/OAplikaciji';
 import { PromenaLozinke } from '../../components/PromenaLozinke';
 import { AnchoredDropdown } from '../../components/ui/AnchoredDropdown';
 import { useAuth } from '../../features/auth/AuthProvider';
-import { Sidebar } from './Sidebar';
+import { Link, Outlet, useLocation } from 'react-router-dom';
+import { DonjiMeni, Sidebar } from './Sidebar';
 
 /**
  * App shell (blueprint 14 §1): sidebar + header (ime korisnika i meni) + sadržaj
@@ -32,17 +32,21 @@ export function AppLayout() {
       <Sidebar pristup={me} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 items-center justify-end border-b border-gray-200 bg-white px-6">
+        <header className="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4 md:justify-end md:px-6">
+          {/* Na telefonu zaglavlje ima samo logo i ikonicu korisnika (spec §8.1); logo vodi na početnu. */}
+          <Link to="/" className="text-base font-semibold text-primary-600 md:hidden">TPM pregledi</Link>
           <button
             ref={setMeniAnchor}
             type="button"
             onClick={() => setMeniOtvoren((o) => !o)}
             aria-haspopup="menu"
             aria-expanded={meniOtvoren}
-            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+            aria-label={me.user.fullName}
+            className="flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
           >
-            {me.user.fullName}
-            <ChevronDown size={14} className="text-gray-500" aria-hidden />
+            <UserRound size={18} className="text-gray-600 md:hidden" aria-hidden />
+            <span className="hidden md:inline">{me.user.fullName}</span>
+            <ChevronDown size={14} className="hidden text-gray-500 md:inline" aria-hidden />
           </button>
 
           <AnchoredDropdown
@@ -73,13 +77,14 @@ export function AppLayout() {
           </AnchoredDropdown>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 [scrollbar-gutter:stable]">
+        <main className="flex-1 overflow-y-auto p-4 pb-20 md:p-6 md:pb-6 [scrollbar-gutter:stable]">
           {/* `key` na putanji remount-uje omotač pri svakoj navigaciji, pa se
               `animate-fade-in` ponovo okine (isključeno pri reduced-motion). */}
           <div key={location.pathname} className="animate-fade-in">
             <Outlet />
           </div>
         </main>
+        <DonjiMeni pristup={me} />
       </div>
 
       <OAplikaciji open={oAplikacijiOtvoren} onClose={() => setOAplikacijiOtvoren(false)} />

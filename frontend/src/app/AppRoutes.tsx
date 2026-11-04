@@ -8,6 +8,7 @@ import { KorisniciPage } from '../features/admin/korisnici/KorisniciPage';
 import { AuditLogPage } from '../features/audit-log/AuditLogPage';
 import { useAuth } from '../features/auth/AuthProvider';
 import { LoginPage } from '../features/auth/LoginPage';
+import { PopunjavanjePage } from '../features/popunjavanje/PopunjavanjePage';
 import { KalendarPage } from '../features/raspored/KalendarPage';
 import { MojaOdsustvaPage, NeradniDaniPage } from '../features/raspored/OdsustvaINeradniPages';
 import { RasporedPage } from '../features/raspored/RasporedPage';
@@ -52,6 +53,14 @@ export function AppRoutes() {
           element={
             <Zasticeno allowed={isKorisnik(me)} landing={landing}>
               <SabloniPage />
+            </Zasticeno>
+          }
+        />
+        <Route
+          path="/pregled/:id/popuni"
+          element={
+            <Zasticeno allowed={imaPravo(me, 'pregledi.popunjavanje')} landing={landing}>
+              <PopunjavanjePage />
             </Zasticeno>
           }
         />
