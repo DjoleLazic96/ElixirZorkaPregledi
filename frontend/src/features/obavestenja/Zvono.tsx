@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell } from 'lucide-react';
 import { useToast } from '../../app/providers/ToastProvider';
 import { Button } from '../../components/ui/Button';
 import { AnchoredDropdown } from '../../components/ui/AnchoredDropdown';
@@ -33,30 +32,31 @@ export function Zvono() {
     <>
       <button ref={setAnchor} type="button" onClick={() => setOtvoreno((x) => !x)} aria-haspopup="dialog" aria-expanded={otvoreno}
         aria-label={ukupno ? `Obaveštenja (${ukupno})` : 'Obaveštenja'}
-        className="relative flex min-h-11 min-w-11 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
-        <Bell size={18} aria-hidden />
+        className="relative flex h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-xl hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 md:h-9">
+        <span aria-hidden>🔔</span>
         {ukupno > 0 && (
-          <span className="absolute right-1.5 top-1.5 min-w-4 rounded-full bg-red-600 px-1 text-center text-[10px] font-semibold leading-4 text-white">{ukupno > 99 ? '99+' : ukupno}</span>
+          <span className="absolute right-0.5 top-0.5 min-w-[18px] rounded-full bg-red-500 px-1.5 text-center text-[10px] font-semibold leading-4 text-white">{ukupno > 99 ? '99+' : ukupno}</span>
         )}
       </button>
       <AnchoredDropdown anchor={anchor} open={otvoreno} onRequestClose={() => setOtvoreno(false)} widthMode="min-anchor"
-        className="w-[min(24rem,calc(100vw-2rem))] rounded-md border border-gray-200 bg-white shadow-lg">
+        className="w-[min(340px,calc(100vw-1.5rem))] rounded-[10px] border border-gray-200 bg-white py-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.15)]">
         <div role="dialog" aria-label="Obaveštenja" className="text-sm">
-          <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
+          <div className="flex items-center justify-between border-b border-gray-100 px-3.5 py-1.5">
             <span className="font-semibold">Obaveštenja</span>
             {(d?.neprocitanih ?? 0) > 0 && <button type="button" className="min-h-11 text-xs text-primary-700 hover:underline md:min-h-0" onClick={() => procitano.mutate(null)}>Označi sve kao pročitano</button>}
           </div>
           {(d?.cekaOdluku ?? 0) > 0 && (
             <button type="button" onClick={() => { setOtvoreno(false); navigate('/'); }}
-              className="block w-full border-b border-gray-100 bg-amber-50 px-3 py-2 text-left text-amber-900 hover:bg-amber-100">
-              Čeka moju odluku: <strong>{d!.cekaOdluku}</strong>
+              className="block w-full border-b border-gray-100 bg-green-50 px-3.5 py-2.5 text-left hover:bg-green-100">
+              <b>Čeka moju odluku: {d!.cekaOdluku}</b>
+              <small className="block text-xs text-gray-500">Overa, dorada, prebacivanje, odsustva, predlozi šablona</small>
             </button>
           )}
           <ul className="max-h-96 overflow-y-auto">
-            {!d?.stavke.length && <li className="px-3 py-4 text-gray-500">Nema obaveštenja.</li>}
+            {!d?.stavke.length && <li className="px-3.5 py-4 text-gray-500">Nema obaveštenja.</li>}
             {d?.stavke.map((o) => (
               <li key={o.id}>
-                <button type="button" onClick={() => otvori(o)} className={cn('block w-full px-3 py-2 text-left hover:bg-gray-50', !o.procitano && 'bg-primary-50/60')}>
+                <button type="button" onClick={() => otvori(o)} className={cn('block w-full border-b border-gray-100 px-3.5 py-2.5 text-left text-[13px] hover:bg-gray-50', !o.procitano && 'bg-primary-50/60')}>
                   <span className={cn('block break-words', !o.procitano && 'font-semibold')}>{o.naslov}</span>
                   <span className="block break-words text-xs text-gray-600">{o.tekst}</span>
                   <span className="block text-xs text-gray-400">{relativnoVreme(o.kreiranoAt)}</span>
@@ -64,6 +64,7 @@ export function Zvono() {
               </li>
             ))}
           </ul>
+          <p className="px-3.5 pt-2 text-xs text-gray-500">Obaveštenja stižu i na telefon i mejlom. Primaoce bira Administrator.</p>
         </div>
       </AnchoredDropdown>
     </>

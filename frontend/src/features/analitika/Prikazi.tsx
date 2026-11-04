@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { cn } from '../../lib/cn';
 import QRCode from 'qrcode';
 import { Printer } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
@@ -41,15 +42,19 @@ export function VremenskaLinija({ dani }: { dani: { dan: string; stanje: Stanje 
   );
 }
 
-/** Broj sa opisom (pločica analitike). */
-export function Plocica({ naslov, vrednost, opis }: { naslov: string; vrednost: string; opis?: string }) {
-  return (
-    <div className="rounded-md border border-gray-200 bg-white p-3">
-      <p className="text-xs text-gray-500">{naslov}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">{vrednost}</p>
-      {opis && <p className="text-xs text-gray-500">{opis}</p>}
-    </div>
+/**
+ * Pločica sa brojem po mockup-u (`.kpi`): broj 26 px zelen (crven kad je upozorenje), ispod opis sivim. Sa `to` je cela pločica link.
+ */
+export function Plocica({ naslov, vrednost, opis, upozorenje, to }: { naslov: string; vrednost: string; opis?: string; upozorenje?: boolean; to?: string }) {
+  const sadrzaj = (
+    <>
+      <b className={cn('block text-[26px] font-bold leading-tight tabular-nums', upozorenje ? 'text-red-500' : 'text-primary-500')}>{vrednost}</b>
+      <span className="block text-xs text-gray-500">{naslov}</span>
+      {opis && <span className="block text-xs text-gray-400">{opis}</span>}
+    </>
   );
+  const klasa = 'block rounded-[10px] border border-gray-200 bg-white px-3.5 py-3';
+  return to ? <Link to={to} className={cn(klasa, 'transition-colors hover:border-primary-200 hover:bg-primary-50')}>{sadrzaj}</Link> : <div className={klasa}>{sadrzaj}</div>;
 }
 
 /** Jedna serija vodoravnih stubića (jedna boja; vrednost ispisana pored, uređaj vodi na svoj ekran). */

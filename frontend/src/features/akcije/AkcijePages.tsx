@@ -24,23 +24,24 @@ import {
   parametriAkcija, parametriKvarova, useAkcija, useAkcije, useKvar, useKvarovi, useOdlukaAkcije,
   type AkcijaDto, type AkcijeFilteri, type KvaroviFilteri,
 } from './hooks';
-import { HITNOSTI, ZADUZENI_PREDLOZI, hitnostLabela, vrstaLabela } from './oznake';
+import { HITNOSTI, ZADUZENI_PREDLOZI, hitnostLabela, tonHitnosti, vrstaLabela } from './oznake';
 
-const tonHitnosti = (h: string) => (h === 'hitno' ? 'red' : h === '7_dana' ? 'amber' : 'gray') as 'red' | 'amber' | 'gray';
 
 /** Kartica akcije za listu (R7.3, R7.6): broj, pregled, uređaj, hitnost, rok (crveno kad je istekao, R7.8), kvar na stavci. */
 function AkcijaRed({ a }: { a: AkcijaDto }) {
   return (
-    <li className={cn('rounded-md border bg-white p-3', a.rokIstekao ? 'border-red-300' : 'border-gray-200')}>
+    // Stavka po mockup-u (`.list .it`); sadrži više linkova (akcija, uređaj, pregled), pa nije jedan veliki link.
+    <li className="rounded-[14px] border border-gray-200 bg-[#f7f8f6] px-3 py-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Link to={`/akcije/${a.id}`} className="whitespace-nowrap font-semibold text-primary-700 hover:underline">{a.broj}</Link>
+        <Link to={`/akcije/${a.id}`} className="whitespace-nowrap text-[13px] font-bold text-primary-500 hover:underline">{a.broj}<span aria-hidden> ›</span></Link>
         <span className="flex flex-wrap gap-1">
+          {a.rokIstekao && <Badge tone="red">rok istekao</Badge>}
           <Badge tone={tonHitnosti(a.hitnost)}>{hitnostLabela(a.hitnost)}</Badge>
           {a.status !== 'otvorena' && <Badge tone="gray">{a.status}</Badge>}
-          {a.stavkaSadaIspravna && <Badge tone="primary">stavka sada ispravna</Badge>}
+          {a.stavkaSadaIspravna && <Badge tone="green">stavka sada ispravna</Badge>}
         </span>
       </div>
-      <p className="mt-1 break-words text-sm"><Link to={`/uredjaji/${a.uredjajId}`} className="text-primary-700 hover:underline">{a.uredjaj}</Link> · {a.aktivnost} · {vrstaLabela(a.vrsta)}{a.opis && ` — ${a.opis}`}</p>
+      <p className="mt-1 break-words text-sm font-semibold text-gray-800"><Link to={`/uredjaji/${a.uredjajId}`} className="text-primary-700 hover:underline">{a.uredjaj}</Link> · {a.aktivnost} · {vrstaLabela(a.vrsta)}{a.opis && ` — ${a.opis}`}</p>
       <p className="mt-1 text-xs text-gray-600">
         Pregled <Link to={`/pregledi/${a.pregledId}`} className="whitespace-nowrap text-primary-700 hover:underline">{a.pregled}</Link>
         {a.rok && <> · rok <span className={cn(a.rokIstekao && 'font-semibold text-red-700')}>{formatirajDatum(a.rok)}</span></>}
@@ -185,12 +186,12 @@ export function NeispravnostiPage() {
       ) : (
         <ul className="grid gap-2 lg:grid-cols-2">
           {kvarovi.data.map((k) => (
-            <li key={k.id} className="rounded-md border border-gray-200 bg-white p-3">
+            <li key={k.id} className="rounded-[14px] border border-gray-200 bg-[#f7f8f6] px-3 py-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <Link to={`/neispravnosti/${k.id}`} className="whitespace-nowrap font-semibold text-primary-700 hover:underline">{k.broj}</Link>
+                <Link to={`/neispravnosti/${k.id}`} className="whitespace-nowrap text-[13px] font-bold text-primary-500 hover:underline">{k.broj}<span aria-hidden> ›</span></Link>
                 <Badge tone={k.zatvoren ? 'gray' : 'red'}>{k.zatvoren ? `zatvoren ${formatirajDatum(k.zatvoren)}` : `otvoren ${k.trajanjeDana} dana`}</Badge>
               </div>
-              <p className="mt-1 break-words text-sm"><Link to={`/uredjaji/${k.uredjajId}`} className="text-primary-700 hover:underline">{k.uredjaj}</Link> (sekcija {k.sekcija}) · {k.aktivnost}</p>
+              <p className="mt-1 break-words text-sm font-semibold text-gray-800"><Link to={`/uredjaji/${k.uredjajId}`} className="text-primary-700 hover:underline">{k.uredjaj}</Link> (sekcija {k.sekcija}) · {k.aktivnost}</p>
               <p className="mt-1 text-xs text-gray-600">
                 Pregled <Link to={`/pregledi/${k.otvorioPregledId}`} className="whitespace-nowrap text-primary-700 hover:underline">{k.otvorioPregled}</Link>
                 {` · prijava ${k.prijava}`}{k.otvorenihAkcija > 0 && ` · otvorenih akcija ${k.otvorenihAkcija}`}{k.poslednjaNapomena && ` · ${k.poslednjaNapomena}`}

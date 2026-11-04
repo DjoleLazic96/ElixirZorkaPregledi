@@ -10,7 +10,7 @@ const PRAVA: Record<string, string[]> = {
 };
 
 function renderSidebar(roles: string[]) {
-  render(<Sidebar pristup={{ roles, prava: roles.flatMap((r) => PRAVA[r] ?? []) }} />, { wrapper: MemoryRouter });
+  render(<Sidebar pristup={{ roles, prava: roles.flatMap((r) => PRAVA[r] ?? []) }} onOdjava={() => {}} />, { wrapper: MemoryRouter });
 }
 
 describe('Sidebar — navigacija po roli', () => {
@@ -35,9 +35,9 @@ describe('Sidebar — navigacija po roli', () => {
     expect(screen.getByRole('link', { name: 'Stanje servera' })).toHaveAttribute('href', '/stanje-servera');
   });
 
-  it('prikazuje naziv aplikacije i verziju sa git SHA u title-u', () => {
+  it('prikazuje odjavu i verziju sa git SHA u title-u', () => {
     renderSidebar(['Inzenjer']);
-    expect(screen.getByText('TPM pregledi')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Odjava/ })).toBeInTheDocument();
     const verzija = screen.getByText(`v${VERZIJA}`);
     expect(verzija).toHaveAttribute('title', GIT_SHA);
   });

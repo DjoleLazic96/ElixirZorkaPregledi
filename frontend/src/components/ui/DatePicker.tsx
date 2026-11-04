@@ -116,8 +116,8 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
           className={cn(
-            'flex h-11 w-full items-center gap-2 rounded-md border bg-white px-3 text-sm transition-colors md:h-10',
-            'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500',
+            'flex h-11 w-full items-center gap-2 rounded-lg border bg-white px-3 text-sm transition-colors md:h-10',
+            'border-gray-200 hover:border-gray-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500',
             'disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500',
             clearable && izabran && 'pr-8',
             !izabran && 'text-gray-400',
@@ -143,7 +143,7 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
           open={open && !disabled}
           onRequestClose={() => setOpen(false)}
           widthMode="auto"
-          className="w-80 rounded-md border border-gray-200 bg-white p-3 shadow-lg"
+          className="w-80 rounded-[10px] border border-gray-200 bg-white p-3 shadow-lg"
         >
           <div className="mb-2 flex items-center justify-between">
             <button

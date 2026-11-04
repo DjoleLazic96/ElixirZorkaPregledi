@@ -106,10 +106,11 @@ export const STATUSI: ReadonlyArray<{ value: string; label: string }> = [
 
 export const statusLabela = (s: string) => STATUSI.find((x) => x.value === s)?.label ?? s;
 
-/** Boja oznake statusa (isti smisao kao u kalendaru, R3.22). */
-export function tonStatusa(s: string): 'gray' | 'primary' | 'amber' | 'red' {
-  if (s === 'overen' || s === 'ceka_overu') return 'primary';
-  if (s === 'u_radu' || s === 'vracen_na_doradu') return 'amber';
-  if (s === 'ponisten') return 'red';
+/** Boja oznake statusa po mockup-u: Planiran sivo, U radu žuto, Čeka overu zeleno, Overen plavo, Vraćen na doradu crveno, Poništen sivo. */
+export function tonStatusa(s: string): 'gray' | 'yellow' | 'green' | 'blue' | 'red' {
+  if (s === 'ceka_overu') return 'green';
+  if (s === 'overen') return 'blue';
+  if (s === 'u_radu') return 'yellow';
+  if (s === 'vracen_na_doradu') return 'red';
   return 'gray';
 }

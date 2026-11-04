@@ -10,6 +10,7 @@ import { Pretraga } from './Pretraga';
 import { UredjajEkranPage } from './UredjajEkranPage';
 
 vi.mock('../../api/client', () => ({ api: { get: vi.fn(), post: vi.fn() } }));
+vi.mock('../auth/AuthProvider', () => ({ useAuth: () => ({ me: { user: { id: 'a', userName: 'ana', fullName: 'Ana Anić', email: null }, roles: ['Inzenjer'], prava: [] } }) }));
 
 const EKRAN: UredjajEkranDto = {
   id: 16, naziv: 'Transporter', oznaka: '10-C-08', prikaz: 'Transporter 10-C-08', sekcija: '10', vrsta: 'Transporter', statusRegistra: 'aktivan',
@@ -72,7 +73,8 @@ describe('Početna', () => {
     expect(screen.getByRole('link', { name: 'DP1-2026-0010' })).toHaveAttribute('href', '/pregled/7/popuni');
     expect(screen.getByRole('link', { name: 'Zatraži prebacivanje' })).toBeInTheDocument();
     expect(screen.queryByText(/Čeka moju odluku/)).not.toBeInTheDocument();
-    expect(screen.getByText('Hitno: 1')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^(Dobro jutro|Dobar dan|Dobro veče), Ana$/);
+    expect(screen.getByText('hitnih akcija').previousElementSibling).toHaveTextContent('1');
   });
 });
 
@@ -86,6 +88,7 @@ describe('Pretraga u zaglavlju', () => {
   it('prikazuje rezultate sa žutim obeležavanjem', async () => {
     vi.mocked(api.get).mockResolvedValue(odgovor([{ vrsta: 'uredjaj', id: 2, tekst: 'Elevator 10-C-13', opis: 'Sekcija 10' }]));
     renderSaProviderima(<Pretraga />);
+    await userEvent.click(screen.getByRole('button', { name: 'Pretraga' }));
     await userEvent.type(screen.getByRole('combobox', { name: 'Pretraga' }), 'c-13');
     const opcija = await screen.findByRole('option');
     expect(within(opcija).getByText('C-13').tagName).toBe('MARK');

@@ -44,11 +44,16 @@ export function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardBody>
-          <h1 className="text-xl font-semibold text-gray-900">{NAZIV_APLIKACIJE}</h1>
-          <p className="mt-1 text-sm text-gray-500">Prijavite se da nastavite.</p>
+    // Prijava po mockup-u (`scrLogin`): zaglavlje sa logom i zelenom linijom, ispod centrirana kartica 360 px sa logom i naslovom.
+    <div className="min-h-screen bg-gray-50">
+      <header className="flex items-center border-b-[3px] border-primary-500 bg-white px-4 py-2">
+        <img src="/logo-elixirzorka.png" alt="ElixirZorka" className="h-[26px] w-auto md:h-[34px]" />
+      </header>
+      <Card className="mx-4 mt-10 rounded-xl sm:mx-auto sm:w-[360px]">
+        <CardBody className="p-[26px]">
+          <img src="/logo-elixirzorka.png" alt="" aria-hidden className="mx-auto mb-[18px] block w-[220px] max-w-full" />
+          <h1 className="text-center text-xl font-bold text-gray-800">{NAZIV_APLIKACIJE}</h1>
+          <p className="mt-1 text-center text-sm text-gray-500">Prijavite se da nastavite.</p>
 
           {sesijaIstekla && (
             <p
@@ -59,7 +64,7 @@ export function LoginPage() {
             </p>
           )}
 
-          <form onSubmit={onSubmit} className="mt-6 space-y-4">
+          <form onSubmit={onSubmit} className="mt-5 space-y-4">
             <FormField label="Korisničko ime" htmlFor="username">
               <Input
                 id="username"
@@ -109,7 +114,7 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-gray-400">v{VERZIJA}</p>
+          <p className="mt-5 text-center text-xs text-gray-400">v{VERZIJA}</p>
         </CardBody>
       </Card>
     </div>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useToast } from '../providers/ToastProvider';
-import { imaPravo } from '../../lib/permissions';
+import { ROLA_LABELE, imaPravo, type Rola } from '../../lib/permissions';
 import { obrisiLokalno, sinhronizuj, useStanjeSinhronizacije } from '../../offline/sinhronizacija';
-import { BellRing, ChevronDown, Info, KeyRound, LogOut, UserRound } from 'lucide-react';
+import { BellRing, Info, KeyRound, LogOut } from 'lucide-react';
+import { Badge } from '../../components/ui/Badge';
 import { OAplikaciji } from '../../components/OAplikaciji';
 import { PromenaLozinke } from '../../components/PromenaLozinke';
 import { AnchoredDropdown } from '../../components/ui/AnchoredDropdown';
@@ -14,8 +15,7 @@ import { PushDijalog, Zvono } from '../../features/obavestenja/Zvono';
 import { DonjiMeni, Sidebar } from './Sidebar';
 
 /**
- * App shell (blueprint 14 §1): sidebar + header (ime korisnika i meni) + sadržaj
- * rute. `AppRoutes` garantuje da je korisnik ulogovan pre nego što se ovo mount-uje.
+ * Okvir aplikacije po mockup-u: zaglavlje preko cele širine, ispod zeleni levi meni i centriran sadržaj; na telefonu donji meni. `AppRoutes` garantuje da je korisnik ulogovan pre nego što se ovo mount-uje.
  */
 export function AppLayout() {
   const { me, logout } = useAuth();
@@ -56,76 +56,91 @@ export function AppLayout() {
     setter(true);
   }
 
+  const rola = me.roles.map((r) => ROLA_LABELE[r as Rola] ?? r).join(', ');
+
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar pristup={me} />
+    <div className="flex h-screen flex-col bg-gray-50">
+      {/* Zaglavlje po mockup-u (`header.top`): logo levo, zelena linija ispod; desno pretraga, zvono i korisnik.
+          Na telefonu samo logo i ikonice (spec §8.1). */}
+      <header className="relative z-20 flex shrink-0 items-center gap-1.5 border-b-[3px] border-primary-500 bg-white px-3 py-2 md:gap-3 md:px-4">
+        <Link to="/" title="Početna" className="flex shrink-0 items-center">
+          <img src="/logo-elixirzorka.png" alt="ElixirZorka" className="h-[26px] w-auto md:h-[34px]" />
+        </Link>
+        <span className="hidden truncate border-l border-gray-200 pl-3 text-sm font-semibold text-gray-800 lg:inline">TPM pregledi</span>
+        <span className="flex-1" />
+        {!sinh.online && <Badge tone="orange" className="hidden md:inline-flex">Bez interneta</Badge>}
+        <Pretraga />
+        <Zvono />
+        <button
+          ref={setMeniAnchor}
+          type="button"
+          onClick={() => setMeniOtvoren((o) => !o)}
+          aria-haspopup="menu"
+          aria-expanded={meniOtvoren}
+          aria-label={me.user.fullName}
+          title="Moj nalog"
+          className="flex h-11 min-w-11 items-center justify-center rounded-lg text-right transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 md:h-auto md:px-2 md:py-1"
+        >
+          <span aria-hidden className="text-lg md:hidden">👤</span>
+          <span className="hidden leading-tight md:block">
+            <b className="block text-[13px] font-semibold text-gray-800">{me.user.fullName}</b>
+            <span className="text-xs text-gray-500">{rola}</span>
+          </span>
+        </button>
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="relative flex h-14 items-center justify-between gap-2 border-b border-gray-200 bg-white px-4 md:justify-end md:px-6">
-          {/* Na telefonu zaglavlje ima samo logo i ikonicu korisnika (spec §8.1); logo vodi na početnu. */}
-          <Link to="/" className="text-base font-semibold text-primary-600 md:hidden">TPM pregledi</Link>
-          <Pretraga />
-          <Zvono />
-          <button
-            ref={setMeniAnchor}
-            type="button"
-            onClick={() => setMeniOtvoren((o) => !o)}
-            aria-haspopup="menu"
-            aria-expanded={meniOtvoren}
-            aria-label={me.user.fullName}
-            className="flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-          >
-            <UserRound size={18} className="text-gray-600 md:hidden" aria-hidden />
-            <span className="hidden md:inline">{me.user.fullName}</span>
-            <ChevronDown size={14} className="hidden text-gray-500 md:inline" aria-hidden />
-          </button>
-
-          <AnchoredDropdown
-            anchor={meniAnchor}
-            open={meniOtvoren}
-            onRequestClose={() => setMeniOtvoren(false)}
-            widthMode="min-anchor"
-            className="w-56 rounded-md border border-gray-200 bg-white py-1 shadow-lg"
-          >
-            <div role="menu" aria-label="Korisnički meni">
-              <StavkaMenija icon={Info} onClick={() => otvori(setOAplikacijiOtvoren)}>
-                O aplikaciji
-              </StavkaMenija>
-              <StavkaMenija icon={BellRing} onClick={() => otvori(setPushOtvoren)}>
-                Obaveštenja na telefonu
-              </StavkaMenija>
-              <StavkaMenija icon={KeyRound} onClick={() => otvori(setPromenaLozinkeOtvorena)}>
-                Promena lozinke
-              </StavkaMenija>
-              <div className="my-1 border-t border-gray-100" />
-              <StavkaMenija
-                icon={LogOut}
-                onClick={() => {
-                  setMeniOtvoren(false);
-                  void odjavi();
-                }}
-              >
-                Odjavi se
-              </StavkaMenija>
-            </div>
-          </AnchoredDropdown>
-        </header>
-        {/* „Bez interneta“ je traka ispod zaglavlja, ne u zaglavlju (spec §8.1). */}
-        {!sinh.online && (
-          <div role="status" className="bg-amber-100 px-4 py-1.5 text-xs text-amber-900 md:px-6">
-            Bez interneta{inzenjer && ` — čeka slanje: ${sinh.promena} promena, ${sinh.slika} slika`}
+        <AnchoredDropdown
+          anchor={meniAnchor}
+          open={meniOtvoren}
+          onRequestClose={() => setMeniOtvoren(false)}
+          widthMode="min-anchor"
+          className="w-60 rounded-[10px] border border-gray-200 bg-white py-1.5 shadow-lg"
+        >
+          <div role="menu" aria-label="Korisnički meni">
+            <p className="border-b border-gray-100 px-3.5 pb-2 pt-1 text-xs text-gray-500 md:hidden">{me.user.fullName} · {rola}</p>
+            <StavkaMenija icon={Info} onClick={() => otvori(setOAplikacijiOtvoren)}>
+              O aplikaciji
+            </StavkaMenija>
+            <StavkaMenija icon={BellRing} onClick={() => otvori(setPushOtvoren)}>
+              Obaveštenja na telefonu
+            </StavkaMenija>
+            <StavkaMenija icon={KeyRound} onClick={() => otvori(setPromenaLozinkeOtvorena)}>
+              Promena lozinke
+            </StavkaMenija>
+            <div className="my-1 border-t border-gray-100" />
+            <StavkaMenija
+              icon={LogOut}
+              onClick={() => {
+                setMeniOtvoren(false);
+                void odjavi();
+              }}
+            >
+              Odjavi se
+            </StavkaMenija>
           </div>
-        )}
+        </AnchoredDropdown>
+      </header>
 
-        <main className="flex-1 overflow-y-auto p-4 pb-20 md:p-6 md:pb-6 [scrollbar-gutter:stable]">
-          {/* `key` na putanji remount-uje omotač pri svakoj navigaciji, pa se
-              `animate-fade-in` ponovo okine (isključeno pri reduced-motion). */}
-          <div key={location.pathname} className="animate-fade-in">
-            <Outlet />
+      <div className="flex min-h-0 flex-1">
+        <Sidebar pristup={me} onOdjava={() => void odjavi()} />
+
+        <main className="min-w-0 flex-1 overflow-y-auto px-3 pb-24 pt-3 md:px-6 md:pb-10 md:pt-5 [scrollbar-gutter:stable]">
+          {/* Sadržaj je centriran i iste širine na svim ekranima (mockup: radni deo do 1130 px). */}
+          <div className="mx-auto w-full max-w-[1130px]">
+            {/* „Bez interneta“ je traka na vrhu sadržaja, ne u zaglavlju (spec §8.1; mockup `.offbar`). */}
+            {!sinh.online && (
+              <div role="status" className="mb-2.5 rounded-lg border border-[#f0b37a] bg-[#fff3e0] px-2.5 py-1.5 text-[13px] font-semibold text-[#9a4a00]">
+                Bez interneta{inzenjer && ` — čeka slanje: ${sinh.promena} promena, ${sinh.slika} slika`}
+              </div>
+            )}
+            {/* `key` na putanji remount-uje omotač pri svakoj navigaciji, pa se
+                `animate-fade-in` ponovo okine (isključeno pri reduced-motion). */}
+            <div key={location.pathname} className="animate-fade-in">
+              <Outlet />
+            </div>
           </div>
         </main>
-        <DonjiMeni pristup={me} />
       </div>
+      <DonjiMeni pristup={me} />
 
       <OAplikaciji open={oAplikacijiOtvoren} onClose={() => setOAplikacijiOtvoren(false)} />
       {/* Uslovno renderovanje resetuje polja forme pri svakom otvaranju. */}
@@ -151,7 +166,7 @@ function StavkaMenija({
       type="button"
       role="menuitem"
       onClick={onClick}
-      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 focus:outline-none focus-visible:bg-gray-100"
+      className="flex min-h-11 w-full items-center gap-2.5 px-3.5 text-left text-sm text-gray-800 hover:bg-primary-50 focus:outline-none focus-visible:bg-primary-50 md:min-h-10"
     >
       <Icon size={14} className="text-gray-500" aria-hidden />
       {children}

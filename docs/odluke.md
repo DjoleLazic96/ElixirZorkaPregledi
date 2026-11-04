@@ -9,6 +9,17 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-05 — Izgled po mockup-u (odobreno)
+
+**Kontekst:** blueprint 14 propisuje UI kit (bela bočna traka, neutralne sive); korisnici su videli i odobrili mockup `docs/mockup/index.html`.
+**Odluka:** izgled prati mockup: zelena bočna traka sa ikonicama, ElixirZorka logo i zelena linija ispod zaglavlja, tople neutralne boje
+(`--ink #3d3935`, `--line #dcdad7`, `--bg #f4f5f3`), kartice 10 px, dugmad 8 px iste visine (40 px, na telefonu 44 px), oznake statusa
+kao pilule u boji po značenju (Planiran sivo, U radu žuto, Čeka overu zeleno, Overeno plavo, dorada crveno; hitnost crveno/narandžasto/plavo/sivo),
+stavke lista sa „›“, sadržaj centriran. Tokeni u `frontend/src/styles/global.css`, komponente u `components/ui/`.
+**Posledice:** odstupanje od blueprint 14 (boje i bočna traka); komponente ostaju iste po API-ju, menja se samo izgled.
+**Alternative odbijene:** blueprint izgled — korisnici očekuju ono što su videli na mockup-u.
+**Odlučio:** vlasnik projekta, 2026-11-05.
+
 ## 2026-10-28 — PDF izveštaji: QuestPDF
 
 **Kontekst:** izveštaj pregleda i liste se izvoze u PDF.

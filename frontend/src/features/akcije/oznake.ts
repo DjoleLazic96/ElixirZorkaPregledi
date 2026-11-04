@@ -18,3 +18,6 @@ export const ZADUZENI_PREDLOZI = ['Održavanje', 'Elektro', 'Mašinska', 'Spoljn
 
 export const vrstaLabela = (v: string) => VRSTE_AKCIJA.find((x) => x.value === v)?.label ?? v;
 export const hitnostLabela = (v: string) => HITNOSTI.find((x) => x.value === v)?.label ?? v;
+
+/** Boja hitnosti po mockup-u: Hitno crveno, 7 dana narandžasto, sledeći PZ plavo, Pratiti sivo. */
+export const tonHitnosti = (h: string) => (h === 'hitno' ? 'red' : h === '7_dana' ? 'orange' : h === 'sledeci_pz' ? 'blue' : 'gray') as 'red' | 'orange' | 'blue' | 'gray';

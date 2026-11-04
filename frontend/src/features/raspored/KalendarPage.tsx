@@ -63,7 +63,7 @@ export function KalendarPage() {
           {/* Računar i tablet: mesečna mreža. */}
           <div className="hidden grid-cols-7 gap-1 md:grid">
             {['pon', 'uto', 'sre', 'čet', 'pet', 'sub', 'ned'].map((d) => (
-              <div key={d} className="px-1 text-xs font-medium uppercase text-gray-500">{d}</div>
+              <div key={d} className="p-1 text-center text-[11px] text-gray-500">{d}</div>
             ))}
             {dani.map((dan) => (
               <Dan key={dan} dan={dan} r={r.data} danas={danas} uMesecu={dan.slice(0, 7) === mesec.slice(0, 7)} onPregled={setIzabran} />
@@ -89,13 +89,13 @@ export function KalendarPage() {
 
 function Legenda() {
   const s = [
-    ['bg-white border-gray-300', 'planiran'], ['bg-amber-50 border-amber-300', 'u radu'], ['bg-green-50 border-green-300', 'završen'],
-    ['bg-blue-50 border-blue-300', 'overen'], ['bg-red-50 border-red-300', 'nije započet tog dana'],
+    ['bg-white border-gray-200', 'planiran'], ['bg-amber-50 border-transparent', 'u radu'], ['bg-green-50 border-transparent', 'završen'],
+    ['bg-blue-50 border-transparent', 'overen'], ['bg-red-50 border-transparent', 'nije započet tog dana'],
   ];
   return (
     <div className="flex flex-wrap gap-3 text-xs text-gray-600">
       {s.map(([k, l]) => (
-        <span key={l} className="flex items-center gap-1"><span className={cn('inline-block h-3 w-3 rounded border', k)} />{l}</span>
+        <span key={l} className="flex items-center gap-1"><span className={cn('inline-block h-3 w-3 rounded-[3px] border', k)} />{l}</span>
       ))}
     </div>
   );
@@ -115,14 +115,14 @@ function Dan({ dan, r, danas, uMesecu, onPregled, spisak }: DanProps) {
   return (
     <div
       className={cn(
-        'min-h-24 min-w-0 rounded-md border p-1.5',
-        uMesecu ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50 text-gray-400',
-        (jeVikend(dan) || s.neradni) && 'bg-gray-50',
-        dan === danas && 'ring-2 ring-primary-400',
+        'min-h-[84px] min-w-0 rounded-lg border p-[5px] text-[11px]',
+        uMesecu ? 'border-gray-200 bg-white' : 'border-gray-200 bg-[#f0efed] text-gray-400',
+        (jeVikend(dan) || s.neradni) && 'bg-[#f0efed] text-gray-400',
+        dan === danas && 'border-2 border-primary-500',
         spisak && 'min-h-0 p-3',
       )}
     >
-      <p className="text-xs font-medium">
+      <p className="text-xs font-bold">
         {spisak ? `${kratakDan(dan)}, ${formatirajDatum(dan)}` : Number(dan.slice(8))}
         {s.neradni && <span className="ml-1 font-normal text-gray-500">· {s.neradni.naziv}</span>}
       </p>
@@ -132,14 +132,14 @@ function Dan({ dan, r, danas, uMesecu, onPregled, spisak }: DanProps) {
             key={p.id}
             type="button"
             onClick={() => onPregled(p)}
-            className={cn('block min-h-11 w-full rounded border px-1.5 py-0.5 text-left text-xs md:min-h-8', bojaPregleda(p, danas))}
+            className={cn('mt-[3px] block min-h-11 w-full rounded-[5px] border px-[5px] py-0.5 text-left text-[11px] font-semibold md:min-h-0', bojaPregleda(p, danas))}
           >
             <span className="block whitespace-nowrap font-semibold">{p.broj}</span>
             <span className="block truncate">{p.dodeljen}</span>
           </button>
         ))}
         {s.preneti.map((p) => (
-          <p key={`p${p.id}`} className="rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs text-red-800">
+          <p key={`p${p.id}`} className="rounded-[5px] bg-red-50 px-[5px] py-0.5 text-[11px] text-red-700">
             <span className="whitespace-nowrap font-semibold">{p.broj}</span> nije urađen – prenet na {formatirajDatum(p.planiraniDatum)}
           </p>
         ))}

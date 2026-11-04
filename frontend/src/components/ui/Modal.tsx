@@ -104,7 +104,7 @@ export function Modal({ open, title, onClose, children, widthClass = 'max-w-md' 
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(20,20,20,0.45)] p-4"
       onClick={onClose}
     >
       <div
@@ -114,11 +114,11 @@ export function Modal({ open, title, onClose, children, widthClass = 'max-w-md' 
         aria-labelledby={naslovId}
         // tabIndex da panel može da primi fokus kad u telu nema nijednog polja.
         tabIndex={-1}
-        className={cn('w-full overflow-hidden rounded-lg bg-white shadow-xl outline-none', widthClass)}
+        className={cn('flex max-h-[88vh] w-full flex-col overflow-hidden rounded-xl bg-white shadow-xl outline-none', widthClass)}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
-          <h2 id={naslovId} className="text-base font-semibold">
+        <div className="flex items-start justify-between gap-3 px-[18px] pt-[18px]">
+          <h2 id={naslovId} className="min-w-0 break-words pt-0.5 text-lg font-semibold text-gray-800">
             {title}
           </h2>
           <button
@@ -130,7 +130,7 @@ export function Modal({ open, title, onClose, children, widthClass = 'max-w-md' 
             <X size={18} />
           </button>
         </div>
-        <div ref={teloRef} className="p-5">
+        <div ref={teloRef} className="overflow-y-auto px-[18px] pb-[18px] pt-2.5">
           {children}
         </div>
       </div>

@@ -9,6 +9,7 @@ import { useToast } from '../../app/providers/ToastProvider';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody } from '../../components/ui/Card';
+import type React from 'react';
 import { Checkbox } from '../../components/ui/Checkbox';
 import { Input } from '../../components/ui/Input';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -75,7 +76,7 @@ export function PopunjavanjePage() {
         <Card>
           <CardBody className="space-y-3">
             <p className="text-sm text-gray-700">Datum i vreme početka upisuju se automatski i ne mogu da se menjaju.</p>
-            <Button className="min-h-11 w-full sm:w-auto" onClick={() => void zapocni.mutateAsync(p.verzijaId).catch((e) => toast.error(porukaGreske(e, 'Pregled nije započet.')))} disabled={zapocni.isPending}>
+            <Button className="w-full sm:w-auto" onClick={() => void zapocni.mutateAsync(p.verzijaId).catch((e) => toast.error(porukaGreske(e, 'Pregled nije započet.')))} disabled={zapocni.isPending}>
               Započni pregled
             </Button>
           </CardBody>
@@ -102,16 +103,20 @@ export function PopunjavanjePage() {
   const sek = p.sekcije.find((s) => s.sifra === aktivna);
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title={p.broj}
-        description={`Popunjeno ${ukupno.gotovo} od ${ukupno.ukupno} stavki`}
-        actions={
-          <Button className="min-h-11" disabled={operacija.isPending} onClick={() => void predaj()}>
-            Predaj pregled
-          </Button>
-        }
-      />
+    <div className="space-y-2.5 pb-16 md:pb-0">
+      {/* Zaglavlje pregleda po mockup-u (`.insp-head`): zelena traka sa brojem, statusom i automatskim podacima. */}
+      <div className="rounded-[10px] bg-primary-500 px-3.5 py-3 text-white">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-[15px] font-bold">{p.broj} · {NAZIV_TIPA[p.tip] ?? p.tip}</h1>
+          <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-semibold text-primary-500">{p.status === 'vracen_na_doradu' ? 'Dorada' : 'U radu'}</span>
+        </div>
+        <div className="mt-1 flex flex-wrap gap-x-3.5 gap-y-1 text-xs text-[#d7ecdf]">
+          <span>Datum: {formatirajDatum(p.planiraniDatum)} (automatski)</span>
+          {p.zapocetAt && <span>Početak: {formatirajVreme(p.zapocetAt)} (automatski)</span>}
+          <span>Šablon: {p.tip}</span>
+          <span>Popunjeno: {ukupno.gotovo} od {ukupno.ukupno}</span>
+        </div>
+      </div>
 
       <StanjeSlanja />
       {pregled.odbijene.length > 0 && (
@@ -134,25 +139,26 @@ export function PopunjavanjePage() {
         </Card>
       )}
 
-      {/* Trake sekcija prelaze u novi red umesto da beže van ekrana (spec §8.1). */}
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Sekcije">
+      {/* Sekcije kao pilule (mockup `.chips`); prelaze u novi red umesto da beže van ekrana (spec §8.1). */}
+      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Sekcije">
         {p.sekcije.map((s) => {
           const n = napredak(p, s.sifra);
+          const aktivan = s.sifra === aktivna;
           return (
-            <button key={s.sifra} type="button" role="tab" aria-selected={s.sifra === aktivna} onClick={() => setSekcija(s.sifra)}
-              className={cn('min-h-11 rounded-md border px-3 text-sm', s.sifra === aktivna ? 'border-primary-500 bg-primary-50 text-primary-800' : 'border-gray-200 bg-white',
-                n.gotovo === n.ukupno && 'border-green-300')}>
-              {s.sifra} <span className="text-xs text-gray-500">{n.gotovo}/{n.ukupno}</span>
+            <button key={s.sifra} type="button" role="tab" aria-selected={aktivan} onClick={() => setSekcija(s.sifra)}
+              className={cn('min-h-11 whitespace-nowrap rounded-full border px-3 text-xs md:min-h-8',
+                aktivan ? 'border-primary-500 bg-primary-500 text-white' : n.ukupno > 0 && n.gotovo === n.ukupno ? 'border-accent-500 bg-white' : 'border-gray-200 bg-white')}>
+              Sekcija {s.sifra}{!s.moja && ` · ${s.radi}`} · {n.gotovo}/{n.ukupno}
             </button>
           );
         })}
       </div>
 
       {sek && (
-        <div className="space-y-3">
-          {!sek.moja && <p className="text-sm text-gray-600">Ovu sekciju radi {sek.radi}; vidite njen napredak, ali ne upisujete u nju.</p>}
+        <div className="space-y-2.5">
+          {!sek.moja && <p className="rounded-lg bg-blue-50 px-3 py-2.5 text-[13px] text-blue-900">Ovu sekciju radi <b>{sek.radi}</b> na svom telefonu. Vidite njen napredak, ali ne upisujete u nju.</p>}
           {sek.moja && (
-            <Button variant="secondary" className="min-h-11 w-full sm:w-auto" disabled={operacija.isPending}
+            <Button variant="secondary" className="w-full sm:w-auto" disabled={operacija.isPending}
               onClick={() => void posalji({ vrsta: 'sve_ispravno', podaci: { sekcija: sek.sifra } }, 'Neoznačene stavke su označene kao ispravne.')}>
               <Check size={16} aria-hidden /> Sve neoznačeno u sekciji je ispravno
             </Button>
@@ -162,17 +168,29 @@ export function PopunjavanjePage() {
           ))}
         </div>
       )}
+
+      {/* Predaja je uvek pri ruci (mockup `.sticky`); na telefonu iznad donjeg menija. */}
+      <div className="fixed inset-x-0 bottom-16 z-30 border-t border-gray-200 bg-gray-50 px-3 py-2.5 md:sticky md:bottom-0 md:z-10 md:px-0">
+        <Button className="w-full md:w-auto" disabled={operacija.isPending} onClick={() => void predaj()}>
+          Predaj pregled ({ukupno.gotovo}/{ukupno.ukupno})
+        </Button>
+      </div>
     </div>
   );
 }
+
+const NAZIV_TIPA: Record<string, string> = {
+  DP1: 'Dnevni pregled 1', DP2: 'Dnevni pregled 2', PZ1: 'Planski zastoj 1', PZ2: 'Planski zastoj 2', PZ3: 'Planski zastoj 3', PZ4: 'Planski zastoj 4',
+};
 
 /** „Poslednja sinhronizacija: HH:MM“ i šta čeka slanje (R10.3, R10.4). */
 function StanjeSlanja() {
   const st = useStanjeSinhronizacije();
   return (
     <p className="text-xs text-gray-500">
-      {st.poslednja ? `Poslednja sinhronizacija: ${formatirajVreme(st.poslednja)}` : 'Još nije sinhronizovano.'}
-      {(st.promena > 0 || st.slika > 0) && ` · čeka slanje: ${st.promena} promena, ${st.slika} slika`}
+      {st.promena > 0 || st.slika > 0 ? `⏳ Čeka slanje: ${st.promena} promena, ${st.slika} slika` : '✓ Sve je poslato'}
+      {' · '}
+      {st.poslednja ? `poslednja sinhronizacija: ${formatirajVreme(st.poslednja)}` : 'još nije sinhronizovano'}
     </p>
   );
 }
@@ -192,28 +210,33 @@ type Posalji = (op: Operacija, uspeh?: string) => Promise<boolean>;
 
 function UredjajKartica({ pregledId, uredjaj, moja, posalji }: { pregledId: number; uredjaj: UredjajPopunjavanjaDto; moja: boolean; posalji: Posalji }) {
   const van = (v: boolean) => void posalji({ vrsta: 'van_funkcije', podaci: { uredjajId: uredjaj.uredjajId, vanFunkcije: v } });
+  const gotovo = uredjaj.stavke.filter((s) => s.odgovor).length;
   return (
-    <Card>
-      <CardBody className="space-y-3">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <p className="min-w-0 break-words font-medium text-gray-900">
-            {uredjaj.naziv} {uredjaj.oznaka && <span className="whitespace-nowrap text-gray-600">{uredjaj.oznaka}</span>}
-          </p>
-          <Checkbox label="Nije u funkciji" checked={uredjaj.vanFunkcije} disabled={!moja} onChange={(e) => van(e.target.checked)} />
-        </div>
+    // Kartica uređaja po mockup-u (`.dev`): zaglavlje sa nazivom i stanjem, aktivnosti ispod tanke linije.
+    <section className={cn('overflow-hidden rounded-[10px] border border-gray-200 bg-white', uredjaj.vanFunkcije && 'opacity-75')}>
+      <div className="flex flex-wrap items-center gap-2 px-3 py-2.5">
+        <h3 className="min-w-0 flex-1 break-words font-bold text-gray-800">
+          {uredjaj.naziv} {uredjaj.oznaka && <span className="whitespace-nowrap font-semibold text-gray-500">{uredjaj.oznaka}</span>}
+        </h3>
+        {uredjaj.vanFunkcije ? <Badge tone="gray">Nije u funkciji</Badge>
+          : gotovo === uredjaj.stavke.length ? <Badge tone="green">✓</Badge>
+          : <span className="text-xs text-gray-500">{gotovo}/{uredjaj.stavke.length}</span>}
+        <Checkbox label="Nije u funkciji" checked={uredjaj.vanFunkcije} disabled={!moja} onChange={(e) => van(e.target.checked)} />
+      </div>
+      <div className="space-y-2 border-t border-gray-100 px-3 pb-1 pt-2">
         {moja && uredjaj.otvoreneAkcije.map((a) => (
           <PopUpAkcije key={a.id} akcija={a} uredjaj={uredjaj} posalji={posalji} />
         ))}
         {uredjaj.prosliPutVanFunkcije && !uredjaj.vanFunkcije && (
-          <div className="flex flex-wrap items-center gap-2 rounded-md bg-amber-50 p-2 text-sm text-amber-900">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 px-3 py-2.5 text-[13px] text-amber-900">
             Prošli put: nije u funkciji
             {moja && <Button size="sm" variant="secondary" onClick={() => van(true)}>I dalje nije u funkciji</Button>}
           </div>
         )}
         {uredjaj.vanFunkcije ? (
-          <p className="text-sm text-gray-500">Uređaj nije u funkciji na ovom pregledu; aktivnosti se ne popunjavaju.</p>
+          <p className="pb-2 text-[13px] text-gray-500">Uređaj nije u funkciji na ovom pregledu; aktivnosti se ne popunjavaju.</p>
         ) : (
-          <ul className="space-y-3">
+          <ul>
             {uredjaj.stavke.map((s) => (
               // Ključ uključuje stanje sa servera: posle „sve ispravno“ ili tuđe izmene lokalni nacrt kreće od nove vrednosti.
               <StavkaRed key={`${s.stavkaId}-${s.odgovor?.vrednost}-${s.odgovor?.napomena}-${JSON.stringify(s.odgovor?.polja)}`}
@@ -221,8 +244,8 @@ function UredjajKartica({ pregledId, uredjaj, moja, posalji }: { pregledId: numb
             ))}
           </ul>
         )}
-      </CardBody>
-    </Card>
+      </div>
+    </section>
   );
 }
 
@@ -258,16 +281,17 @@ export function StavkaRed({ pregledId, stavka, moja, posalji }: { pregledId: num
   }
 
   return (
-    <li className="space-y-2 border-t border-gray-100 pt-3 first:border-t-0 first:pt-0" data-nepopunjena={!o}>
-      <p className="flex items-start gap-1 break-words text-sm text-gray-900">
+    // Aktivnost po mockup-u (`.act`): tačkasta linija između aktivnosti, odgovori kao dva velika tastera (`.ans`), alatke ispod (`.tools`).
+    <li className="space-y-2 border-b border-dashed border-[#e4e2df] py-2.5 last:border-b-0" data-nepopunjena={!o}>
+      <p className="flex items-start gap-1 break-words text-sm text-gray-800">
         <span className="min-w-0 flex-1">{stavka.aktivnost}</span>
         <UputstvoDugme aktivnostId={stavka.aktivnostId} aktivnost={stavka.aktivnost} smeDaMenja={false} offlineTekst={stavka.uputstvo} />
       </p>
       <div className="grid grid-cols-2 gap-2">
         {([0, 1] as const).map((v) => (
           <button key={v} type="button" disabled={!moja} onClick={() => odgovori(v)} aria-pressed={o?.vrednost === v}
-            className={cn('min-h-11 rounded-md border px-2 text-sm font-medium disabled:opacity-60',
-              o?.vrednost === v ? (v === 0 ? 'border-green-500 bg-green-50 text-green-800' : 'border-red-500 bg-red-50 text-red-800') : 'border-gray-300 bg-white text-gray-800')}>
+            className={cn('min-h-11 rounded-[9px] border-2 px-1.5 py-2 text-sm font-semibold transition-colors disabled:opacity-60',
+              o?.vrednost === v ? (v === 0 ? 'border-green-500 bg-green-50 text-green-700' : 'border-red-500 bg-red-50 text-red-700') : 'border-gray-200 bg-white text-gray-800 hover:bg-gray-50')}>
             {v === 0 ? stavka.odgovorIspravan : stavka.odgovorNeispravan}
           </button>
         ))}
@@ -287,14 +311,15 @@ export function StavkaRed({ pregledId, stavka, moja, posalji }: { pregledId: num
       )}
 
       {moja && (
-        <div className="flex flex-wrap items-center gap-1">
-          {!neispravan && !napomenaOtvorena && !napomena && (
-            <Button size="sm" variant="ghost" onClick={() => setNapomenaOtvorena(true)}><MessageSquare size={14} aria-hidden /> Napomena</Button>
-          )}
-          <Button size="sm" variant="ghost" onClick={() => setAkcijaOtvorena(true)}><Wrench size={14} aria-hidden /> Akcija</Button>
-          <Button size="sm" variant="ghost" onClick={() => kamera.current?.click()} disabled={otpremi.isPending}><Camera size={14} aria-hidden /> Fotografiši</Button>
-          <Button size="sm" variant="ghost" onClick={() => galerija.current?.click()} disabled={otpremi.isPending}><ImagePlus size={14} aria-hidden /> Iz galerije</Button>
-          {stavka.fotografije.length > 0 && <Badge tone="primary">{stavka.fotografije.length} {stavka.fotografije.length === 1 ? 'slika' : 'slike'}</Badge>}
+        <div className="flex gap-1.5">
+          <Alatka ima={!!napomena.trim()} treba={neispravan && !napomena.trim()} onClick={() => setNapomenaOtvorena((x) => !x)}>
+            <MessageSquare size={14} aria-hidden /> Napomena
+          </Alatka>
+          <Alatka onClick={() => setAkcijaOtvorena(true)}><Wrench size={14} aria-hidden /> Akcija</Alatka>
+          <Alatka ima={stavka.fotografije.length > 0} onClick={() => kamera.current?.click()} disabled={otpremi.isPending}>
+            <Camera size={14} aria-hidden /> Fotografiši{stavka.fotografije.length > 0 && ` (${stavka.fotografije.length})`}
+          </Alatka>
+          <Alatka onClick={() => galerija.current?.click()} disabled={otpremi.isPending}><ImagePlus size={14} aria-hidden /> Galerija</Alatka>
           <input ref={kamera} type="file" accept="image/*" capture="environment" className="hidden" aria-label="Fotografiši"
             onChange={(e) => { void slika(e.target.files?.[0], 'kamera'); e.target.value = ''; }} />
           <input ref={galerija} type="file" accept="image/*" className="hidden" aria-label="Iz galerije"
@@ -303,6 +328,17 @@ export function StavkaRed({ pregledId, stavka, moja, posalji }: { pregledId: num
       )}
       {akcijaOtvorena && <NovaAkcija stavka={stavka} posalji={posalji} onClose={() => setAkcijaOtvorena(false)} />}
     </li>
+  );
+}
+
+/** Alatka ispod aktivnosti (mockup `.tools button`): iste širine u redu; zelena kad je popunjena, crvena kad nešto nedostaje. */
+function Alatka({ ima, treba, disabled, onClick, children }: { ima?: boolean; treba?: boolean; disabled?: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" disabled={disabled} onClick={onClick}
+      className={cn('flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg border px-1 text-xs transition-colors disabled:opacity-50 md:min-h-8 [&>svg]:shrink-0',
+        treba ? 'border-red-500 text-red-700' : ima ? 'border-primary-500 font-semibold text-primary-500' : 'border-gray-200 bg-[#fafaf9] text-gray-800 hover:bg-gray-100')}>
+      {children}
+    </button>
   );
 }
 
@@ -336,7 +372,7 @@ function PopUpAkcije({ akcija, uredjaj, posalji }: { akcija: UredjajPopunjavanja
   const stavka = uredjaj.stavke.find((s) => s.stavkaId === akcija.stavkaId);
   const neispravna = stavka?.odgovor?.vrednost === 1;
   return (
-    <div role="alertdialog" aria-label={`Akcija ${akcija.broj}`} className="space-y-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm">
+    <div role="alertdialog" aria-label={`Akcija ${akcija.broj}`} className="space-y-2 rounded-lg bg-blue-50 px-3 py-2.5 text-[13px] text-blue-900">
       <p className="break-words">
         <span className="whitespace-nowrap font-semibold">{akcija.broj}</span> · {akcija.aktivnost} · {VRSTE_AKCIJA.find((v) => v.value === akcija.vrsta)?.label}
         {akcija.opis && ` — ${akcija.opis}`}
@@ -344,8 +380,8 @@ function PopUpAkcije({ akcija, uredjaj, posalji }: { akcija: UredjajPopunjavanja
       <p className="font-medium">Da li je akcija urađena?</p>
       {neispravna && <p className="text-amber-800">Stavka je označena kao neispravna; ako je akcija urađena, otvorite novu akciju za preostali kvar.</p>}
       <div className="flex gap-2">
-        <Button size="sm" className="min-h-11" onClick={() => void posalji({ vrsta: 'akcija_odgovor', podaci: { akcijaId: akcija.id, uradjeno: true } }, 'Akcija je zatvorena.')}>Da</Button>
-        <Button size="sm" variant="secondary" className="min-h-11" onClick={() => void posalji({ vrsta: 'akcija_odgovor', podaci: { akcijaId: akcija.id, uradjeno: false } }, 'Akcija ostaje otvorena.')}>Ne</Button>
+        <Button size="sm" onClick={() => void posalji({ vrsta: 'akcija_odgovor', podaci: { akcijaId: akcija.id, uradjeno: true } }, 'Akcija je zatvorena.')}>Da</Button>
+        <Button size="sm" variant="secondary" onClick={() => void posalji({ vrsta: 'akcija_odgovor', podaci: { akcijaId: akcija.id, uradjeno: false } }, 'Akcija ostaje otvorena.')}>Ne</Button>
       </div>
     </div>
   );
