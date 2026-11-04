@@ -88,6 +88,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ZahtevDorade> ZahteviDorade => Set<ZahtevDorade>();
 
     /// <inheritdoc />
+    public DbSet<Akcija> Akcije => Set<Akcija>();
+
+    /// <inheritdoc />
+    public DbSet<AkcijaDogadjaj> AkcijaDogadjaji => Set<AkcijaDogadjaj>();
+
+    /// <inheritdoc />
+    public DbSet<Kvar> Kvarovi => Set<Kvar>();
+
+    /// <inheritdoc />
     public DbSet<Odgovor> Odgovori => Set<Odgovor>();
 
     /// <inheritdoc />
@@ -130,6 +139,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         ConfigureSabloni(b);
         ConfigureRaspored(b);
         ConfigurePopunjavanje(b);
+        ConfigureAkcije(b);
     }
 
     // ─── Identity + refresh tokeni ─────────────────────────────────────────
@@ -431,6 +441,55 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasKey(x => x.OpId);
             e.Property(x => x.Vrsta).IsRequired().HasMaxLength(40);
             e.HasIndex(x => x.PregledId);
+        });
+    }
+
+    // ─── Akcije i kvarovi ──────────────────────────────────────────────────
+
+    private static void ConfigureAkcije(ModelBuilder b)
+    {
+        b.Entity<Akcija>(e =>
+        {
+            e.ToTable("akcija");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Broj).IsRequired().HasMaxLength(20);
+            e.Property(x => x.Vrsta).IsRequired().HasMaxLength(20);
+            e.Property(x => x.Hitnost).IsRequired().HasMaxLength(20);
+            e.Property(x => x.Opis).HasMaxLength(1000);
+            e.Property(x => x.Status).IsRequired().HasMaxLength(20);
+            e.Property(x => x.Zaduzen).HasMaxLength(200);
+            e.Property(x => x.KreiraoId).IsRequired().HasMaxLength(64);
+            e.Property(x => x.ZatvorioId).HasMaxLength(64);
+            e.Property(x => x.Razlog).HasMaxLength(500);
+            e.HasIndex(x => x.Broj).IsUnique().HasDatabaseName("ux_akcija_broj");
+            e.HasIndex(x => new { x.UredjajId, x.Status });
+            e.HasOne<Pregled>().WithMany().HasForeignKey(x => x.PregledId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Uredjaj>().WithMany().HasForeignKey(x => x.UredjajId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Aktivnost>().WithMany().HasForeignKey(x => x.AktivnostId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<AkcijaDogadjaj>(e =>
+        {
+            e.ToTable("akcija_dogadjaj");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Vrsta).IsRequired().HasMaxLength(40);
+            e.Property(x => x.Tekst).IsRequired().HasMaxLength(1000);
+            e.Property(x => x.KorisnikId).HasMaxLength(64);
+            e.HasIndex(x => x.AkcijaId);
+            e.HasOne(x => x.Akcija).WithMany().HasForeignKey(x => x.AkcijaId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<Kvar>(e =>
+        {
+            e.ToTable("kvar");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Broj).IsRequired().HasMaxLength(20);
+            e.Property(x => x.PoslednjaNapomena).HasMaxLength(2000);
+            e.HasIndex(x => x.Broj).IsUnique().HasDatabaseName("ux_kvar_broj");
+            e.HasIndex(x => new { x.UredjajId, x.AktivnostId, x.Zatvoren });
+            e.HasOne<Uredjaj>().WithMany().HasForeignKey(x => x.UredjajId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Aktivnost>().WithMany().HasForeignKey(x => x.AktivnostId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Pregled>().WithMany().HasForeignKey(x => x.OtvorioPregledId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 

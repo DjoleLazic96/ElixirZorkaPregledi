@@ -45,8 +45,19 @@ public sealed record StavkaPopunjavanjaDto(int StavkaId, string Aktivnost, strin
 /// <param name="VanFunkcije">Označen „Nije u funkciji“ na ovom pregledu.</param>
 /// <param name="ProsliPutVanFunkcije">Bio van funkcije na poslednjem predatom pregledu (R4.6).</param>
 /// <param name="Stavke">Aktivnosti.</param>
+/// <param name="OtvoreneAkcije">Otvorene akcije na uređaju — pop-up „da li je urađena“ (R4.7).</param>
 public sealed record UredjajPopunjavanjaDto(int UredjajId, string Naziv, string Oznaka, bool VanFunkcije, bool ProsliPutVanFunkcije,
-    IReadOnlyList<StavkaPopunjavanjaDto> Stavke);
+    IReadOnlyList<StavkaPopunjavanjaDto> Stavke, IReadOnlyList<AkcijaKratkoDto> OtvoreneAkcije);
+
+/// <summary>Otvorena akcija za pop-up.</summary>
+/// <param name="Id">ID.</param>
+/// <param name="Broj">Broj, npr. A-2026-0031.</param>
+/// <param name="Aktivnost">Aktivnost na koju se odnosi.</param>
+/// <param name="StavkaId">Stavka u ovoj verziji (ako postoji).</param>
+/// <param name="Vrsta">Vrsta.</param>
+/// <param name="Hitnost">Hitnost.</param>
+/// <param name="Opis">Opis.</param>
+public sealed record AkcijaKratkoDto(int Id, string Broj, string Aktivnost, int? StavkaId, string Vrsta, string Hitnost, string? Opis);
 
 /// <summary>Sekcija za popunjavanje.</summary>
 /// <param name="Sifra">Šifra.</param>
@@ -113,7 +124,7 @@ public sealed record SinhronizacijaCommand(string? UredjajKlijenta, DateTime? Kl
 // ─── Handler ──────────────────────────────────────────────────────────────
 
 /// <summary>Popunjavanje pregleda: početak, čitanje i operacije.</summary>
-public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUser, IDateTimeProvider clock) :
+public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUser, IDateTimeProvider clock, IBrojacService brojac) :
     IRequestHandler<ZapocniPregledCommand, PopunjavanjeDto>,
     IRequestHandler<GetPopunjavanjeQuery, PopunjavanjeDto>,
     IRequestHandler<SinhronizacijaCommand, SinhronizacijaRezultat>,
@@ -182,7 +193,12 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
         var van = (await db.UredjajiVanFunkcije.AsNoTracking().Where(v => v.PregledId == p.Id).Select(v => v.UredjajId).ToListAsync(ct)).ToHashSet();
         var slike = (await db.Fotografije.AsNoTracking().Where(f => f.PregledId == p.Id).Select(f => new { f.StavkaId, f.Id }).ToListAsync(ct))
             .ToLookup(f => f.StavkaId, f => f.Id);
-        var prosli = await ProsliPutVanFunkcijeAsync(p, stavke.Select(s => s.UredjajId).Distinct().ToList(), ct);
+        var uredjajIds = stavke.Select(s => s.UredjajId).Distinct().ToList();
+        var prosli = await ProsliPutVanFunkcijeAsync(p, uredjajIds, ct);
+        var akcije = (await db.Akcije.AsNoTracking().Where(a => a.Status == "otvorena" && uredjajIds.Contains(a.UredjajId))
+                .Join(db.Aktivnosti, a => a.AktivnostId, x => x.Id, (a, x) => new { a, x.Naziv }).ToListAsync(ct))
+            .ToLookup(x => x.a.UredjajId, x => new AkcijaKratkoDto(x.a.Id, x.a.Broj, x.Naziv,
+                stavke.FirstOrDefault(s => s.Kljuc == x.a.StavkaKljuc)?.StavkaId, x.a.Vrsta, x.a.Hitnost, x.a.Opis));
 
         var sekcije = stavke.GroupBy(s => s.Sekcija).Select(gs =>
         {
@@ -191,7 +207,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 gu.Key, gu.First().Naziv, gu.First().Oznaka, van.Contains(gu.Key), prosli.Contains(gu.Key),
                 gu.Select(s => new StavkaPopunjavanjaDto(s.StavkaId, s.Aktivnost, s.Ok, s.Nok, s.Polja,
                     odgovori.TryGetValue(s.StavkaId, out var o) ? new OdgovorDto(o.Vrednost, o.Napomena, JsonDocument.Parse(o.Polja).RootElement.Clone()) : null,
-                    slike[s.StavkaId].ToList())).ToList())).ToList());
+                    slike[s.StavkaId].ToList())).ToList(), akcije[gu.Key].ToList())).ToList());
         }).ToList();
 
         return new PopunjavanjeDto(p.Id, p.Broj, p.Tip, p.Status, p.PlaniraniDatum, p.ZapocetAt, verzijaId, sekcije);
@@ -346,6 +362,52 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
             case "predaja":
                 await PredajAsync(p, stavke, k, klijentAt, ct);
                 break;
+            case "akcija":
+            {
+                var stavkaId = op.Podaci.GetProperty("stavkaId").GetInt32();
+                var s = stavke.FirstOrDefault(x => x.StavkaId == stavkaId) ?? throw new BusinessRuleException("Stavka nije u ovom pregledu.");
+                ProveriSekciju(p, s.Sekcija, k);
+                var vrsta = op.Podaci.GetProperty("vrsta").GetString() ?? "";
+                var hitnost = op.Podaci.GetProperty("hitnost").GetString() ?? "";
+                if (!AkcijaPravila.Vrste.Contains(vrsta)) throw new BusinessRuleException("Nepoznata vrsta akcije.");
+                if (!AkcijaPravila.Hitnosti.Contains(hitnost)) throw new BusinessRuleException("Nepoznata hitnost akcije.");
+                var opis = op.Podaci.TryGetProperty("opis", out var o) && o.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(o.GetString()) ? o.GetString()!.Trim() : null;
+                var danas = DateOnly.FromDateTime(klijentAt);
+                var sledeciPz = await db.Pregledi.Where(x => x.Tip.StartsWith("PZ") && x.Status == StatusPregleda.Planiran && x.PlaniraniDatum >= danas)
+                    .OrderBy(x => x.PlaniraniDatum).Select(x => (DateOnly?)x.PlaniraniDatum).FirstOrDefaultAsync(ct);
+                var a = new Akcija
+                {
+                    Broj = await brojac.SledeciAsync("A", danas.Year, ct), PregledId = p.Id, UredjajId = s.UredjajId, AktivnostId = s.AktivnostId,
+                    StavkaKljuc = s.Kljuc, Vrsta = vrsta, Hitnost = hitnost, Opis = opis, Rok = AkcijaPravila.Rok(hitnost, danas, sledeciPz),
+                    KreiraoId = currentUser.UserId!, KreiranoAt = clock.UtcNow,
+                };
+                db.Akcije.Add(a);
+                db.AkcijaDogadjaji.Add(new AkcijaDogadjaj { Akcija = a, Vrsta = "otvorena", Tekst = $"Otvorena na pregledu {p.Broj}", KorisnikId = currentUser.UserId, PregledId = p.Id, At = clock.UtcNow });
+                break;
+            }
+            case "akcija_odgovor":
+            {
+                // Pop-up na sledećem pregledu sa tim uređajem (R4.7, R7.4); važi i za akcije nastale u PZ-u.
+                var akcijaId = op.Podaci.GetProperty("akcijaId").GetInt32();
+                var uradjeno = op.Podaci.GetProperty("uradjeno").GetBoolean();
+                var a = await db.Akcije.FirstOrDefaultAsync(x => x.Id == akcijaId, ct) ?? throw new BusinessRuleException("Akcija ne postoji.");
+                if (stavke.All(s => s.UredjajId != a.UredjajId)) throw new BusinessRuleException("Akcija nije na uređaju iz ovog pregleda.");
+                if (a.Status != "otvorena") break;   // već zatvorena (npr. sa ekrana) — pop-up nema šta da menja
+                if (uradjeno)
+                {
+                    a.Status = "zatvorena";
+                    a.ZatvorioId = currentUser.UserId;
+                    a.ZatvorenoAt = clock.UtcNow;
+                    a.Razlog = $"Urađeno (potvrđeno na pregledu {p.Broj})";
+                }
+                db.AkcijaDogadjaji.Add(new AkcijaDogadjaj
+                {
+                    AkcijaId = a.Id, Vrsta = uradjeno ? "zatvorena" : "ostaje_otvorena",
+                    Tekst = uradjeno ? $"Urađena — potvrđeno na pregledu {p.Broj}" : $"Nije urađena — ostaje otvorena (pregled {p.Broj})",
+                    KorisnikId = currentUser.UserId, PregledId = p.Id, At = clock.UtcNow,
+                });
+                break;
+            }
             default:
                 throw new BusinessRuleException($"Nepoznata operacija „{op.Vrsta}“.");
         }
@@ -381,6 +443,43 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
         PregledIstorija.Dodaj(db, p, "pocetak", new { verzijaId = verzija, uredjajKlijenta = _uredjajKlijenta }, currentUser.UserId, clock.UtcNow);
     }
 
+    /// <summary>
+    /// Kvarovi iz predatog pregleda (R8.7): neispravan otvara kvar ili mu dodaje prijavu, ispravan ga zatvara, „nije u funkciji“
+    /// ne menja ništa. Zatvoren kvar označava otvorene akcije na stavci kao „stavka sada ispravna“ (R7.15).
+    /// </summary>
+    private async Task ObradiKvaroveAsync(Pregled p, IReadOnlyList<StavkaInfo> stavke, Dictionary<int, Odgovor> odgovori, HashSet<int> van, CancellationToken ct)
+    {
+        var uredjaji = stavke.Select(s => s.UredjajId).Distinct().ToList();
+        var otvoreni = await db.Kvarovi.Where(x => x.Zatvoren == null && uredjaji.Contains(x.UredjajId)).ToListAsync(ct);
+        foreach (var s in stavke.Where(s => !van.Contains(s.UredjajId) && odgovori.ContainsKey(s.StavkaId)))
+        {
+            var o = odgovori[s.StavkaId];
+            var kvar = otvoreni.FirstOrDefault(x => x.UredjajId == s.UredjajId && x.AktivnostId == s.AktivnostId);
+            if (o.Vrednost == 1)
+            {
+                if (kvar is null)
+                    db.Kvarovi.Add(new Kvar
+                    {
+                        Broj = await brojac.SledeciAsync("K", p.PlaniraniDatum.Year, ct), UredjajId = s.UredjajId, AktivnostId = s.AktivnostId,
+                        StavkaKljuc = s.Kljuc, OtvorioPregledId = p.Id, PoslednjiPregledId = p.Id, Otvoren = p.PlaniraniDatum, Prijava = 1, PoslednjaNapomena = o.Napomena,
+                    });
+                else
+                {
+                    if (kvar.PoslednjiPregledId != p.Id) kvar.Prijava++;   // dorada istog pregleda nije nova prijava
+                    kvar.PoslednjiPregledId = p.Id;
+                    kvar.PoslednjaNapomena = o.Napomena;
+                }
+            }
+            else if (kvar is not null)
+            {
+                kvar.Zatvoren = p.PlaniraniDatum;
+                kvar.ZatvorioPregledId = p.Id;
+                var akcije = await db.Akcije.Where(a => a.Status == "otvorena" && a.UredjajId == s.UredjajId && a.AktivnostId == s.AktivnostId).ToListAsync(ct);
+                foreach (var a in akcije) a.StavkaSadaIspravna = true;
+            }
+        }
+    }
+
     private Task<int?> VazecaVerzijaAsync(string tip, CancellationToken ct) =>
         db.SablonVerzije.Where(v => v.Sablon!.Tip == tip && v.Status == StatusVerzije.Objavljena).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
 
@@ -400,6 +499,8 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
         }
         if (bezOdgovora.Count > 0 || bezNapomene > 0)
             throw new BusinessRuleException($"Pregled još nije potpun: nedostaje {bezOdgovora.Count} odgovora i {bezNapomene} obaveznih napomena.");
+
+        await ObradiKvaroveAsync(p, stavke, odgovori, van, ct);
 
         // Vreme dorade ne ulazi u aktivno vreme pregleda (R6.6) — računa se samo pri prvoj predaji.
         if (p.Dorada > 0)
@@ -422,20 +523,21 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
     // ─── Pomoćno ──────────────────────────────────────────────────────────
 
     /// <summary>Stavka verzije sa svim što ekran i provere traže.</summary>
-    private sealed record StavkaInfo(int StavkaId, string Sekcija, int UredjajId, string Naziv, string Oznaka, string Aktivnost, string Ok, string Nok, IReadOnlyList<PoljeDto> Polja);
+    private sealed record StavkaInfo(int StavkaId, string Sekcija, int UredjajId, string Naziv, string Oznaka, string Aktivnost, string Ok, string Nok,
+        IReadOnlyList<PoljeDto> Polja, Guid Kljuc, int AktivnostId);
 
     private async Task<IReadOnlyList<StavkaInfo>> StavkeAsync(int verzijaId, CancellationToken ct)
     {
         var redovi = await db.SablonStavke.AsNoTracking().Where(s => s.VerzijaId == verzijaId).OrderBy(s => s.Redosled)
             .Select(s => new
             {
-                s.Id, Sekcija = db.Sekcije.Where(x => x.Id == s.SekcijaId).Select(x => x.Sifra).First(), s.UredjajId,
+                s.Id, s.Kljuc, s.AktivnostId, Sekcija = db.Sekcije.Where(x => x.Id == s.SekcijaId).Select(x => x.Sifra).First(), s.UredjajId,
                 s.Uredjaj!.Naziv, s.Uredjaj.Oznaka, Aktivnost = s.Aktivnost!.Naziv, s.Aktivnost.OdgovorIspravan, s.Aktivnost.OdgovorNeispravan,
                 Polja = s.Polja.Select(p => p.DodatnoPolje!).ToList(),
             })
             .ToListAsync(ct);
         return redovi.Select(r => new StavkaInfo(r.Id, r.Sekcija, r.UredjajId, r.Naziv, r.Oznaka, r.Aktivnost, r.OdgovorIspravan, r.OdgovorNeispravan,
-            r.Polja.Select(p => new PoljeDto(p.Id, p.Naziv, p.Tip, p.Jedinica, p.Oznake, p.Prikaz, p.Obavezno)).ToList())).ToList();
+            r.Polja.Select(p => new PoljeDto(p.Id, p.Naziv, p.Tip, p.Jedinica, p.Oznake, p.Prikaz, p.Obavezno)).ToList(), r.Kljuc, r.AktivnostId)).ToList();
     }
 
     private async Task<Pregled> UcitajPregledAsync(int id, CancellationToken ct) =>

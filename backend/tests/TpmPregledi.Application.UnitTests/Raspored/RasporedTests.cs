@@ -18,16 +18,6 @@ public class RasporedTests
     private static readonly DateOnly Pon = new(2026, 11, 9);
     private static readonly HashSet<DateOnly> Nista = [];
 
-    private sealed class FakeBrojac : IBrojacService
-    {
-        private readonly Dictionary<(string, int), int> _n = [];
-
-        public Task<string> SledeciAsync(string vrsta, int godina, CancellationToken ct = default)
-        {
-            _n[(vrsta, godina)] = _n.GetValueOrDefault((vrsta, godina)) + 1;
-            return Task.FromResult(Brojac.Formatiraj(vrsta, godina, _n[(vrsta, godina)]));
-        }
-    }
 
     // ─── čista pravila ─────────────────────────────────────────────────────
 

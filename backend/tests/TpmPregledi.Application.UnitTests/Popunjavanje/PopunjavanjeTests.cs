@@ -62,7 +62,7 @@ public class PopunjavanjeTests
         ];
     }
 
-    private static PopunjavanjeHandler Sut(Okruzenje o, string korisnik) => new(o.H.Db, new FakeCurrentUser { UserId = korisnik }, new FakeClock());
+    private static PopunjavanjeHandler Sut(Okruzenje o, string korisnik) => new(o.H.Db, new FakeCurrentUser { UserId = korisnik }, new FakeClock(), new FakeBrojac());
 
     private static OperacijaInput Op(Okruzenje o, string vrsta, object podaci, int minut, Guid? id = null) =>
         new(id ?? Guid.NewGuid(), vrsta, o.PregledId, T0.AddMinutes(minut), JsonSerializer.SerializeToElement(podaci, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
@@ -218,7 +218,7 @@ public class RadBezInternetaTests
     {
         var (h, ana, _, id) = await PripremiAsync();
         await using var _ = h;
-        var sut = new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana }, new FakeClock());
+        var sut = new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana }, new FakeClock(), new FakeBrojac());
 
         var paket = await sut.Handle(new GetMojPaketQuery(), default);
         var p = paket.Pregledi.Single();
@@ -246,7 +246,7 @@ public class RadBezInternetaTests
         p.DodeljenId = bora;
         await h.Db.SaveChangesAsync();
 
-        var r = await new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana }, new FakeClock())
+        var r = await new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana }, new FakeClock(), new FakeBrojac())
             .Handle(new SinhronizacijaCommand("telefon-1", null, [Op(id, "zapocni", new { }, 0)]), default);
 
         r.Odbijene.Should().ContainSingle();
@@ -259,7 +259,7 @@ public class RadBezInternetaTests
         var (h, ana, _, id) = await PripremiAsync();
         await using var _ = h;
         var clock = new FakeClock();
-        await new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana }, clock)
+        await new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana }, clock, new FakeBrojac())
             .Handle(new SinhronizacijaCommand("telefon-1", clock.UtcNow.AddMinutes(-30), [Op(id, "zapocni", new { }, 0)]), default);
 
         (await h.Db.PregledDogadjaji.CountAsync(d => d.Vrsta == "odstupanje_sata")).Should().Be(1);

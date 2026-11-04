@@ -43,7 +43,7 @@ public class OveraTests
         await h.Db.SaveChangesAsync();
         var stavke = await h.Db.SablonStavke.OrderBy(s => s.Redosled).Select(s => s.Id).ToArrayAsync();
 
-        var popuni = new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana.Id }, new FakeClock());
+        var popuni = new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana.Id }, new FakeClock(), new FakeBrojac());
         OperacijaInput Op(string v, object pod) => new(Guid.NewGuid(), v, p.Id, DateTime.UtcNow, JsonSerializer.SerializeToElement(pod, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
         var r = await popuni.Handle(new SinhronizacijaCommand(null, null,
         [
@@ -108,7 +108,7 @@ public class OveraTests
         d.Broj.Should().Be("DP1-2026-0001");
         d.Sekcije.Single().Uredjaji[1].Stavke.Single().Napomena.Should().Be("5 rolni", "odgovori prethodne dorade su kopirani");
 
-        var r = await new PopunjavanjeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana }, new FakeClock()).Handle(new SinhronizacijaCommand(null, null,
+        var r = await new PopunjavanjeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana }, new FakeClock(), new FakeBrojac()).Handle(new SinhronizacijaCommand(null, null,
             [new(Guid.NewGuid(), "predaja", o.PregledId, DateTime.UtcNow.AddHours(5), JsonSerializer.SerializeToElement(new { }))]), default);
         r.Odbijene.Should().BeEmpty();
         var posle = await o.H.Db.Pregledi.AsNoTracking().SingleAsync();

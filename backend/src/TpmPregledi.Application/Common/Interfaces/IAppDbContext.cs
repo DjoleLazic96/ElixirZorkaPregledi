@@ -98,6 +98,15 @@ public interface IAppDbContext
     /// <summary>Zahtevi za doradu.</summary>
     DbSet<ZahtevDorade> ZahteviDorade { get; }
 
+    /// <summary>Potrebne akcije.</summary>
+    DbSet<Akcija> Akcije { get; }
+
+    /// <summary>Istorija akcija.</summary>
+    DbSet<AkcijaDogadjaj> AkcijaDogadjaji { get; }
+
+    /// <summary>Kvarovi.</summary>
+    DbSet<Kvar> Kvarovi { get; }
+
     /// <summary>Snima promene (audit interceptor radi u istoj transakciji).</summary>
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

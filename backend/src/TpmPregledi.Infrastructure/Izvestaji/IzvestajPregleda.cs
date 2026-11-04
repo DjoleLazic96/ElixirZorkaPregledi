@@ -152,6 +152,36 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
     }
 
     /// <inheritdoc />
+    public byte[] ExcelTabela(string list, IReadOnlyList<string> zaglavlje, IEnumerable<IReadOnlyList<object?>> redovi)
+    {
+        using var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add(list);
+        for (var i = 0; i < zaglavlje.Count; i++) ws.Cell(1, i + 1).Value = zaglavlje[i];
+        ws.Row(1).Style.Font.Bold = true;
+        var r = 2;
+        foreach (var red in redovi)
+        {
+            for (var i = 0; i < red.Count; i++)
+            {
+                var c = ws.Cell(r, i + 1);
+                switch (red[i])
+                {
+                    case DateOnly d: c.Value = d.ToDateTime(TimeOnly.MinValue); c.Style.DateFormat.Format = "dd.MM.yyyy"; break;
+                    case int n: c.Value = n; break;
+                    case null: break;
+                    default: c.Value = red[i]!.ToString(); break;
+                }
+            }
+            r++;
+        }
+        ws.Columns().AdjustToContents();
+        ws.SheetView.FreezeRows(1);
+        using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        return ms.ToArray();
+    }
+
+    /// <inheritdoc />
     public byte[] Excel(IReadOnlyList<PregledRedDto> redovi)
     {
         using var wb = new XLWorkbook();

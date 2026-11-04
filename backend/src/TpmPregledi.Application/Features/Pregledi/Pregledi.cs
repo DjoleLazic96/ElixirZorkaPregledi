@@ -455,4 +455,7 @@ public interface IIzvestajPregleda
 
     /// <summary>Arhiva po filterima (R8.13: izvoz uzima filtrirano).</summary>
     byte[] Excel(IReadOnlyList<PregledRedDto> redovi);
+
+    /// <summary>Bilo koja lista u Excel (akcije, neispravnosti — R11.2): zaglavlje i redovi.</summary>
+    byte[] ExcelTabela(string list, IReadOnlyList<string> zaglavlje, IEnumerable<IReadOnlyList<object?>> redovi);
 }
