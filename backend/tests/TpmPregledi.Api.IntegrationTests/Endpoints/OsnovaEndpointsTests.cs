@@ -71,7 +71,7 @@ public class OsnovaEndpointsTests(CustomWebAppFactory factory)
 public class UvozSablonaEndpointsTests(CustomWebAppFactory factory)
 {
     [Fact]
-    public async Task Pravi_fajl_vraca_422_samo_za_red_PZ1_bez_naziva_i_ne_upisuje_nista()
+    public async Task Pravi_fajl_uvozi_svih_sest_sablona_a_drugi_uvoz_vraca_422()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (!File.Exists(Path.Combine(dir!.FullName, "docs", "sabloni", "sabloni-za-uvoz.xlsx"))) dir = dir.Parent;
@@ -82,10 +82,15 @@ public class UvozSablonaEndpointsTests(CustomWebAppFactory factory)
             "fajl", "sabloni-za-uvoz.xlsx");
         var res = await admin.PostAsync("/api/v1/sabloni/uvoz", telo);
 
-        res.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
-        (await res.Content.ReadAsStringAsync()).Should().Contain("nedostaje naziv ure");
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
         var sabloni = await admin.GetFromJsonAsync<List<SablonPregledDto>>("/api/v1/sabloni");
-        sabloni!.Should().OnlyContain(s => s.VazecaVerzija == null);
+        sabloni!.Should().OnlyContain(s => s.VazecaVerzija == 1);
+        sabloni.Sum(s => s.BrojStavki).Should().Be(867);
+
+        using var ponovo = new MultipartFormDataContent();
+        ponovo.Add(new ByteArrayContent(await File.ReadAllBytesAsync(Path.Combine(dir.FullName, "docs", "sabloni", "sabloni-za-uvoz.xlsx"))),
+            "fajl", "sabloni-za-uvoz.xlsx");
+        (await admin.PostAsync("/api/v1/sabloni/uvoz", ponovo)).StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
 
     [Fact]

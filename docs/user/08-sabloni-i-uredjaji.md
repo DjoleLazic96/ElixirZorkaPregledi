@@ -32,4 +32,4 @@ Izmene samog šablona (dodavanje i izbacivanje stavki, nova verzija) dolaze u ka
 
 **Šabloni** → **Uvezi šablone** → izaberite `.xlsx` (list „Stavke“). Uvoz je jednokratan: pravi prvu verziju svakog šablona iz
 fajla i popunjava registar i katalog. Ako je bilo koji red neispravan, ništa se ne upisuje, a prozor **Uvoz nije urađen**
-nabraja greške sa brojem reda (npr. „Red 397 (PZ1, …): nedostaje naziv uređaja.“). Šablon koji je već uvezen se ne uvozi ponovo.
+nabraja greške sa brojem reda (npr. „Red 12 (DP1, Elevator 10-C-13): nepoznata sekcija „99“.“). Šablon koji je već uvezen se ne uvozi ponovo.

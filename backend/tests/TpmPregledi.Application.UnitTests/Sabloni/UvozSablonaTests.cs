@@ -60,25 +60,15 @@ public class UvozSablonaTests
         redovi.Should().HaveCount(867);
         redovi.Select(r => r.Sablon).Distinct().Should().BeEquivalentTo(Sablon.Tipovi);
         redovi.Should().Contain(r => r.Sablon == "DP1" && r.Naziv == "Merna vaga Sautelma" && r.Oznaka == "10-C-07C");
+        redovi.Should().NotContain(r => r.Naziv.Length == 0);
+        redovi.Should().Contain(r => r.Sablon == "PZ1" && r.Naziv == "Pumpa" && r.Oznaka == "21-P-02 A/B");
     }
 
     [Fact]
-    public async Task Pravi_fajl_se_odbija_samo_zbog_reda_PZ1_bez_naziva_uredjaja()
+    public async Task Pravi_fajl_uvozi_svih_sest_sablona()
     {
         await using var h = Harness();
-
-        var act = () => Sut(h, PraviRedovi()).Handle(new UvoziSabloneCommand(Stream.Null), default);
-
-        var greske = (await act.Should().ThrowAsync<BusinessRuleException>()).Which.Greske;
-        greske.Should().ContainSingle().Which.Should().Contain("PZ1").And.Contain("nedostaje naziv uređaja");
-        (await h.Db.SablonVerzije.CountAsync()).Should().Be(0, "sve ili ništa");
-    }
-
-    [Fact]
-    public async Task Pravi_fajl_sa_upisanim_nazivom_uvozi_svih_sest_sablona()
-    {
-        await using var h = Harness();
-        var redovi = PraviRedovi().Select(r => r.Naziv.Length == 0 ? r with { Naziv = "Pumpa", Oznaka = "21-P-02 A/B" } : r).ToList();
+        var redovi = PraviRedovi();
 
         var rez = await Sut(h, redovi).Handle(new UvoziSabloneCommand(Stream.Null), default);
 
