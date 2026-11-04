@@ -75,6 +75,8 @@ korisnika: nova prava važe najkasnije kad istekne trenutni access token (15 min
 | Ekran uređaja, QR, Dashboard, pretraga | RequireKorisnik |
 | Opšta analitika i ispunjenje plana (`/analitika`) | `Pravo:analitika` (podrazumevano sve četiri role) |
 | „Moje aktivnosti“ / „Čeka moju odluku“ na Dashboardu | pravo popunjavanja / rola Supervizor ili Direktor, stavke po pravima |
+| Zvono, push pretplata, probno obaveštenje | RequireKorisnik (samo svoja obaveštenja i pretplate) |
+| Primaoci obaveštenja | `Pravo:podesavanja` |
 
 Frontend: „Administracija“ se vidi uz pravo `korisnici` ili `podesavanja`; tab „Korisnici“ uz `korisnici`, tab „Podešavanja“ uz `podesavanja`.
 

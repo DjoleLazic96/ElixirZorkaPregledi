@@ -159,6 +159,19 @@ Popunjavanje (`GET /pregledi/{id}/popunjavanje`, paket) uz svaki uređaj vraća 
 | GET | `/dashboard` | RequireKorisnik | `DashboardDto`; `moje` samo uz pravo popunjavanja, `cekaOdluku` samo Supervizoru i Direktoru |
 | GET | `/pretraga?q` | RequireKorisnik | `PretragaRezultatDto[]` (`vrsta`: uredjaj, pregled, akcija, kvar); prazno ispod 2 znaka |
 
+### Obaveštenja (faza 09)
+| Metod | Ruta | Politika | Svrha |
+|---|---|---|---|
+| GET | `/obavestenja` | RequireKorisnik | `ZvonoDto`: `neprocitanih`, `cekaOdluku` (Supervizor/Direktor, po pravima), poslednjih 50 |
+| POST | `/obavestenja/procitano` `{ ids? }` | RequireKorisnik | označi pročitano (bez `ids` — sva); vraća zvono |
+| POST | `/obavestenja/probno` | RequireKorisnik | probno obaveštenje sebi (204) |
+| GET | `/push/kljuc` | RequireKorisnik | `{ kljuc }` — javni VAPID ključ |
+| POST | `/push/pretplata` `{ endpoint, p256dh, auth }` | RequireKorisnik | prijava uređaja (isti endpoint prelazi na trenutnog korisnika); 204 |
+| DELETE | `/push/pretplata` `{ endpoint }` | RequireKorisnik | odjava uređaja; 204 |
+| GET / PUT | `/podesavanja/primaoci` | podesavanja | `PrimaociDto` (vrste, primaoci, aktivni korisnici); PUT `{ vrsta: [korisnikId] }` čuva navedene vrste; 400 nepoznata vrsta, 422 nepoznat korisnik |
+
+Push poruka: `{ title, body, url, tag }`. Pozadinski posao (`ObavestenjaPosao`): isporuka svakih 15 s, zakazane provere jednom u minutu.
+
 ### `/_diag` (samo Development)
 Rute kojima integracioni testovi dokazuju politike: `/_diag/korisnik` (RequireKorisnik), `/_diag/admin-only` (RequireAdmin).
 

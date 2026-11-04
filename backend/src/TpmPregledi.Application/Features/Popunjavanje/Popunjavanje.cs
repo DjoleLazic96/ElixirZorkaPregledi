@@ -1,6 +1,7 @@
 using System.Text.Json;
 using TpmPregledi.Application.Common.Exceptions;
 using TpmPregledi.Application.Common.Interfaces;
+using TpmPregledi.Application.Features.Obavestenja;
 using TpmPregledi.Application.Features.Podesavanja;
 using TpmPregledi.Application.Features.Raspored;
 using TpmPregledi.Domain.Entities;
@@ -383,6 +384,9 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 };
                 db.Akcije.Add(a);
                 db.AkcijaDogadjaji.Add(new AkcijaDogadjaj { Akcija = a, Vrsta = "otvorena", Tekst = $"Otvorena na pregledu {p.Broj}", KorisnikId = currentUser.UserId, PregledId = p.Id, At = clock.UtcNow });
+                if (hitnost == "hitno")
+                    await Obavesti.PrimaocimaAsync(db, VrsteObavestenja.HitnaAkcija, $"Hitna akcija {a.Broj}",
+                        $"{s.Naziv} {s.Oznaka} · {s.Aktivnost}{(opis is null ? "" : $" — {opis}")} (pregled {p.Broj}).".Replace("  ", " "), "/akcije?hitnost=hitno", $"hitna_akcija:{a.Broj}", clock.UtcNow, ct);
                 break;
             }
             case "akcija_odgovor":
@@ -480,6 +484,32 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
         }
     }
 
+    /// <summary>
+    /// Ponovljeni kvar (R8.2): ista stavka neispravna bar N puta u poslednjih M dana (pragovi iz podešavanja), računajući i ovu predaju.
+    /// </summary>
+    private async Task PonovljeniKvarAsync(Pregled p, IReadOnlyList<StavkaInfo> stavke, Dictionary<int, Odgovor> odgovori, HashSet<int> van, CancellationToken ct)
+    {
+        var neispravne = stavke.Where(s => !van.Contains(s.UredjajId) && odgovori.TryGetValue(s.StavkaId, out var o) && o.Vrednost == 1).ToList();
+        if (neispravne.Count == 0) return;
+        var podesavanja = await new PodesavanjaHandler(db).Handle(new GetPodesavanjaQuery(), ct);
+        var od = p.PlaniraniDatum.AddDays(-podesavanja.PonovljeniKvarDana + 1);
+        foreach (var s in neispravne)
+        {
+            var ranije = await (
+                    from o in db.Odgovori
+                    join x in db.Pregledi on o.PregledId equals x.Id
+                    join st in db.SablonStavke on o.StavkaId equals st.Id
+                    where x.Id != p.Id && x.PredatAt != null && x.Status != StatusPregleda.Ponisten && o.Dorada == x.Dorada && o.Vrednost == 1
+                          && st.UredjajId == s.UredjajId && st.AktivnostId == s.AktivnostId && x.PlaniraniDatum >= od && x.PlaniraniDatum <= p.PlaniraniDatum
+                    select x.Id)
+                .Distinct().CountAsync(ct);
+            if (ranije + 1 >= podesavanja.PonovljeniKvarBroj)
+                await Obavesti.PrimaocimaAsync(db, VrsteObavestenja.PonovljeniKvar, $"Ponovljeni kvar: {s.Naziv} {s.Oznaka}".TrimEnd(),
+                    $"{s.Aktivnost} je neispravno {ranije + 1} puta u poslednjih {podesavanja.PonovljeniKvarDana} dana (pregled {p.Broj}).",
+                    $"/uredjaji/{s.UredjajId}", $"ponovljeni_kvar:{s.UredjajId}:{s.AktivnostId}:{p.Id}", clock.UtcNow, ct);
+        }
+    }
+
     private Task<int?> VazecaVerzijaAsync(string tip, CancellationToken ct) =>
         db.SablonVerzije.Where(v => v.Sablon!.Tip == tip && v.Status == StatusVerzije.Objavljena).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
 
@@ -501,6 +531,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
             throw new BusinessRuleException($"Pregled još nije potpun: nedostaje {bezOdgovora.Count} odgovora i {bezNapomene} obaveznih napomena.");
 
         await ObradiKvaroveAsync(p, stavke, odgovori, van, ct);
+        await PonovljeniKvarAsync(p, stavke, odgovori, van, ct);
 
         // Vreme dorade ne ulazi u aktivno vreme pregleda (R6.6) — računa se samo pri prvoj predaji.
         if (p.Dorada > 0)

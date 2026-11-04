@@ -1,5 +1,6 @@
 using TpmPregledi.Application.Common.Exceptions;
 using TpmPregledi.Application.Common.Interfaces;
+using TpmPregledi.Application.Features.Obavestenja;
 using TpmPregledi.Domain.Entities;
 using TpmPregledi.Domain.Identity;
 using FluentValidation;
@@ -201,6 +202,9 @@ public sealed class OdsustvaHandler(IAppDbContext db, ICurrentUser currentUser, 
         o.OdlucioId = currentUser.UserId;
         o.OdlucenoAt = clock.UtcNow;
         if (req.Odobreno) await PrebaciAsync(req.Prebacivanja, ct);
+        await Obavesti.DodajAsync(db, [o.KorisnikId], VrsteObavestenja.IshodZahteva, req.Odobreno ? "Odsustvo odobreno" : "Odsustvo odbijeno",
+            $"Zahtev za odsustvo {o.Od:dd.MM.yyyy}–{o.Do:dd.MM.yyyy} je {(req.Odobreno ? "odobren" : "odbijen")}{(o.RazlogOdbijanja is null ? "" : $": {o.RazlogOdbijanja}")}.",
+            "/moja-odsustva", null, o.OdlucenoAt.Value, ct);
         await db.SaveChangesAsync(ct);
         return Dto(o, await ImenaAsync(ct));
     }
@@ -237,6 +241,8 @@ public sealed class OdsustvaHandler(IAppDbContext db, ICurrentUser currentUser, 
             if (p.Status != StatusPregleda.Planiran) throw new BusinessRuleException(PorukaZapocet);
             k.ProveriInzenjera(x.ZamenaId);
             PregledIstorija.Dodaj(db, p, "prebacivanje", new { razlog = "odsustvo", stari = k.Ime(p.DodeljenId), novi = k.Ime(x.ZamenaId) }, currentUser.UserId, sada);
+            await Obavesti.DodajAsync(db, [x.ZamenaId], VrsteObavestenja.Dodela, $"Dodeljen vam je {p.Broj}",
+                $"{p.Broj} za {p.PlaniraniDatum:dd.MM.yyyy} je sada vaš (zamena za {k.Ime(p.DodeljenId)}).", "/kalendar", null, sada, ct);
             p.DodeljenId = x.ZamenaId;
         }
     }
@@ -355,6 +361,10 @@ public sealed class ZahteviPrebacivanjaHandler(IAppDbContext db, ICurrentUser cu
         z.Status = req.Odobreno ? "odobreno" : "odbijeno";
         z.OdlucioId = currentUser.UserId;
         z.OdlucenoAt = sada;
+        await Obavesti.DodajAsync(db, [z.PodneoId], VrsteObavestenja.IshodZahteva, req.Odobreno ? "Prebacivanje odobreno" : "Prebacivanje odbijeno",
+            req.Odobreno ? $"{p.Broj} ({p.PlaniraniDatum:dd.MM.yyyy}) je prebačen na {k.Ime(req.ZamenaId)}." : $"Zahtev za prebacivanje {p.Broj} je odbijen.", "/kalendar", null, sada, ct);
+        if (req.Odobreno)
+            await Obavesti.DodajAsync(db, [req.ZamenaId], VrsteObavestenja.Dodela, $"Dodeljen vam je {p.Broj}", $"{p.Broj} za {p.PlaniraniDatum:dd.MM.yyyy} je sada vaš.", "/kalendar", null, sada, ct);
         await db.SaveChangesAsync(ct);
         return Dto(z, p, k);
     }

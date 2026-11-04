@@ -83,6 +83,9 @@ public static class AnalitikaPravila
     /// <summary>Lokalni (beogradski) dan UTC trenutka — „urađen na planirani dan“ se poredi sa lokalnim kalendarom.</summary>
     public static DateOnly LokalniDan(DateTime utc) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Beograd));
 
+    /// <summary>Lokalno (beogradsko) vreme UTC trenutka — zakazane provere rade po lokalnom satu (spec §5.2).</summary>
+    public static DateTime LokalnoVreme(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Beograd);
+
     /// <summary>
     /// Kašnjenje overe u satima radnih dana (R6.3): sati vikenda se ne računaju. Rok se poredi sa ovim brojem.
     /// </summary>

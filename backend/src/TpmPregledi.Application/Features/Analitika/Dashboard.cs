@@ -97,7 +97,7 @@ public sealed class DashboardHandler(IAppDbContext db, ICurrentUser currentUser,
         var akcijeH = new AkcijeIKvaroviHandler(db, currentUser, clock);
         var akcije = await akcijeH.Handle(new GetAkcijeQuery(new AkcijeFilteri()), ct);
         var kvarovi = await akcijeH.Handle(new GetKvaroviQuery(new KvaroviFilteri()), ct);
-        var van = await VanFunkcijeAsync(danas, ct);
+        var van = await VanFunkcijeAsync(db, danas, ct);
 
         var cekajuOveru = svi.Where(p => p.Status == StatusPregleda.CekaOveru).OrderBy(p => p.Datum).ToList();
         bool RokIstekao(int id) => predatAt.GetValueOrDefault(id) is { } t && AnalitikaPravila.SatiRadnihDana(t, clock.UtcNow) > podesavanja.RokOvereSati;
@@ -171,7 +171,7 @@ public sealed class DashboardHandler(IAppDbContext db, ICurrentUser currentUser,
     }
 
     /// <summary>Uređaji čiji poslednji predat pregled kaže „nije u funkciji“, sa danom od kog to traje bez prekida.</summary>
-    private async Task<List<VanFunkcijeDto>> VanFunkcijeAsync(DateOnly danas, CancellationToken ct)
+    internal static async Task<List<VanFunkcijeDto>> VanFunkcijeAsync(IAppDbContext db, DateOnly danas, CancellationToken ct)
     {
         var stanja = (await UredjajEkranHandler.PreglediUredjajaAsync(db, null, ct, od: danas.AddDays(-VanFunkcijeUnazad)))
             .Where(p => p.Status != StatusPregleda.Ponisten).ToList();

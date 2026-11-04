@@ -8,11 +8,12 @@ import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
 import { Ucitavanje } from '../../../components/ui/Spinner';
 import { porukaGreske } from '../../../lib/apiError';
+import { PrimaociCard } from '../../obavestenja/PrimaociCard';
 import { useIzmeniPodesavanja, usePodesavanja } from './hooks';
 
 /**
  * „Podešavanja“ (R12.1, pravo „podesavanja“). Stranica drži mutaciju i toast; forma se remontira
- * preko `key` kad stignu podaci, pa nema sync-effect-a. Primaoci obaveštenja dolaze u fazi 09.
+ * preko `key` kad stignu podaci, pa nema sync-effect-a. Ispod su primaoci obaveštenja (R9.4).
  */
 export function PodesavanjaPage() {
   const podesavanja = usePodesavanja();
@@ -31,28 +32,31 @@ export function PodesavanjaPage() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Podešavanja</CardTitle>
-      </CardHeader>
-      <CardBody>
-        {podesavanja.isLoading ? (
-          <Ucitavanje />
-        ) : podesavanja.isError || !podesavanja.data ? (
-          <p role="alert" className="text-sm text-red-600">
-            {porukaGreske(podesavanja.error, 'Podešavanja nisu učitana.')}
-          </p>
-        ) : (
-          <PodesavanjaForma
-            key={JSON.stringify(podesavanja.data)}
-            pocetno={podesavanja.data}
-            saving={izmeni.isPending}
-            greska={greska}
-            onSubmit={(v) => void sacuvaj(v)}
-          />
-        )}
-      </CardBody>
-    </Card>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Podešavanja</CardTitle>
+        </CardHeader>
+        <CardBody>
+          {podesavanja.isLoading ? (
+            <Ucitavanje />
+          ) : podesavanja.isError || !podesavanja.data ? (
+            <p role="alert" className="text-sm text-red-600">
+              {porukaGreske(podesavanja.error, 'Podešavanja nisu učitana.')}
+            </p>
+          ) : (
+            <PodesavanjaForma
+              key={JSON.stringify(podesavanja.data)}
+              pocetno={podesavanja.data}
+              saving={izmeni.isPending}
+              greska={greska}
+              onSubmit={(v) => void sacuvaj(v)}
+            />
+          )}
+        </CardBody>
+      </Card>
+      <PrimaociCard />
+    </div>
   );
 }
 

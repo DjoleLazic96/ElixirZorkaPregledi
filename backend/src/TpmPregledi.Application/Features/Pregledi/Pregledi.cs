@@ -1,6 +1,7 @@
 using System.Text.Json;
 using TpmPregledi.Application.Common.Exceptions;
 using TpmPregledi.Application.Common.Interfaces;
+using TpmPregledi.Application.Features.Obavestenja;
 using TpmPregledi.Application.Common.Pagination;
 using TpmPregledi.Application.Features.Raspored;
 using TpmPregledi.Domain.Entities;
@@ -313,7 +314,12 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
         z.OdlucioId = currentUser.UserId;
         z.OdlucenoAt = clock.UtcNow;
         if (req.Odobreno) await VratiAsync(p, p.DodeljenId, z.Razlog, "dorada_odobrena", ct);
-        else PregledIstorija.Dodaj(db, p, "dorada_odbijena", new { razlog = z.Razlog }, currentUser.UserId, clock.UtcNow);
+        else
+        {
+            PregledIstorija.Dodaj(db, p, "dorada_odbijena", new { razlog = z.Razlog }, currentUser.UserId, clock.UtcNow);
+            await Obavesti.DodajAsync(db, [z.PodneoId], VrsteObavestenja.IshodZahteva, $"Dorada {p.Broj} odbijena",
+                $"Zahtev za doradu {p.Broj} je odbijen; pregled ostaje kakav je predat.", $"/pregledi/{p.Id}", null, clock.UtcNow, ct);
+        }
         await db.SaveChangesAsync(ct);
         return await Handle(new GetPregledQuery(p.Id), ct);
     }
@@ -397,6 +403,8 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
         p.OverenoAt = null;
         p.OverioDirektor = false;
         PregledIstorija.Dodaj(db, p, vrsta, new { razlog, dorada = p.Dorada, overio = bio }, currentUser.UserId, clock.UtcNow);
+        await Obavesti.DodajAsync(db, [inzenjerId], VrsteObavestenja.Dorada, $"{p.Broj} vraćen na doradu",
+            $"{(vrsta == "dorada_odobrena" ? "Zahtev za doradu je odobren" : "Pregled je vraćen na doradu")}: {razlog}", $"/pregled/{p.Id}/popuni", null, clock.UtcNow, ct);
     }
 
     /// <summary>Kratak opis događaja za istoriju (R6.7).</summary>

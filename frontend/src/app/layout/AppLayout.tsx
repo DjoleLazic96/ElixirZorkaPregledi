@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react';
 import { useToast } from '../providers/ToastProvider';
 import { imaPravo } from '../../lib/permissions';
 import { obrisiLokalno, sinhronizuj, useStanjeSinhronizacije } from '../../offline/sinhronizacija';
-import { ChevronDown, Info, KeyRound, LogOut, UserRound } from 'lucide-react';
+import { BellRing, ChevronDown, Info, KeyRound, LogOut, UserRound } from 'lucide-react';
 import { OAplikaciji } from '../../components/OAplikaciji';
 import { PromenaLozinke } from '../../components/PromenaLozinke';
 import { AnchoredDropdown } from '../../components/ui/AnchoredDropdown';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Pretraga } from '../../features/analitika/Pretraga';
+import { iskljuciPush } from '../../features/obavestenja/hooks';
+import { PushDijalog, Zvono } from '../../features/obavestenja/Zvono';
 import { DonjiMeni, Sidebar } from './Sidebar';
 
 /**
@@ -35,6 +37,8 @@ export function AppLayout() {
       toast.error('Imate promene koje još nisu poslate. Odjavite se kad se pošalju (potreban je internet).');
       return;
     }
+    // Sledeći korisnik na istom telefonu ne sme da dobija obaveštenja prethodnog.
+    await iskljuciPush().catch(() => {});
     await logout();
   }
   const location = useLocation();
@@ -43,6 +47,7 @@ export function AppLayout() {
   const [meniAnchor, setMeniAnchor] = useState<HTMLButtonElement | null>(null);
   const [oAplikacijiOtvoren, setOAplikacijiOtvoren] = useState(false);
   const [promenaLozinkeOtvorena, setPromenaLozinkeOtvorena] = useState(false);
+  const [pushOtvoren, setPushOtvoren] = useState(false);
 
   if (!me) return null; // teorijski nemoguće, AppRoutes garantuje
 
@@ -60,6 +65,7 @@ export function AppLayout() {
           {/* Na telefonu zaglavlje ima samo logo i ikonicu korisnika (spec §8.1); logo vodi na početnu. */}
           <Link to="/" className="text-base font-semibold text-primary-600 md:hidden">TPM pregledi</Link>
           <Pretraga />
+          <Zvono />
           <button
             ref={setMeniAnchor}
             type="button"
@@ -84,6 +90,9 @@ export function AppLayout() {
             <div role="menu" aria-label="Korisnički meni">
               <StavkaMenija icon={Info} onClick={() => otvori(setOAplikacijiOtvoren)}>
                 O aplikaciji
+              </StavkaMenija>
+              <StavkaMenija icon={BellRing} onClick={() => otvori(setPushOtvoren)}>
+                Obaveštenja na telefonu
               </StavkaMenija>
               <StavkaMenija icon={KeyRound} onClick={() => otvori(setPromenaLozinkeOtvorena)}>
                 Promena lozinke
@@ -123,6 +132,7 @@ export function AppLayout() {
       {promenaLozinkeOtvorena && (
         <PromenaLozinke open onClose={() => setPromenaLozinkeOtvorena(false)} />
       )}
+      {pushOtvoren && <PushDijalog onClose={() => setPushOtvoren(false)} />}
     </div>
   );
 }

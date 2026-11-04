@@ -1,5 +1,6 @@
 using TpmPregledi.Application.Common.Exceptions;
 using TpmPregledi.Application.Common.Interfaces;
+using TpmPregledi.Application.Features.Obavestenja;
 using TpmPregledi.Domain.Entities;
 using FluentValidation;
 using MediatR;
@@ -209,6 +210,9 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
             PregledIstorija.Dodaj(db, p, "dodela", new { inzenjer = k.Ime(p.DodeljenId), datum = p.PlaniraniDatum }, currentUser.UserId, sada);
             novi.Add(p);
         }
+        foreach (var g in novi.GroupBy(p => p.DodeljenId))
+            await Obavesti.DodajAsync(db, [g.Key], VrsteObavestenja.Dodela, "Novi pregledi u rasporedu",
+                $"Dodeljeni su vam: {string.Join(", ", g.Select(p => $"{p.Broj} ({p.PlaniraniDatum:dd.MM.yyyy})"))}.", "/kalendar", null, sada, ct);
         await db.SaveChangesAsync(ct);
         return novi.Select(p => Dto(p, k)).ToList();
     }
@@ -245,6 +249,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
         db.Pregledi.Add(p);
         PregledIstorija.Dodaj(db, p, tip == sledeci ? "dodela" : "promena_pz",
             new { inzenjer = k.Ime(p.DodeljenId), datum = p.PlaniraniDatum, sledeciPoRedu = sledeci, napomena = p.Napomena }, currentUser.UserId, sada);
+        await Obavesti.DodajAsync(db, [p.DodeljenId], VrsteObavestenja.Dodela, $"Zakazan {p.Broj}", $"Dodeljen vam je {p.Broj} za {p.PlaniraniDatum:dd.MM.yyyy}.", "/kalendar", null, sada, ct);
         await db.SaveChangesAsync(ct);
 
         // Na dan PZ-a DP se ne radi (R3.9): planiran DP tog dana i svi posle njega se pomeraju kao kod prenosa.
@@ -267,6 +272,8 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
             throw new BusinessRuleException("Dodela se menja samo pregledu koji nije predat.");
 
         var stari = new { inzenjer = k.Ime(p.DodeljenId), datum = p.PlaniraniDatum };
+        var stariId = p.DodeljenId;
+        var stariDatum = p.PlaniraniDatum;
         if (req.InzenjerId is not null)
         {
             k.ProveriInzenjera(req.InzenjerId);
@@ -280,6 +287,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
             p.PlaniraniDatum = d;
         }
         PregledIstorija.Dodaj(db, p, "izmena_rasporeda", new { stari, novi = new { inzenjer = k.Ime(p.DodeljenId), datum = p.PlaniraniDatum } }, currentUser.UserId, clock.UtcNow);
+        await ObavestiOPromeniAsync(p, stariId, stariDatum, clock.UtcNow, ct);
         await db.SaveChangesAsync(ct);
         return Dto(p, k);
     }
@@ -299,12 +307,29 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
         {
             if (postojeci is not null) p.Ucesnici.Remove(postojeci);
         }
-        else if (postojeci is null) p.Ucesnici.Add(new PregledUcesnik { KorisnikId = req.KorisnikId, Sekcije = [.. req.Sekcije] });
+        else if (postojeci is null)
+        {
+            p.Ucesnici.Add(new PregledUcesnik { KorisnikId = req.KorisnikId, Sekcije = [.. req.Sekcije] });
+            await Obavesti.DodajAsync(db, [req.KorisnikId], VrsteObavestenja.Dodela, $"Dodati ste na {p.Broj}",
+                $"Na {p.Broj} ({p.PlaniraniDatum:dd.MM.yyyy}) radite sekcije {string.Join(", ", req.Sekcije)}.", "/kalendar", null, clock.UtcNow, ct);
+        }
         else postojeci.Sekcije = [.. req.Sekcije];
 
         PregledIstorija.Dodaj(db, p, "ucesnik", new { inzenjer = k.Ime(req.KorisnikId), sekcije = req.Sekcije }, currentUser.UserId, clock.UtcNow);
         await db.SaveChangesAsync(ct);
         return Dto(p, k);
+    }
+
+    /// <summary>Promena dodele ili datuma (R9.3): novi inženjer dobija pregled, stari saznaje da više nije njegov.</summary>
+    private async Task ObavestiOPromeniAsync(Pregled p, string stariId, DateOnly stariDatum, DateTime sada, CancellationToken ct)
+    {
+        if (stariId != p.DodeljenId)
+        {
+            await Obavesti.DodajAsync(db, [p.DodeljenId], VrsteObavestenja.Dodela, $"Dodeljen vam je {p.Broj}", $"{p.Broj} za {p.PlaniraniDatum:dd.MM.yyyy} je sada vaš.", "/kalendar", null, sada, ct);
+            await Obavesti.DodajAsync(db, [stariId], VrsteObavestenja.Dodela, $"{p.Broj} više nije vaš", $"{p.Broj} ({stariDatum:dd.MM.yyyy}) je dodeljen drugom inženjeru.", "/kalendar", null, sada, ct);
+        }
+        else if (stariDatum != p.PlaniraniDatum)
+            await Obavesti.DodajAsync(db, [p.DodeljenId], VrsteObavestenja.Dodela, $"Promenjen datum {p.Broj}", $"{p.Broj} je pomeren sa {stariDatum:dd.MM.yyyy} na {p.PlaniraniDatum:dd.MM.yyyy}.", "/kalendar", null, sada, ct);
     }
 
     /// <summary>
@@ -325,13 +350,18 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
 
         var pomeranja = RasporedPravila.Prenesi(niz, k.SledeciDanZaDp, (d, posl) => k.SledeciInzenjer(d, posl) ?? posl ?? prvi.DodeljenId);
         var sada = clock.UtcNow;
+        var obavestenja = new List<(string Kome, string Tekst)>();
         foreach (var m in pomeranja)
         {
+            obavestenja.Add((m.NoviDodeljenId, $"{m.Pregled.Broj} → {m.NoviDatum:dd.MM.yyyy}"));
+            if (m.NoviDodeljenId != m.Pregled.DodeljenId) obavestenja.Add((m.Pregled.DodeljenId, $"{m.Pregled.Broj} više nije vaš (ide {k.Ime(m.NoviDodeljenId)})"));
             var stari = new { datum = m.Pregled.PlaniraniDatum, inzenjer = k.Ime(m.Pregled.DodeljenId) };
             m.Pregled.PlaniraniDatum = m.NoviDatum;
             m.Pregled.DodeljenId = m.NoviDodeljenId;
             PregledIstorija.Dodaj(db, m.Pregled, "prenos", new { razlog, stari, novi = new { datum = m.NoviDatum, inzenjer = k.Ime(m.NoviDodeljenId) } }, null, sada);
         }
+        foreach (var g in obavestenja.GroupBy(x => x.Kome))
+            await Obavesti.DodajAsync(db, [g.Key], VrsteObavestenja.Dodela, "Raspored je pomeren", $"{string.Join("; ", g.Select(x => x.Tekst))}.", "/kalendar", null, sada, ct);
         await db.SaveChangesAsync(ct);
         return pomeranja.Count;
     }

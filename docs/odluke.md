@@ -57,13 +57,13 @@
 **Alternative odbijene:** slike u bazi — rast baze i bekapa.
 **Odlučio:** vlasnik projekta (zahtev, 2026-10-20); odobreno za implementaciju 2026-11-04 (faza 04).
 
-## 2026-10-27 — PREDLOG: push obaveštenja i zakazane provere
+## 2026-11-04 — push obaveštenja i zakazane provere (odobreno; predlog od 2026-10-27)
 
 **Kontekst:** blueprint nema push; pozadinski poslovi su dozvoljeni samo kao `BackgroundService` (bez Hangfire/Quartz).
 **Odluka:** Web Push (VAPID) uz mejl kroz Microsoft Graph; zakazane provere (13:00, propušten DP, rok overe, rok akcije, ponovljeni kvar, dugo van funkcije, predlog rasporeda) kao `BackgroundService`, idempotentno.
 **Posledice:** odstupanje od blueprinta (push); VAPID ključevi u `.env`.
 **Alternative odbijene:** samo mejl — inženjer na terenu ne čita mejl.
-**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); čeka vlasnika blueprinta.
+**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); odobreno za implementaciju 2026-11-04 (faza 09).
 
 ## 2026-11-04 — Četiri role i prava štikliranjem (odobreno; predlog od 2026-10-27)
 

@@ -58,7 +58,14 @@ if [[ -d "${REPO_ROOT}/data/data-protection-keys" ]] && [[ -n "$(ls -A "${REPO_R
     chmod 600 "${BACKUP_DIR}/dp-keys-${STAMP}.tgz"
 fi
 
+# Fotografije sa pregleda i VAPID ključevi (Web Push) — nisu u bazi.
+if [[ -d "${REPO_ROOT}/data/fajlovi" ]] && [[ -n "$(ls -A "${REPO_ROOT}/data/fajlovi" 2>/dev/null)" ]]; then
+    tar czf "${BACKUP_DIR}/fajlovi-${STAMP}.tgz" -C "${REPO_ROOT}/data" fajlovi
+    chmod 600 "${BACKUP_DIR}/fajlovi-${STAMP}.tgz"
+fi
+
 # Retencija (čuva se poslednjih RETENTION_DAYS dana)
 find "${BACKUP_DIR}" -name "${SLUG}-*.pgcustom.gz" -mtime "+${RETENTION_DAYS}" -delete
 find "${BACKUP_DIR}" -name "dp-keys-*.tgz"          -mtime "+${RETENTION_DAYS}" -delete
+find "${BACKUP_DIR}" -name "fajlovi-*.tgz"          -mtime "+${RETENTION_DAYS}" -delete
 echo "==> Gotovo. Kopija van hosta: IT (docs/deploy/sysadmin-tasks.md)."

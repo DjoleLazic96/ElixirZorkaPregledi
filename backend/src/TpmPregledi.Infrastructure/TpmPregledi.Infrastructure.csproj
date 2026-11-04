@@ -27,6 +27,7 @@
     <PackageReference Include="ClosedXML" />
     <PackageReference Include="QuestPDF" />
     <PackageReference Include="DocumentFormat.OpenXml" />
+    <PackageReference Include="WebPush" />
     <!-- PerformanceCounter: WindowsHardwareInfo čita sistemski CPU % (stanje servera). Paket radi
          samo na Windows-u; na Linuxu se ne poziva (LinuxHardwareInfo čita /proc). -->
     <PackageReference Include="System.Diagnostics.PerformanceCounter" />

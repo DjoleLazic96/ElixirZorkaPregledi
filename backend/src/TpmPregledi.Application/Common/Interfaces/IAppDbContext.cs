@@ -107,6 +107,12 @@ public interface IAppDbContext
     /// <summary>Kvarovi.</summary>
     DbSet<Kvar> Kvarovi { get; }
 
+    /// <summary>Obaveštenja (zvono) sa stanjem isporuke push-a i mejla.</summary>
+    DbSet<Obavestenje> Obavestenja { get; }
+
+    /// <summary>Web Push pretplate uređaja.</summary>
+    DbSet<PushPretplata> PushPretplate { get; }
+
     /// <summary>Snima promene (audit interceptor radi u istoj transakciji).</summary>
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

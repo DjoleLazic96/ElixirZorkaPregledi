@@ -6,6 +6,10 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- **Obaveštenja**: zvono u zaglavlju (sa brojem stvari koje čekaju Vašu odluku), obaveštenja na telefonu i mejlom.
+- Inženjer dobija obaveštenje o dodeli i promeni dodele, prenosu, vraćanju na doradu i ishodu svojih zahteva.
+- Automatske provere: pregled nije započet do 13h, podsetnik za overu, istekao rok akcije, hitna akcija, ponovljeni kvar, uređaj dugo van funkcije, dnevni rezime i podsetnik za raspored sledeće nedelje.
+- Administrator u Podešavanjima bira ko prima koje obaveštenje.
 - **Početna**: današnji i sutrašnji pregledi, overe, akcije po hitnosti, kvarovi, uređaji van funkcije i ispunjenje plana; inženjer ima „Moje aktivnosti“, Supervizor i Direktor „Čeka moju odluku“.
 - **Ekran uređaja**: status, istorija u bojama sa klizačem perioda, dani bez kvara i trajanje kvarova, svi pregledi uređaja i dosije (napomene, slike, akcije), QR nalepnica za štampu.
 - **Analitika**: ispunjenje plana po mesecu i inženjeru, kvarovi po sekciji, uređaju i aktivnosti, trajanje pregleda.

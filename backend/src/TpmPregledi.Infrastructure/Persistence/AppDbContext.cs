@@ -97,6 +97,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Kvar> Kvarovi => Set<Kvar>();
 
     /// <inheritdoc />
+    public DbSet<Obavestenje> Obavestenja => Set<Obavestenje>();
+
+    /// <inheritdoc />
+    public DbSet<PushPretplata> PushPretplate => Set<PushPretplata>();
+
+    /// <inheritdoc />
     public DbSet<Odgovor> Odgovori => Set<Odgovor>();
 
     /// <inheritdoc />
@@ -490,6 +496,36 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasOne<Uredjaj>().WithMany().HasForeignKey(x => x.UredjajId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<Aktivnost>().WithMany().HasForeignKey(x => x.AktivnostId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<Pregled>().WithMany().HasForeignKey(x => x.OtvorioPregledId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<Obavestenje>(e =>
+        {
+            e.ToTable("obavestenje");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.KorisnikId).IsRequired().HasMaxLength(64);
+            e.Property(x => x.Vrsta).IsRequired().HasMaxLength(40);
+            e.Property(x => x.Naslov).IsRequired().HasMaxLength(200);
+            e.Property(x => x.Tekst).IsRequired().HasMaxLength(2000);
+            e.Property(x => x.Link).HasMaxLength(300);
+            e.Property(x => x.Kljuc).HasMaxLength(200);
+            e.HasIndex(x => new { x.KorisnikId, x.KreiranoAt });
+            e.HasIndex(x => new { x.KorisnikId, x.Kljuc }).IsUnique().HasFilter("kljuc IS NOT NULL").HasDatabaseName("ux_obavestenje_kljuc");
+            e.HasIndex(x => x.IsporucenoAt).HasFilter("isporuceno_at IS NULL").HasDatabaseName("ix_obavestenje_neisporuceno");
+            e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.KorisnikId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<PushPretplata>(e =>
+        {
+            e.ToTable("push_pretplata");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.KorisnikId).IsRequired().HasMaxLength(64);
+            e.Property(x => x.Endpoint).IsRequired().HasMaxLength(1000);
+            e.Property(x => x.P256dh).IsRequired().HasMaxLength(200);
+            e.Property(x => x.Auth).IsRequired().HasMaxLength(100);
+            e.Property(x => x.UredjajKlijenta).HasMaxLength(300);
+            e.HasIndex(x => x.Endpoint).IsUnique().HasDatabaseName("ux_push_pretplata_endpoint");
+            e.HasIndex(x => x.KorisnikId);
+            e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.KorisnikId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 

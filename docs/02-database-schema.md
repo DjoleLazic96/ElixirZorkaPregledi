@@ -30,6 +30,8 @@
 | `zahtev_dorade` | zahtevi inženjera za doradu (R6.6) | `ToTable` |
 | `akcija`, `akcija_dogadjaj` | potrebne akcije i njihova istorija (R7.x) | `ToTable` |
 | `kvar` | kvarovi na stavkama, otvaraju se i zatvaraju iz predaje (R8.7) | `ToTable` |
+| `obavestenje` | zvono i red za isporuku push-a i mejla (R9.1) | `ToTable` |
+| `push_pretplata` | Web Push pretplate uređaja | `ToTable` |
 
 ```
 AspNetUsers 1──* refresh_token (user_id, CASCADE)
@@ -155,6 +157,7 @@ Ključ je par (naziv, oznaka), ne sama oznaka: DP1, DP2 i PZ1 su prepisani doslo
 ### `akcija`, `akcija_dogadjaj`, `kvar` (faza 07)
 - `akcija` — `broj` unique (`A-2026-0031`), `pregled_id` (izvor), `uredjaj_id`, `aktivnost_id`, `stavka_kljuc`, `vrsta` (`ocistiti`/`podmazati`/`zameniti`/`popraviti`/`ostalo`), `hitnost` (`hitno`/`7_dana`/`sledeci_pz`/`pratiti`), `opis`, `rok` (iz hitnosti), `status` (`otvorena`/`zatvorena`/`otkazana`), `zaduzen`, `kreirao_id`, `kreirano_at`, `zatvorio_id`, `zatvoreno_at`, `razlog`, `stavka_sada_ispravna`; `[Auditable]`.
 - `akcija_dogadjaj` — `akcija_id`, `vrsta` (`otvorena`, `ostaje_otvorena`, `zaduzen`, `zatvorena`, `otkazana`), `tekst`, `korisnik_id`, `pregled_id`, `at`.
+- `obavestenje` (faza 09) — `korisnik_id` (FK, cascade), `vrsta`, `naslov`, `tekst`, `link`, `kljuc` (idempotentnost; unique sa `korisnik_id` kad nije null), `kreirano_at`, `procitano_at`, `isporuceno_at` (null = čeka push i mejl; delimični indeks), `pokusaja`. `push_pretplata` — `korisnik_id`, `endpoint` unique, `p256dh`, `auth`, `uredjaj_klijenta`, `kreirano_at`. Primaoci po vrsti su u `podesavanje.primaociObavestenja` (JSON).
 - `kvar` — `broj` unique (`K-2026-0087`), `uredjaj_id`, `aktivnost_id`, `stavka_kljuc`, `otvorio_pregled_id`, `zatvorio_pregled_id`, `poslednji_pregled_id`, `otvoren`, `zatvoren` (date), `prijava`, `poslednja_napomena`. `refresh_token.dugotrajan` (faza 05) — „Zapamti me“. `sporan_unos` — `pregled_id`, `korisnik_id`, `operacija jsonb`, `razlog`, `primljeno_at`, `odluka` (null = čeka).
 
 ### `odgovor`, `uredjaj_van_funkcije`, `fotografija`, `sinhronizacija_operacija`
@@ -194,6 +197,7 @@ Sekcije, šabloni i tri dodatna polja su seed u migracijama (`HasData`); regista
 | `InitialCreate` | Identity, `refresh_token`, `audit_log`, `kategorija` |
 | `Osnova` | `korisnik_pravo`, `podesavanje`, `brojac`, `sekcija` (+ seed sekcija) |
 | `AkcijeIKvarovi` | `akcija`, `akcija_dogadjaj`, `kvar` |
+| `Obavestenja` | `obavestenje`, `push_pretplata` |
 | `Overa` | kolone overe i poništavanja na `pregled`, `zahtev_dorade` |
 | `RadBezInterneta` | `pregled.uredjaj_klijenta`, `refresh_token.dugotrajan`, `sporan_unos` |
 | `Popunjavanje` | kolone popunjavanja na `pregled`, `odgovor`, `uredjaj_van_funkcije`, `fotografija`, `sinhronizacija_operacija` |

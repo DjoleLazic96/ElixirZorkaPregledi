@@ -82,7 +82,7 @@ PREV_TAG="${IMAGE_TAG:-}"                   # iz .env — trenutno deploy-ovana 
 # Kontejnerski `app` je uid 1654 (rootless: subuid). Folderi moraju biti upisivi
 # za njega: chown ako znamo host uid, inače 0770 (+ ručna provera, blueprint 09 §7).
 APP_HOST_UID="${APP_HOST_UID:-}"
-for d in "${REPO_ROOT}/data/logs/api" "${REPO_ROOT}/data/data-protection-keys" "${REPO_ROOT}/data/backups"; do
+for d in "${REPO_ROOT}/data/logs/api" "${REPO_ROOT}/data/data-protection-keys" "${REPO_ROOT}/data/backups" "${REPO_ROOT}/data/fajlovi"; do
     mkdir -p "${d}"
     if [[ -n "${APP_HOST_UID}" ]]; then
         chown "${APP_HOST_UID}:${APP_HOST_UID}" "${d}" 2>/dev/null || warn "chown ${APP_HOST_UID} nije uspeo za ${d}"

@@ -42,6 +42,8 @@ export default defineConfig({
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         globPatterns: ['**/*.{js,css,html,svg,woff2}'],
+        // Web Push (odluka 2026-11-04, faza 09): prikaz obaveštenja i klik koji otvara rutu.
+        importScripts: ['push-sw.js'],
       },
     }),
   ],

@@ -10,6 +10,7 @@
 | 4 | Passbolt pristup za tim projekta | razmena `.env` tajni i SSH lozinke | ⏳ |
 | 5 | Backup `data/backups/` van hosta (NFS/CIFS/rsync), dnevno | oporavak posle gubitka hosta | ⏳ |
 | 6 | (opciono) cron za `deploy/scripts/backup.sh` ako app nalog ne sme da ima crontab | dnevni dump | ⏳ |
+| 8 | Aplikacija u Entra ID sa aplikacijskom dozvolom **Mail.Send** (Microsoft Graph) i sanduče pošiljaoca → `GRAPH_*` u `.env` | mejl obaveštenja (do tada samo zvono i push) | ⏳ |
 | 7 | Health za IT monitoring: `GET https://tpm-pregledi.elixirgroup.rs/api/v1/health/ready` → `{"status":"ready"}` | nadzor | — |
 
 ## Šta NE tražimo

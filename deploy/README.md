@@ -75,7 +75,7 @@ Obriši tar na hostu i lokalno i lokalni popunjeni `.env`. Upiši u `TODO.md`.
 ## 6. Backup
 
 ```bash
-deploy/scripts/backup.sh          # data/backups/tpm-pregledi-YYYY-MM-DD-HHMM.pgcustom.gz (+ dp-keys), retencija 14 dana
+deploy/scripts/backup.sh          # data/backups/tpm-pregledi-YYYY-MM-DD-HHMM.pgcustom.gz (+ dp-keys, fajlovi), retencija 14 dana
 # cron (ako IT dozvoli): 0 2 * * * /opt/apps/tpm-pregledi/deploy/scripts/backup.sh >> /opt/apps/tpm-pregledi/data/backups/backup.log 2>&1
 ```
 Kopija van hosta je IT-jev zadatak. „Stanje servera" prikazuje poslednji backup.
@@ -88,6 +88,7 @@ gunzip -c data/backups/tpm-pregledi-<datum>.pgcustom.gz | docker compose exec -T
 docker compose start backend
 ```
 Ako aplikacija šifruje podatke Data Protection-om: vrati i `data/data-protection-keys` iz `dp-keys-*.tgz` pre starta.
+Fotografije i VAPID ključevi: raspakuj `fajlovi-*.tgz` u `data/` (`tar xzf ... -C data`). Bez starih VAPID ključeva telefoni moraju ponovo da uključe obaveštenja.
 Restore test se radi pre go-live i kvartalno.
 
 ## 8. Logovi
