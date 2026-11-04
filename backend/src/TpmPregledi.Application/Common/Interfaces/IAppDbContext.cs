@@ -59,6 +59,24 @@ public interface IAppDbContext
     DbSet<Fajl> Fajlovi { get; }
 
 
+    /// <summary>Neradni dani i praznici.</summary>
+    DbSet<NeradniDan> NeradniDani { get; }
+
+    /// <summary>Odsustva i zahtevi za odsustvo.</summary>
+    DbSet<Odsustvo> Odsustva { get; }
+
+    /// <summary>Pregledi (DP i PZ).</summary>
+    DbSet<Pregled> Pregledi { get; }
+
+    /// <summary>Učesnici PZ-a.</summary>
+    DbSet<PregledUcesnik> PregledUcesnici { get; }
+
+    /// <summary>Istorija pregleda.</summary>
+    DbSet<PregledDogadjaj> PregledDogadjaji { get; }
+
+    /// <summary>Zahtevi za prebacivanje pregleda.</summary>
+    DbSet<ZahtevPrebacivanja> ZahteviPrebacivanja { get; }
+
     /// <summary>Snima promene (audit interceptor radi u istoj transakciji).</summary>
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

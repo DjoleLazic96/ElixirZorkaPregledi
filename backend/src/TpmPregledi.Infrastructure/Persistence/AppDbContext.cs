@@ -81,6 +81,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     /// <inheritdoc />
     public DbSet<Fajl> Fajlovi => Set<Fajl>();
 
+    /// <inheritdoc />
+    public DbSet<NeradniDan> NeradniDani => Set<NeradniDan>();
+
+    /// <inheritdoc />
+    public DbSet<Odsustvo> Odsustva => Set<Odsustvo>();
+
+    /// <inheritdoc />
+    public DbSet<Pregled> Pregledi => Set<Pregled>();
+
+    /// <inheritdoc />
+    public DbSet<PregledUcesnik> PregledUcesnici => Set<PregledUcesnik>();
+
+    /// <inheritdoc />
+    public DbSet<PregledDogadjaj> PregledDogadjaji => Set<PregledDogadjaj>();
+
+    /// <inheritdoc />
+    public DbSet<ZahtevPrebacivanja> ZahteviPrebacivanja => Set<ZahtevPrebacivanja>();
+
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder b)
@@ -92,6 +110,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         ConfigureOsnova(b);
         ConfigureOprema(b);
         ConfigureSabloni(b);
+        ConfigureRaspored(b);
     }
 
     // ─── Identity + refresh tokeni ─────────────────────────────────────────
@@ -240,6 +259,85 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                     Oznake = ["ležaj do rotora", "ležaj do remenice/spojnice"],
                 },
                 new DodatnoPolje { Id = 3, CreatedAt = Seed, CreatedBy = "system", Naziv = "Broj nedostajućih / oštećenih komada", Tip = "broj", Jedinica = "kom.", Prikaz = "uz_neispravan" });
+        });
+    }
+
+    // ─── Raspored, odsustva, pregledi ──────────────────────────────────────
+
+    private static void ConfigureRaspored(ModelBuilder b)
+    {
+        b.Entity<NeradniDan>(e =>
+        {
+            e.ToTable("neradni_dan");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Naziv).IsRequired().HasMaxLength(200);
+            e.Property(x => x.Vrsta).IsRequired().HasMaxLength(20);
+            e.Property(x => x.UneoId).HasMaxLength(64);
+            e.HasIndex(x => x.Datum).IsUnique().HasDatabaseName("ux_neradni_dan_datum");
+        });
+
+        b.Entity<Odsustvo>(e =>
+        {
+            e.ToTable("odsustvo");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.KorisnikId).IsRequired().HasMaxLength(64);
+            e.Property(x => x.Vrsta).IsRequired().HasMaxLength(20);
+            e.Property(x => x.Napomena).HasMaxLength(500);
+            e.Property(x => x.Status).IsRequired().HasMaxLength(20);
+            e.Property(x => x.ZatrazioId).HasMaxLength(64);
+            e.Property(x => x.OdlucioId).HasMaxLength(64);
+            e.Property(x => x.RazlogOdbijanja).HasMaxLength(500);
+            e.HasIndex(x => new { x.KorisnikId, x.Od });
+            e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.KorisnikId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<Pregled>(e =>
+        {
+            e.ToTable("pregled");
+            e.HasKey(x => x.Id);
+            e.Ignore(x => x.JeDp);
+            e.Property(x => x.Broj).IsRequired().HasMaxLength(20);
+            e.Property(x => x.Tip).IsRequired().HasMaxLength(8);
+            e.Property(x => x.Status).IsRequired().HasMaxLength(20);
+            e.Property(x => x.DodeljenId).IsRequired().HasMaxLength(64);
+            e.Property(x => x.Napomena).HasMaxLength(500);
+            e.HasIndex(x => x.Broj).IsUnique().HasDatabaseName("ux_pregled_broj");
+            e.HasIndex(x => x.PlaniraniDatum);
+            e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.DodeljenId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<SablonVerzija>().WithMany().HasForeignKey(x => x.SablonVerzijaId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<PregledUcesnik>(e =>
+        {
+            e.ToTable("pregled_ucesnik");
+            e.HasKey(x => new { x.PregledId, x.KorisnikId });
+            e.Property(x => x.KorisnikId).HasMaxLength(64);
+            e.HasOne<Pregled>().WithMany(p => p.Ucesnici).HasForeignKey(x => x.PregledId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.KorisnikId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<PregledDogadjaj>(e =>
+        {
+            e.ToTable("pregled_dogadjaj");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Vrsta).IsRequired().HasMaxLength(40);
+            e.Property(x => x.Podaci).IsRequired().HasColumnType("jsonb");
+            e.Property(x => x.KorisnikId).HasMaxLength(64);
+            e.HasIndex(x => new { x.PregledId, x.At });
+            e.HasOne(x => x.Pregled).WithMany().HasForeignKey(x => x.PregledId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<ZahtevPrebacivanja>(e =>
+        {
+            e.ToTable("zahtev_prebacivanja");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.PodneoId).IsRequired().HasMaxLength(64);
+            e.Property(x => x.PredlozenaZamenaId).HasMaxLength(64);
+            e.Property(x => x.ZamenaId).HasMaxLength(64);
+            e.Property(x => x.OdlucioId).HasMaxLength(64);
+            e.Property(x => x.Razlog).IsRequired().HasMaxLength(500);
+            e.Property(x => x.Status).IsRequired().HasMaxLength(20);
+            e.HasOne<Pregled>().WithMany().HasForeignKey(x => x.PregledId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 

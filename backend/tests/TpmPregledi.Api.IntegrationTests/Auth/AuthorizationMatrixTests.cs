@@ -1,3 +1,4 @@
+using TpmPregledi.Domain.Identity;
 using System.Net;
 using System.Text;
 using FluentAssertions;
@@ -16,6 +17,10 @@ public class AuthorizationMatrixTests(CustomWebAppFactory factory)
     private const string Admin = "RequireAdmin";
     private const string Korisnik = "RequireKorisnik";
     private const string BiloKo = "Authenticated";
+    // Prava koja podrazumevano ima Supervizor (raspored, odsustva), a nemaju ni Inženjer ni Admin.
+    private const string Supervizor = "Supervizor";
+    // Pravo popunjavanja: ima ga samo Inženjer (zahtevi za odsustvo i prebacivanje).
+    private const string Inzenjer = "Inzenjer";
 
     private static readonly Guid NemaId = Guid.NewGuid();
 
@@ -59,13 +64,36 @@ public class AuthorizationMatrixTests(CustomWebAppFactory factory)
         ("GET",  "/api/v1/sabloni/DP1/verzije/1",              Korisnik),
         ("POST", "/api/v1/sabloni/uvoz",                       Admin),
 
+        ("GET",  "/api/v1/raspored?od=2026-11-09&do=2026-11-15", Korisnik),
+        ("POST", "/api/v1/raspored/predlog",                   Supervizor),
+        ("POST", "/api/v1/raspored/potvrdi",                   Supervizor),
+        ("GET",  "/api/v1/raspored/pz/sledeci",                Supervizor),
+        ("POST", "/api/v1/raspored/pz",                        Supervizor),
+        ("POST", "/api/v1/raspored/prenesi",                   Supervizor),
+        ("PUT",  "/api/v1/pregledi/999999/dodela",             Supervizor),
+        ("POST", "/api/v1/pregledi/999999/ucesnici",           Supervizor),
+        ("GET",  "/api/v1/neradni-dani?godina=2026",           Korisnik),
+        ("POST", "/api/v1/neradni-dani",                       Admin),
+        ("DELETE", "/api/v1/neradni-dani/999999",              Admin),
+        ("GET",  "/api/v1/odsustva",                           Korisnik),
+        ("POST", "/api/v1/odsustva",                           Supervizor),
+        ("POST", "/api/v1/odsustva/zahtev",                    Inzenjer),
+        ("POST", "/api/v1/odsustva/999999/odluka",             Supervizor),
+        ("GET",  $"/api/v1/odsustva/{NemaId}/pregledi?od=2026-11-09&do=2026-11-15", Supervizor),
+        ("GET",  "/api/v1/zahtevi-prebacivanja",               Korisnik),
+        ("POST", "/api/v1/zahtevi-prebacivanja",               Inzenjer),
+        ("POST", "/api/v1/zahtevi-prebacivanja/999999/odluka", Supervizor),
+
         ("GET",  "/api/v1/_diag/admin-only",                   Admin),
         ("GET",  "/api/v1/_diag/korisnik",                     Korisnik),
     ];
 
     public static IEnumerable<object[]> SveRute => Rute.Select(r => new object[] { r.Metod, r.Ruta });
-    public static IEnumerable<object[]> AdminRute => Rute.Where(r => r.Politika == Admin).Select(r => new object[] { r.Metod, r.Ruta });
-    public static IEnumerable<object[]> KorisnikRute => Rute.Where(r => r.Politika != Admin).Select(r => new object[] { r.Metod, r.Ruta });
+    public static IEnumerable<object[]> AdminRute => Rute.Where(r => r.Politika is Admin or Supervizor).Select(r => new object[] { r.Metod, r.Ruta });
+    public static IEnumerable<object[]> KorisnikRute => Rute.Where(r => r.Politika is not (Admin or Supervizor)).Select(r => new object[] { r.Metod, r.Ruta });
+    public static IEnumerable<object[]> AdminDozvoljene => Rute.Where(r => r.Politika is not (Supervizor or Inzenjer)).Select(r => new object[] { r.Metod, r.Ruta });
+    public static IEnumerable<object[]> SupervizorRute => Rute.Where(r => r.Politika == Supervizor).Select(r => new object[] { r.Metod, r.Ruta });
+    public static IEnumerable<object[]> AdminZabranjene => Rute.Where(r => r.Politika is Supervizor or Inzenjer).Select(r => new object[] { r.Metod, r.Ruta });
 
     private static HttpRequestMessage Zahtev(string metod, string ruta)
     {
@@ -102,7 +130,25 @@ public class AuthorizationMatrixTests(CustomWebAppFactory factory)
     }
 
     [Theory]
-    [MemberData(nameof(SveRute))]
+    [MemberData(nameof(SupervizorRute))]
+    public async Task Supervizor_na_svojim_rutama_ne_dobija_401_ni_403(string metod, string ruta)
+    {
+        await factory.SeedUserAsync("supervizor-matrica", "Supervizor2026!", Roles.Supervizor);
+        var sup = await factory.AuthenticatedClientAsync("supervizor-matrica", "Supervizor2026!");
+        var res = await sup.SendAsync(Zahtev(metod, ruta));
+        res.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized).And.NotBe(HttpStatusCode.Forbidden);
+    }
+
+    [Theory]
+    [MemberData(nameof(AdminZabranjene))]
+    public async Task Admin_bez_prava_rasporeda_i_popunjavanja_dobija_403(string metod, string ruta)
+    {
+        var admin = await factory.AdminClientAsync();
+        (await admin.SendAsync(Zahtev(metod, ruta))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Theory]
+    [MemberData(nameof(AdminDozvoljene))]
     public async Task Admin_ne_dobija_401_ni_403(string metod, string ruta)
     {
         var admin = await factory.AdminClientAsync();

@@ -222,6 +222,7 @@ try
     app.MapSekcijeEndpoints();
     app.MapPodesavanjaEndpoints();
     app.MapOpremaISabloniEndpoints();
+    app.MapRasporedEndpoints();
     app.MapAuditEndpoints();
     app.MapServerStanjeEndpoints();
 

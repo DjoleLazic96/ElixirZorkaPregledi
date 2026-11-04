@@ -73,6 +73,7 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IBrojacService, BrojacService>();
         services.AddSingleton<TpmPregledi.Application.Features.Sabloni.ISablonUvozCitac, Sabloni.SablonUvozCitac>();
+        services.AddHostedService<Poslovi.PrenosPropustenogDpPosao>();
 
         // ─── Trenutni korisnik ──────────────────────────────────────────────
         services.AddHttpContextAccessor();
