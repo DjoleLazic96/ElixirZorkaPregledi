@@ -41,21 +41,21 @@
 **Alternative odbijene:** samo online — pregled bi stajao bez signala; native Android — druga kodna baza.
 **Odlučio:** vlasnik projekta (zahtev, 2026-10-20); čeka vlasnika blueprinta.
 
-## 2026-10-27 — PREDLOG: mobilni prikaz
+## 2026-11-04 — Mobilni prikaz (odobreno; predlog od 2026-10-27)
 
 **Kontekst:** blueprint 14 §7 podržava širinu od 1280 px; inženjeri rade na Android telefonima.
 **Odluka:** responzivan prikaz: telefon (donji meni, kartice umesto tabela), tablet, laptop i veći (kao blueprint).
 **Posledice:** odstupanje od blueprinta 14 §7; komponente moraju da rade od 375 px.
 **Alternative odbijene:** posebna mobilna aplikacija.
-**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); čeka vlasnika blueprinta.
+**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); odobreno za implementaciju 2026-11-04 (faza 04).
 
-## 2026-10-27 — PREDLOG: otpremanje fotografija
+## 2026-11-04 — Otpremanje fotografija (odobreno; predlog od 2026-10-27)
 
 **Kontekst:** blueprint 12 §28 dozvoljava upload samo `.xlsx` do 5 MB.
 **Odluka:** fotografije (JPEG, smanjene na telefonu na 1–2 MB, limit 3 MB po fajlu, najviše 5 po stavci) na volumenu `data/fotografije`; uvoz šablona `.xlsx` ostaje kao u blueprintu.
 **Posledice:** odstupanje od blueprinta 12 §28; nginx `client_max_body_size 4m`; provera MIME i sadržaja; bekap volumena.
 **Alternative odbijene:** slike u bazi — rast baze i bekapa.
-**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); čeka vlasnika blueprinta.
+**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); odobreno za implementaciju 2026-11-04 (faza 04).
 
 ## 2026-10-27 — PREDLOG: push obaveštenja i zakazane provere
 

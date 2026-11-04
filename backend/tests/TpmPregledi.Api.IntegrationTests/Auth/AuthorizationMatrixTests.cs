@@ -85,6 +85,12 @@ public class AuthorizationMatrixTests(CustomWebAppFactory factory)
         ("POST", "/api/v1/zahtevi-prebacivanja",               Inzenjer),
         ("POST", "/api/v1/zahtevi-prebacivanja/999999/odluka", Supervizor),
 
+        ("POST", "/api/v1/pregledi/999999/zapocni",            Inzenjer),
+        ("GET",  "/api/v1/pregledi/999999/popunjavanje",       Inzenjer),
+        ("POST", "/api/v1/sinhronizacija",                     Inzenjer),
+        ("POST", "/api/v1/fotografije",                        Inzenjer),
+        ("GET",  "/api/v1/fotografije/999999",                 Korisnik),
+
         ("GET",  "/api/v1/_diag/admin-only",                   Admin),
         ("GET",  "/api/v1/_diag/korisnik",                     Korisnik),
     ];

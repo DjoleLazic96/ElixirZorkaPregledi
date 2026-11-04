@@ -223,6 +223,7 @@ try
     app.MapPodesavanjaEndpoints();
     app.MapOpremaISabloniEndpoints();
     app.MapRasporedEndpoints();
+    app.MapPopunjavanjeEndpoints();
     app.MapAuditEndpoints();
     app.MapServerStanjeEndpoints();
 

@@ -77,6 +77,21 @@ public interface IAppDbContext
     /// <summary>Zahtevi za prebacivanje pregleda.</summary>
     DbSet<ZahtevPrebacivanja> ZahteviPrebacivanja { get; }
 
+    /// <summary>Odgovori na stavke pregleda.</summary>
+    DbSet<Odgovor> Odgovori { get; }
+
+    /// <summary>Uređaji van funkcije na pregledu.</summary>
+    DbSet<UredjajVanFunkcije> UredjajiVanFunkcije { get; }
+
+    /// <summary>Slike uz stavke.</summary>
+    DbSet<Fotografija> Fotografije { get; }
+
+    /// <summary>Primljene operacije (idempotentnost).</summary>
+    DbSet<SinhronizacijaOperacija> SinhronizacijaOperacije { get; }
+
+    /// <summary>Praćenje promena — odbijena operacija sinhronizacije odbacuje svoje nesnimljene izmene.</summary>
+    Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker ChangeTracker { get; }
+
     /// <summary>Snima promene (audit interceptor radi u istoj transakciji).</summary>
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

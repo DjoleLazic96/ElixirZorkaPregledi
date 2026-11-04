@@ -103,6 +103,21 @@ public class Pregled
     /// <summary>Kada je kreiran (UTC).</summary>
     public DateTime KreiranoAt { get; set; }
 
+    /// <summary>Početak (R4.1) — ne menja se.</summary>
+    public DateTime? ZapocetAt { get; set; }
+
+    /// <summary>Predaja (vreme završetka).</summary>
+    public DateTime? PredatAt { get; set; }
+
+    /// <summary>Aktivno vreme u sekundama (R5.2), računa se pri predaji.</summary>
+    public int AktivnoSekundi { get; set; }
+
+    /// <summary>Broj delova (pauze duže od granice).</summary>
+    public int Delova { get; set; }
+
+    /// <summary>Broj dorade (0 = prvo popunjavanje); broj pregleda se ne menja (R6.9).</summary>
+    public int Dorada { get; set; }
+
     /// <summary>Da li je DP (dnevni pregled).</summary>
     public bool JeDp => Tip.StartsWith("DP", StringComparison.Ordinal);
 

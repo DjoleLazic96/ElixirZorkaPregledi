@@ -82,6 +82,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Fajl> Fajlovi => Set<Fajl>();
 
     /// <inheritdoc />
+    public DbSet<Odgovor> Odgovori => Set<Odgovor>();
+
+    /// <inheritdoc />
+    public DbSet<UredjajVanFunkcije> UredjajiVanFunkcije => Set<UredjajVanFunkcije>();
+
+    /// <inheritdoc />
+    public DbSet<Fotografija> Fotografije => Set<Fotografija>();
+
+    /// <inheritdoc />
+    public DbSet<SinhronizacijaOperacija> SinhronizacijaOperacije => Set<SinhronizacijaOperacija>();
+
+    /// <inheritdoc />
     public DbSet<NeradniDan> NeradniDani => Set<NeradniDan>();
 
     /// <inheritdoc />
@@ -111,6 +123,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         ConfigureOprema(b);
         ConfigureSabloni(b);
         ConfigureRaspored(b);
+        ConfigurePopunjavanje(b);
     }
 
     // ─── Identity + refresh tokeni ─────────────────────────────────────────
@@ -338,6 +351,52 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Razlog).IsRequired().HasMaxLength(500);
             e.Property(x => x.Status).IsRequired().HasMaxLength(20);
             e.HasOne<Pregled>().WithMany().HasForeignKey(x => x.PregledId).OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    // ─── Popunjavanje ──────────────────────────────────────────────────────
+
+    private static void ConfigurePopunjavanje(ModelBuilder b)
+    {
+        b.Entity<Odgovor>(e =>
+        {
+            e.ToTable("odgovor");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Napomena).HasMaxLength(2000);
+            e.Property(x => x.Polja).IsRequired().HasColumnType("jsonb");
+            e.Property(x => x.KorisnikId).IsRequired().HasMaxLength(64);
+            e.HasIndex(x => new { x.PregledId, x.StavkaId, x.Dorada }).IsUnique().HasDatabaseName("ux_odgovor_stavka_dorada");
+            e.HasOne<Pregled>().WithMany().HasForeignKey(x => x.PregledId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<SablonStavka>().WithMany().HasForeignKey(x => x.StavkaId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<UredjajVanFunkcije>(e =>
+        {
+            e.ToTable("uredjaj_van_funkcije");
+            e.HasKey(x => new { x.PregledId, x.UredjajId });
+            e.Property(x => x.KorisnikId).IsRequired().HasMaxLength(64);
+            e.HasOne<Pregled>().WithMany().HasForeignKey(x => x.PregledId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Uredjaj>().WithMany().HasForeignKey(x => x.UredjajId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<Fotografija>(e =>
+        {
+            e.ToTable("fotografija");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Izvor).IsRequired().HasMaxLength(20);
+            e.Property(x => x.KorisnikId).IsRequired().HasMaxLength(64);
+            e.HasIndex(x => x.KlijentId).IsUnique().HasDatabaseName("ux_fotografija_klijent_id");
+            e.HasIndex(x => new { x.PregledId, x.StavkaId });
+            e.HasOne<Pregled>().WithMany().HasForeignKey(x => x.PregledId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Fajl>().WithMany().HasForeignKey(x => x.FajlId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<SinhronizacijaOperacija>(e =>
+        {
+            e.ToTable("sinhronizacija_operacija");
+            e.HasKey(x => x.OpId);
+            e.Property(x => x.Vrsta).IsRequired().HasMaxLength(40);
+            e.HasIndex(x => x.PregledId);
         });
     }
 
