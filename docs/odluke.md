@@ -65,13 +65,13 @@
 **Alternative odbijene:** samo mejl — inženjer na terenu ne čita mejl.
 **Odlučio:** vlasnik projekta (zahtev, 2026-10-20); čeka vlasnika blueprinta.
 
-## 2026-10-27 — PREDLOG: četiri role i prava štikliranjem
+## 2026-11-04 — Četiri role i prava štikliranjem (odobreno; predlog od 2026-10-27)
 
 **Kontekst:** skelet ima dve role; proces ima Inženjera, Supervizora, Direktora i Admina, a Admin želi da štiklira koje delove aplikacije koji korisnik koristi.
 **Odluka:** role `Inzenjer`, `Supervizor`, `Direktor`, `Admin` (jedna po korisniku) + tabela `korisnik_pravo`; podrazumevani skup prava po roli, Admin dodaje i oduzima. Popunjavanje pregleda je samo za Inženjera i ne može se dodeliti drugima.
 **Posledice:** odstupanje od blueprinta 07 §3 (prava pored role); politike proveravaju pravo; matrica u `docs/04`.
 **Alternative odbijene:** više rola po korisniku — nepregledno; fiksne role bez štikliranja — vlasnik to izričito traži.
-**Odlučio:** vlasnik projekta (2026-10-20); čeka vlasnika blueprinta.
+**Odlučio:** vlasnik projekta (2026-10-20); odobreno za implementaciju 2026-11-04 (faza 01).
 
 ## 2026-10-27 — Identitet projekta
 
