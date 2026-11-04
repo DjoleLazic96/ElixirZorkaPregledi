@@ -16,7 +16,7 @@ function renderSidebar(roles: string[]) {
 describe('Sidebar — navigacija po roli', () => {
   it('Admin vidi sve stavke', () => {
     renderSidebar(['Admin']);
-    ['Šabloni', 'Uređaji', 'Administracija', 'Audit log', 'Stanje servera'].forEach((l) =>
+    ['Kalendar', 'Šabloni', 'Uređaji', 'Neradni dani', 'Administracija', 'Audit log', 'Stanje servera'].forEach((l) =>
       expect(screen.getByRole('link', { name: l })).toBeInTheDocument(),
     );
   });

@@ -59,6 +59,11 @@ korisnika: nova prava važe najkasnije kad istekne trenutni access token (15 min
 | Registar opreme, katalog, šabloni — čitanje | RequireKorisnik |
 | Registar opreme i katalog aktivnosti — izmene | `Pravo:sabloni.nacrt` |
 | Uvoz šablona, nova dodatna polja | RequireAdmin |
+| Kalendar, inženjeri, neradni dani — čitanje | RequireKorisnik |
+| Predlog, potvrda, PZ, prenos, izmena dodele, učesnici, odluka o prebacivanju | `Pravo:raspored.uredjivanje` |
+| Unos odsustva, odluka o odsustvu, pregledi u odsustvu | `Pravo:odsustva.odobravanje` |
+| Zahtev za odsustvo, zahtev za prebacivanje | `Pravo:pregledi.popunjavanje` |
+| Unos i brisanje neradnih dana | `Pravo:neradni_dani` |
 
 Frontend: „Administracija“ se vidi uz pravo `korisnici` ili `podesavanja`; tab „Korisnici“ uz `korisnici`, tab „Podešavanja“ uz `podesavanja`.
 

@@ -20,6 +20,10 @@
 | `sablon`, `sablon_verzija`, `sablon_stavka`, `sablon_stavka_polje` | šest šablona, verzije, stavke i polja na stavkama | `ToTable` |
 | `sablon_dogadjaj` | istorijat šablona | `ToTable` |
 | `fajl` | fajlovi na volumenu (slike, faze 04 i 10) | `ToTable` |
+| `neradni_dan` | neradni dani i praznici | `ToTable` |
+| `odsustvo` | odsustva i zahtevi za odsustvo | `ToTable` |
+| `pregled`, `pregled_ucesnik`, `pregled_dogadjaj` | pregledi (DP/PZ), drugi inženjer na PZ-u, istorija | `ToTable` |
+| `zahtev_prebacivanja` | zahtevi za prebacivanje pregleda | `ToTable` |
 
 ```
 AspNetUsers 1──* refresh_token (user_id, CASCADE)
@@ -130,6 +134,18 @@ Ključ je par (naziv, oznaka), ne sama oznaka: DP1, DP2 i PZ1 su prepisani doslo
 - `sablon_stavka_polje` — PK (stavka, dodatno polje).
 - `sablon_dogadjaj` — `sablon_id`, `verzija_id`, `vrsta` (`prvi_uvoz`…), `opis`, `korisnik_id`, `at`.
 
+### `neradni_dan`, `odsustvo`, `zahtev_prebacivanja`
+- `neradni_dan` — `datum` unique (`ux_neradni_dan_datum`), `naziv`, `vrsta` (`drzavni`/`verski`/`fabrika`), `uneo_id`; `[Auditable]`.
+- `odsustvo` — `korisnik_id` FK, `od`, `do` (date), `vrsta` (`godisnji`/`bolovanje`/`slobodan_dan`/`sluzbeni_put`/`ostalo`), `napomena`, `status` (`zahtev`/`odobreno`/`odbijeno`), `zatrazio_id`, `odlucio_id`, `razlog_odbijanja`, `kreirano_at`, `odluceno_at`; `[Auditable]`.
+- `zahtev_prebacivanja` — `pregled_id`, `podneo_id`, `predlozena_zamena_id`, `razlog`, `status`, `zamena_id`, `odlucio_id`, vremena; `[Auditable]`.
+
+### `pregled`, `pregled_ucesnik`, `pregled_dogadjaj`
+- `pregled` — `broj` unique (`DP1-2026-0142`, iz `brojac` po godini planiranog datuma), `tip`, `sablon_verzija_id` null (vezuje se pri početku, faza 04), `planirani_datum`, `prvobitni_datum`, `status` (`planiran`/`u_radu`/`ceka_overu`/`overen`/`vracen_na_doradu`/`ponisten`), `dodeljen_id` FK, `napomena`, `kreirano_at`; `[Auditable]`. Kolone popunjavanja dodaje faza 04.
+- `pregled_ucesnik` — PK (pregled, korisnik), `sekcije text[]` (PZ sa dva inženjera).
+- `pregled_dogadjaj` — `pregled_id`, `vrsta` (`dodela`, `prebacivanje`, `prenos`, `promena_pz`, `ucesnik`, `izmena_rasporeda`), `podaci jsonb` (staro/novo), `korisnik_id` (null = sistem), `at`.
+
+`podesavanje._poslednjiPrenos` pamti poslednji dan koji je obradio posao prenosa propuštenog DP-a.
+
 ### `fajl`
 `putanja`, `mime`, `velicina`, `sha256`, `kreirano_at` — za slike (faze 04 i 10).
 
@@ -158,4 +174,5 @@ Sekcije, šabloni i tri dodatna polja su seed u migracijama (`HasData`); regista
 |---|---|
 | `InitialCreate` | Identity, `refresh_token`, `audit_log`, `kategorija` |
 | `Osnova` | `korisnik_pravo`, `podesavanje`, `brojac`, `sekcija` (+ seed sekcija) |
+| `Raspored` | neradni dani, odsustva, pregledi, učesnici, istorija pregleda, zahtevi za prebacivanje |
 | `OpremaISabloni` | registar, katalog, dodatna polja, šabloni i verzije, istorijat, `fajl`; briše `kategorija` |

@@ -65,6 +65,7 @@ public class AuthorizationMatrixTests(CustomWebAppFactory factory)
         ("POST", "/api/v1/sabloni/uvoz",                       Admin),
 
         ("GET",  "/api/v1/raspored?od=2026-11-09&do=2026-11-15", Korisnik),
+        ("GET",  "/api/v1/raspored/inzenjeri",                 Korisnik),
         ("POST", "/api/v1/raspored/predlog",                   Supervizor),
         ("POST", "/api/v1/raspored/potvrdi",                   Supervizor),
         ("GET",  "/api/v1/raspored/pz/sledeci",                Supervizor),

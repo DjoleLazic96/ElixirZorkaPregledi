@@ -92,6 +92,8 @@ public static class RasporedEndpoints
         r.MapGet("", async ([FromQuery] DateOnly od, [FromQuery(Name = "do")] DateOnly doDatuma, IMediator m) =>
                 Results.Ok(await m.Send(new GetRasporedQuery(od, doDatuma))))
             .WithSummary("Kalendar: pregledi, neradni dani i odsustva u periodu");
+        r.MapGet("/inzenjeri", async (IMediator m) => Results.Ok(await m.Send(new GetInzenjeriQuery())))
+            .WithSummary("Inženjeri u rotaciji (za izbor u rasporedu)");
         r.MapPost("/predlog", async ([FromBody] PredlogInput i, IMediator m) => Results.Ok(await m.Send(new PredlogRasporedaQuery(i.Od))))
             .RequireAuthorization(raspored).WithSummary("Predlog DP-a za nedelju (ne upisuje)");
         r.MapPost("/potvrdi", async ([FromBody] PotvrdaInput i, IMediator m) => Results.Ok(await m.Send(new PotvrdiRasporedCommand(i.Stavke))))

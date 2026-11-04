@@ -8,6 +8,9 @@ import { KorisniciPage } from '../features/admin/korisnici/KorisniciPage';
 import { AuditLogPage } from '../features/audit-log/AuditLogPage';
 import { useAuth } from '../features/auth/AuthProvider';
 import { LoginPage } from '../features/auth/LoginPage';
+import { KalendarPage } from '../features/raspored/KalendarPage';
+import { MojaOdsustvaPage, NeradniDaniPage } from '../features/raspored/OdsustvaINeradniPages';
+import { RasporedPage } from '../features/raspored/RasporedPage';
 import { SabloniPage } from '../features/sabloni/SabloniPage';
 import { UredjajiPage } from '../features/sabloni/UredjajiPage';
 import { StanjeServeraPage } from '../features/stanje-servera/StanjeServeraPage';
@@ -49,6 +52,38 @@ export function AppRoutes() {
           element={
             <Zasticeno allowed={isKorisnik(me)} landing={landing}>
               <SabloniPage />
+            </Zasticeno>
+          }
+        />
+        <Route
+          path="/kalendar"
+          element={
+            <Zasticeno allowed={isKorisnik(me)} landing={landing}>
+              <KalendarPage />
+            </Zasticeno>
+          }
+        />
+        <Route
+          path="/raspored"
+          element={
+            <Zasticeno allowed={imaPravo(me, 'raspored.uredjivanje') || imaPravo(me, 'odsustva.odobravanje')} landing={landing}>
+              <RasporedPage />
+            </Zasticeno>
+          }
+        />
+        <Route
+          path="/moja-odsustva"
+          element={
+            <Zasticeno allowed={imaPravo(me, 'pregledi.popunjavanje')} landing={landing}>
+              <MojaOdsustvaPage />
+            </Zasticeno>
+          }
+        />
+        <Route
+          path="/neradni-dani"
+          element={
+            <Zasticeno allowed={isKorisnik(me)} landing={landing}>
+              <NeradniDaniPage />
             </Zasticeno>
           }
         />

@@ -89,6 +89,26 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 | GET | `/sabloni/{tip}` · `/sabloni/{tip}/verzije/{broj}` | RequireKorisnik | `SablonVerzijaDto`: sekcije → uređaji → stavke (aktivnost, odgovori, polja, `kljuc`) |
 | POST | `/sabloni/uvoz` | RequireAdmin | multipart `fajl` (.xlsx ≤ 5 MB, list „Stavke“) → `{ sabloni[], novihUredjaja, novihAktivnosti }`; 422 `greske[]` „Red N (…): …“ (sve ili ništa), 422 za već uvezen šablon |
 
+### Raspored, kalendar, odsustva (faza 03)
+| Metod | Ruta | Politika | Svrha |
+|---|---|---|---|
+| GET | `/raspored?od&do` | RequireKorisnik | `{ pregledi[], neradniDani[], odsustva[] }` — pregledi čiji planirani ili prvobitni dan pada u period |
+| GET | `/raspored/inzenjeri` | RequireKorisnik | inženjeri u rotaciji `{ id, ime }` |
+| POST | `/raspored/predlog` `{ od }` | raspored.uredjivanje | predlog DP-a do petka te nedelje (ne upisuje) |
+| POST | `/raspored/potvrdi` `{ stavke[{datum, tip, inzenjerId}] }` | raspored.uredjivanje | pravi preglede i brojeve; 422 dan nije za DP / DP već postoji / inženjer nije aktivan |
+| GET · POST | `/raspored/pz/sledeci` · `/raspored/pz` `{ datum, tip?, inzenjerId, napomena? }` | raspored.uredjivanje | sledeći PZ po redu; zakazivanje („Promeni PZ“ = drugi tip); 422 „Taj PZ je već zakazan za …“ |
+| POST | `/raspored/prenesi` | raspored.uredjivanje | ručni prenos današnjeg nezapočetog DP-a (inače pozadinski posao posle kraja radnog dana) |
+| PUT | `/pregledi/{id}/dodela` `{ inzenjerId?, datum? }` | raspored.uredjivanje | „Promeni u rasporedu“ |
+| POST | `/pregledi/{id}/ucesnici` `{ korisnikId, sekcije[] }` | raspored.uredjivanje | drugi inženjer na PZ-u (prazne sekcije = ukloni) |
+| GET · POST · DELETE | `/neradni-dani?godina` · `/neradni-dani` `{ od, do, naziv, vrsta }` · `/neradni-dani/{id}` | RequireKorisnik · neradni_dani | |
+| GET | `/odsustva?korisnikId&status` | RequireKorisnik | bez prava odobravanja samo svoja |
+| POST | `/odsustva` `{ korisnikId, od, do, vrsta, napomena, prebacivanja[] }` | odsustva.odobravanje | unos (odmah odobreno) sa prebacivanjem; 422 preklapanje, 422 započet pregled |
+| POST | `/odsustva/zahtev` `{ od, do, vrsta, napomena }` | pregledi.popunjavanje | zahtev za sebe |
+| POST | `/odsustva/{id}/odluka` `{ odobreno, razlog?, prebacivanja[] }` | odsustva.odobravanje | |
+| GET | `/odsustva/{korisnikId}/pregledi?od&do` | odsustva.odobravanje | planirani pregledi u periodu + predlog zamene |
+| GET · POST | `/zahtevi-prebacivanja?status` · `/zahtevi-prebacivanja` `{ pregledId, razlog, predlozenaZamenaId? }` | RequireKorisnik · pregledi.popunjavanje | svoj planiran pregled; 403 tuđi, 422 započet |
+| POST | `/zahtevi-prebacivanja/{id}/odluka` `{ odobreno, zamenaId }` | raspored.uredjivanje | kod PZ-a sa dva inženjera prebacuje se samo deo podnosioca |
+
 ### `/_diag` (samo Development)
 Rute kojima integracioni testovi dokazuju politike: `/_diag/korisnik` (RequireKorisnik), `/_diag/admin-only` (RequireAdmin).
 

@@ -73,6 +73,14 @@ public sealed record PredlogRasporedaQuery(DateOnly Od) : IRequest<IReadOnlyList
 /// <param name="Stavke">Dani, tipovi i inženjeri.</param>
 public sealed record PotvrdiRasporedCommand(IReadOnlyList<StavkaRasporeda> Stavke) : IRequest<IReadOnlyList<PregledKalendarDto>>;
 
+/// <summary>Inženjer za izbor u rasporedu.</summary>
+/// <param name="Id">ID.</param>
+/// <param name="Ime">Ime i prezime.</param>
+public sealed record InzenjerDto(string Id, string Ime);
+
+/// <summary>Inženjeri u rotaciji (aktivni, sa pravom popunjavanja), po imenu.</summary>
+public sealed record GetInzenjeriQuery : IRequest<IReadOnlyList<InzenjerDto>>;
+
 /// <summary>Koji PZ je sledeći po redu (R3.8).</summary>
 public sealed record SledeciPzQuery : IRequest<string>;
 
@@ -128,6 +136,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
     IRequestHandler<PredlogRasporedaQuery, IReadOnlyList<PredlogStavkaDto>>,
     IRequestHandler<PotvrdiRasporedCommand, IReadOnlyList<PregledKalendarDto>>,
     IRequestHandler<SledeciPzQuery, string>,
+    IRequestHandler<GetInzenjeriQuery, IReadOnlyList<InzenjerDto>>,
     IRequestHandler<ZakaziPzCommand, PregledKalendarDto>,
     IRequestHandler<PrenesiCommand, int>,
     IRequestHandler<IzmeniDodeluCommand, PregledKalendarDto>,
@@ -202,6 +211,13 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
         }
         await db.SaveChangesAsync(ct);
         return novi.Select(p => Dto(p, k)).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<InzenjerDto>> Handle(GetInzenjeriQuery _, CancellationToken ct)
+    {
+        var k = await RasporedKontekst.UcitajAsync(db, ct);
+        return k.Inzenjeri.Select(i => new InzenjerDto(i, k.Ime(i))).ToList();
     }
 
     /// <inheritdoc />

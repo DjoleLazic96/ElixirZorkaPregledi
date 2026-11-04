@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
-import { Activity, ScrollText, Settings, type LucideIcon, ClipboardList, Wrench } from 'lucide-react';
+import { Activity, ScrollText, Settings, type LucideIcon, CalendarDays, CalendarOff, CalendarRange, CalendarX, ClipboardList, Wrench } from 'lucide-react';
 import { cn } from '../../lib/cn';
-import { canSeeAdminSection, isAdmin, type Pristup } from '../../lib/permissions';
+import { canSeeAdminSection, isAdmin, type Pristup, imaPravo } from '../../lib/permissions';
 import { GIT_SHA, VERZIJA } from '../../lib/verzija';
 
 interface NavItem {
@@ -13,8 +13,15 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
+  { to: '/kalendar', label: 'Kalendar', icon: CalendarDays },
+  {
+    to: '/raspored', label: 'Raspored', icon: CalendarRange,
+    visibleIf: (p) => imaPravo(p, 'raspored.uredjivanje') || imaPravo(p, 'odsustva.odobravanje'),
+  },
+  { to: '/moja-odsustva', label: 'Moja odsustva', icon: CalendarOff, visibleIf: (p) => imaPravo(p, 'pregledi.popunjavanje') },
   { to: '/sabloni', label: 'Šabloni', icon: ClipboardList },
   { to: '/uredjaji', label: 'Uređaji', icon: Wrench },
+  { to: '/neradni-dani', label: 'Neradni dani', icon: CalendarX, visibleIf: (p) => imaPravo(p, 'neradni_dani') },
   { to: '/admin', label: 'Administracija', icon: Settings, visibleIf: canSeeAdminSection },
   // Dijagnostika — zasebne stavke, ne pod Administracijom: nisu šifarnici i
   // otvaraju se povremeno, pa im je mesto u glavnom meniju, ne u pod-tabovima.

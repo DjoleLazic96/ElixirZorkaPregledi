@@ -21,7 +21,7 @@
 - [x] 2026-11-04 — faza 01: četiri role, prava štikliranjem, podešavanja, sekcije, brojači (`01-osnova.md`)
 - [x] 2026-11-04 — faza 02: registar opreme, katalog, dodatna polja, šabloni sa verzijama, uvoz iz .xlsx (`02-oprema-i-sabloni.md`)
 - [ ] mobilni raspored (donji meni umesto bočnog) — čeka PREDLOG „mobilni prikaz“; do tada je skelet na telefonu neupotrebljiv (bočni meni 240 px)
-- [ ] raspored, kalendar, odsustva, neradni dani, prebacivanja
+- [x] 2026-11-04 — faza 03: raspored, kalendar, odsustva, neradni dani, prebacivanja, prenos propuštenog DP-a (`03-raspored.md`); obaveštenja o pomeranju čekaju fazu 09
 - [ ] popunjavanje i rad bez interneta (PWA, sinhronizacija, slike)
 - [ ] predaja, overa, dorada, poništavanje; izveštaji PDF/Word
 - [ ] akcije, kvarovi, ekran uređaja, analitika, Dashboard
