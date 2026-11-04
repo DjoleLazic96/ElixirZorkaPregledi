@@ -21,7 +21,7 @@ public class ExceptionMappingTests
         [new ValidationFailedException(new Dictionary<string, string[]>()), 400],
         [new AuthenticationFailedException(),                                401],
         [new ForbiddenException(),                                           403],
-        [new NotFoundException("Kategorija ne postoji."),                    404],
+        [new NotFoundException("Uređaj ne postoji."),                    404],
         [new NotFoundException("Korisnik", "x"),                             404],
         [new ConflictException("Već postoji."),                              409],
         [new BusinessRuleException("Pravilo."),                              422],
@@ -81,10 +81,10 @@ public class ExceptionMappingTests
     [Fact]
     public async Task Poslovno_pravilo_vraca_422_sa_greske_nizom()
     {
-        var (status, telo) = await PokreniAsync(new BusinessRuleException("Kategorija sa ovom šifrom već postoji."), Environments.Production);
+        var (status, telo) = await PokreniAsync(new BusinessRuleException("Uređaj već postoji u registru."), Environments.Production);
 
         status.Should().Be(422);
-        telo.GetProperty("greske")[0].GetString().Should().Be("Kategorija sa ovom šifrom već postoji.");
+        telo.GetProperty("greske")[0].GetString().Should().Be("Uređaj već postoji u registru.");
     }
 
     [Fact]

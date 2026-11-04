@@ -39,7 +39,7 @@ ulogovane (R1.7).
 | Politika | Uslov |
 |---|---|
 | `Pravo:<pravo>` | claim `pravo` sa tom vrednošću (po jedna politika za svako pravo iz `Prava.Sva`) |
-| `RequireAdmin` | rola Admin — samo sistemski ekrani skeleta (audit log, stanje servera) i primer `kategorije` |
+| `RequireAdmin` | rola Admin — sistemski ekrani skeleta (audit log, stanje servera), uvoz šablona, nova dodatna polja |
 | `RequireKorisnik` | bilo koja od četiri role |
 | `Authenticated` | bilo koji ulogovan |
 
@@ -56,7 +56,9 @@ korisnika: nova prava važe najkasnije kad istekne trenutni access token (15 min
 | Korisnici i prava — sve | `Pravo:korisnici` |
 | Podešavanja — čitanje i izmena | `Pravo:podesavanja` |
 | Audit log, stanje servera | RequireAdmin |
-| Kategorije (primer, briše se u fazi 02) — čitanje / izmene | RequireKorisnik / RequireAdmin |
+| Registar opreme, katalog, šabloni — čitanje | RequireKorisnik |
+| Registar opreme i katalog aktivnosti — izmene | `Pravo:sabloni.nacrt` |
+| Uvoz šablona, nova dodatna polja | RequireAdmin |
 
 Frontend: „Administracija“ se vidi uz pravo `korisnici` ili `podesavanja`; tab „Korisnici“ uz `korisnici`, tab „Podešavanja“ uz `podesavanja`.
 

@@ -14,13 +14,19 @@
 | `podesavanje` | podešavanja aplikacije (ključ → jsonb) | `ToTable` |
 | `brojac` | poslednji redni broj po vrsti i godini (`DP1-2026-0142`, `A-…`, `K-…`) | `ToTable` |
 | `sekcija` | sekcije pogona 10…70 (seed u migraciji) | `ToTable` |
-| `kategorija` | **PRIMER šifarnika** — briše se u fazi 02 | `ToTable` |
+| `uredjaj` | registar opreme; identitet (naziv, oznaka) | `ToTable` |
+| `aktivnost` | katalog aktivnosti (naziv + dva odgovora) | `ToTable` |
+| `dodatno_polje` | dodatna polja uz aktivnosti (seed tri polja) | `ToTable` |
+| `sablon`, `sablon_verzija`, `sablon_stavka`, `sablon_stavka_polje` | šest šablona, verzije, stavke i polja na stavkama | `ToTable` |
+| `sablon_dogadjaj` | istorijat šablona | `ToTable` |
+| `fajl` | fajlovi na volumenu (slike, faze 04 i 10) | `ToTable` |
 
 ```
 AspNetUsers 1──* refresh_token (user_id, CASCADE)
 AspNetUsers ·· audit_log.user_id (bez FK — snapshot)
 AspNetUsers 1──* korisnik_pravo (korisnik_id, CASCADE)
-kategorija (samostalna)
+sekcija 1──* uredjaj; sablon 1──* sablon_verzija 1──* sablon_stavka *──1 uredjaj, *──1 aktivnost
+sablon_stavka 1──* sablon_stavka_polje *──1 dodatno_polje; sablon 1──* sablon_dogadjaj
 ```
 
 ## 2. Sistemske tabele (engleske kolone)
@@ -50,7 +56,7 @@ kategorija (samostalna)
 | `user_id` | text null | bez FK — preživi sve |
 | `user_name` | text null | snapshot; za LOGIN_FAIL uneto ime |
 | `action` | varchar(20) | `CREATE`, `UPDATE`, `DELETE`, `LOGIN`, `LOGIN_FAIL`, `LOGOUT`, `START` |
-| `entity` | varchar(100) | CLR ime (`Kategorija`), `Auth`, `Sistem` |
+| `entity` | varchar(100) | CLR ime (`Uredjaj`), `Auth`, `Sistem` |
 | `entity_id` | varchar(64) | PK vrednosti spojene `\|`; `start` za START |
 | `old_values`, `new_values` | jsonb null | pun snapshot bez osetljivih polja |
 | `created_at` | timestamptz | UTC |
@@ -86,15 +92,46 @@ Indeksi: `ix_audit_log_entity_entity_id`, `ix_audit_log_created_at` (DESC). Appe
 | `naziv` | varchar(100) | „Sekcija 21“ |
 | `redosled` | int | |
 
-### `kategorija` — PRIMER
+### `uredjaj`
 | Kolona | Tip | Napomena |
 |---|---|---|
-| `id` | int identity | |
-| `sifra` | varchar(32) | jedinstvena među aktivnim: `ux_kategorija_sifra WHERE aktivan = true` |
-| `naziv` | varchar(200) | |
-| `opis` | varchar(1000) null | |
-| `aktivan` | boolean | soft delete |
-| `created_at`, `created_by`, `updated_at`, `updated_by` | timestamptz / text | puni interceptor; `created_by` = UserId ili `system` |
+| `id` | int identity | stalni ID kroz sve verzije šablona |
+| `naziv` | varchar(200) | kako piše na obrascu |
+| `oznaka` | varchar(100) | prazan string ako obrazac nema oznaku; `ux_uredjaj_naziv_oznaka` (naziv, oznaka) |
+| `sekcija_id` | int FK → `sekcija` | |
+| `vrsta` | varchar(100) | pri uvozu iz naziva („Merna vaga“, „Transporter“…) |
+| `status` | varchar(20) | `aktivan` / `van_upotrebe` (umesto brisanja) |
+| `qr_token` | uuid, `ux_uredjaj_qr_token` | QR nalepnica (faza 08) |
+| `created_*`, `updated_*` | | puni interceptor; `[Auditable]` |
+
+Ključ je par (naziv, oznaka), ne sama oznaka: DP1, DP2 i PZ1 su prepisani doslovno, pa ista oznaka ponegde ima dva naziva.
+
+### `aktivnost`
+| Kolona | Tip | Napomena |
+|---|---|---|
+| `naziv` | varchar(300) | `ux_aktivnost_naziv_odgovori` (naziv, odgovor_ispravan, odgovor_neispravan) |
+| `odgovor_ispravan`, `odgovor_neispravan` | varchar(50) | tačno dva odgovora (R2.1) |
+| `uputstvo_tekst`, `uputstvo_azurirao_id`, `uputstvo_azurirano_at` | | faza 10 |
+
+### `dodatno_polje`
+| Kolona | Tip | Napomena |
+|---|---|---|
+| `naziv` | varchar(200), unique | seed: „Broj rolni koje ne okreću“, „Temperatura ležaja“, „Broj nedostajućih / oštećenih komada“ |
+| `tip` | varchar(20) | `broj` / `merenje` / `dve_vrednosti` / `da_ne` |
+| `jedinica` | varchar(20) null | |
+| `oznake` | text[] | oznake vrednosti za `dve_vrednosti` |
+| `prikaz` | varchar(20) | `uvek` / `uz_neispravan` |
+| `obavezno` | boolean | |
+
+### `sablon`, `sablon_verzija`, `sablon_stavka`, `sablon_stavka_polje`, `sablon_dogadjaj`
+- `sablon` — `tip` unique (seed DP1…PZ4).
+- `sablon_verzija` — `sablon_id`, `broj` (`ux_sablon_verzija_broj`), `status` (`nacrt`/`objavljena`/`zamenjena`), `vazi_od`, `objavio_id`, `objavljeno_at`; `[Auditable]`. Objavljena se ne menja.
+- `sablon_stavka` — `verzija_id`, `sekcija_id`, `uredjaj_id`, `aktivnost_id`, `redosled`, `kljuc uuid` (stalni ID stavke kroz verzije); jedinstveno (verzija, uređaj, aktivnost) i (verzija, ključ).
+- `sablon_stavka_polje` — PK (stavka, dodatno polje).
+- `sablon_dogadjaj` — `sablon_id`, `verzija_id`, `vrsta` (`prvi_uvoz`…), `opis`, `korisnik_id`, `at`.
+
+### `fajl`
+`putanja`, `mime`, `velicina`, `sha256`, `kreirano_at` — za slike (faze 04 i 10).
 
 ## 4. Ključne odluke (potvrđeno u kodu)
 
@@ -113,7 +150,7 @@ Indeksi: `ix_audit_log_entity_entity_id`, `ix_audit_log_created_at` (DESC). Appe
 
 Role `Inzenjer`, `Supervizor`, `Direktor`, `Admin`; nalozi sa starom rolom `Korisnik` prelaze u `Inzenjer`, a nalog bez ijednog prava
 dobija podrazumevana prava svoje role; inicijalni admin iz `Admin:*` (samo ako nijedan admin ne postoji; odbija praznu/`Admin123!`); audit `START`.
-Nema seed-a kategorija — dodaj `Application/Common/Seed/<Sta>SeedSource.cs` + poziv u `SeedData` kad domen ima šifarnike (samo ako je tabela prazna).
+Sekcije, šabloni i tri dodatna polja su seed u migracijama (`HasData`); registar i katalog nastaju prvim uvozom šablona. Ostali šifarnici: `Application/Common/Seed/<Sta>SeedSource.cs` + poziv u `SeedData` (samo ako je tabela prazna).
 
 ## 6. Migracije
 
@@ -121,3 +158,4 @@ Nema seed-a kategorija — dodaj `Application/Common/Seed/<Sta>SeedSource.cs` + 
 |---|---|
 | `InitialCreate` | Identity, `refresh_token`, `audit_log`, `kategorija` |
 | `Osnova` | `korisnik_pravo`, `podesavanje`, `brojac`, `sekcija` (+ seed sekcija) |
+| `OpremaISabloni` | registar, katalog, dodatna polja, šabloni i verzije, istorijat, `fajl`; briše `kategorija` |

@@ -170,7 +170,7 @@ try
         {
             doc.Info.Title       = $"{NazivAplikacije} — API";
             doc.Info.Version     = "v1";
-            doc.Info.Description = "Backend aplikacije TPM pregledi: autentifikacija, korisnici, audit log, stanje servera i primer šifarnika (kategorije).";
+            doc.Info.Description = "Backend aplikacije TPM pregledi: autentifikacija, korisnici, audit log, stanje servera, registar opreme i šabloni pregleda.";
             return Task.CompletedTask;
         });
     });
@@ -221,7 +221,7 @@ try
     app.MapKorisniciEndpoints();
     app.MapSekcijeEndpoints();
     app.MapPodesavanjaEndpoints();
-    app.MapKategorijeEndpoints();                 // PRIMER feature-a — kopiraj ili obriši
+    app.MapOpremaISabloniEndpoints();
     app.MapAuditEndpoints();
     app.MapServerStanjeEndpoints();
 

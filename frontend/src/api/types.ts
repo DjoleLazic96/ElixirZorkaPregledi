@@ -144,7 +144,7 @@ export interface AuditRedDto {
   vreme: string;
   korisnik: string | null;
   akcija: AuditAkcija;
-  /** CLR ime entiteta (`Kategorija`, `ApplicationUser`, `Auth`, `Sistem`). */
+  /** CLR ime entiteta (`Uredjaj`, `ApplicationUser`, `Auth`, `Sistem`). */
   entitet: string;
   /** Srpska labela sa backenda (`EntitetLabele`). */
   entitetLabela: string;
@@ -215,33 +215,98 @@ export interface ServerStanje {
   host: HostStanje | null;
 }
 
-// ─── Kategorije — PRIMER feature-a (šifarnik sa paginacijom) ──────────────
-export interface KategorijaDto {
-  id: number;
-  sifra: string;
-  naziv: string;
-  opis: string | null;
-  aktivan: boolean;
-  createdAt: string;
-  updatedAt: string | null;
-}
-
-/** `POST /kategorije` i `PUT /kategorije/{id}` */
-export interface KategorijaInput {
-  sifra: string;
-  naziv: string;
-  opis: string | null;
-}
-
-export type KategorijaSort = 'sifra' | 'naziv';
+/** Smer sortiranja tabela (`SortableTh`). */
 export type Smer = 'asc' | 'desc';
 
-export interface KategorijeFilteri {
-  stranica: number;
-  velicina: number;
-  pretraga?: string;
-  sort: KategorijaSort;
-  smer: Smer;
-  /** undefined = i aktivne i neaktivne. */
-  aktivan?: boolean;
+// ─── Registar opreme, katalog, šabloni ────────────────────────────────────
+export type StatusUredjaja = 'aktivan' | 'van_upotrebe';
+
+export interface UredjajDto {
+  id: number;
+  naziv: string;
+  /** Prazno ako obrazac nema oznaku (npr. „HL1“). */
+  oznaka: string;
+  sekcijaId: number;
+  sekcija: string;
+  vrsta: string;
+  status: StatusUredjaja;
+  /** Tipovi šablona čija važeća verzija sadrži uređaj. */
+  sabloni: string[];
+}
+
+/** `POST /uredjaji`, `PUT /uredjaji/{id}` */
+export interface UredjajInput {
+  naziv: string;
+  oznaka: string;
+  sekcijaId: number;
+  vrsta: string;
+}
+
+export interface AktivnostDto {
+  id: number;
+  naziv: string;
+  odgovorIspravan: string;
+  odgovorNeispravan: string;
+  brojStavki: number;
+}
+
+export interface AktivnostInput {
+  naziv: string;
+  odgovorIspravan: string;
+  odgovorNeispravan: string;
+}
+
+export interface DodatnoPoljeDto {
+  id: number;
+  naziv: string;
+  tip: 'broj' | 'merenje' | 'dve_vrednosti' | 'da_ne';
+  jedinica: string | null;
+  oznake: string[];
+  prikaz: 'uvek' | 'uz_neispravan';
+  obavezno: boolean;
+}
+
+export interface SablonPregledDto {
+  tip: string;
+  /** null = šablon još nije uvezen. */
+  vazecaVerzija: number | null;
+  vaziOd: string | null;
+  brojStavki: number;
+  brojUredjaja: number;
+}
+
+export interface StavkaDto {
+  stavkaId: number;
+  kljuc: string;
+  aktivnostId: number;
+  aktivnost: string;
+  odgovorIspravan: string;
+  odgovorNeispravan: string;
+  polja: string[];
+}
+
+export interface UredjajUSablonuDto {
+  uredjajId: number;
+  naziv: string;
+  oznaka: string;
+  stavke: StavkaDto[];
+}
+
+export interface SekcijaUSablonuDto {
+  sifra: string;
+  uredjaji: UredjajUSablonuDto[];
+}
+
+export interface SablonVerzijaDto {
+  tip: string;
+  broj: number;
+  status: string;
+  vaziOd: string | null;
+  sekcije: SekcijaUSablonuDto[];
+}
+
+export interface UvozRezultatDto {
+  sabloni: { tip: string; stavki: number; uredjaja: number }[];
+  novihUredjaja: number;
+  novihAktivnosti: number;
 }

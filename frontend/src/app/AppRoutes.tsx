@@ -8,7 +8,8 @@ import { KorisniciPage } from '../features/admin/korisnici/KorisniciPage';
 import { AuditLogPage } from '../features/audit-log/AuditLogPage';
 import { useAuth } from '../features/auth/AuthProvider';
 import { LoginPage } from '../features/auth/LoginPage';
-import { KategorijePage } from '../features/kategorije/KategorijePage';
+import { SabloniPage } from '../features/sabloni/SabloniPage';
+import { UredjajiPage } from '../features/sabloni/UredjajiPage';
 import { StanjeServeraPage } from '../features/stanje-servera/StanjeServeraPage';
 import { canSeeAdminSection, imaPravo, isAdmin, isKorisnik } from '../lib/permissions';
 import { AppLayout } from './layout/AppLayout';
@@ -17,7 +18,7 @@ import { AppLayout } from './layout/AppLayout';
  * Mapa ruta (blueprint 13 §4).
  *   - inicijalizacija → ceo ekran „Učitavanje…" (proverava se postojeća sesija)
  *   - neulogovan → samo /login, sve ostalo preusmerava tamo
- *   - ulogovan → landing je /kategorije za sve role; svaka ruta ima `Zasticeno`
+ *   - ulogovan → landing je /sabloni za sve role (do Početne iz faze 08); svaka ruta ima `Zasticeno`
  *     guard, a nepoznata adresa daje 404 stranicu (ne tihi redirect)
  */
 export function AppRoutes() {
@@ -34,7 +35,7 @@ export function AppRoutes() {
     );
   }
 
-  const landing = '/kategorije';
+  const landing = '/sabloni';
 
   return (
     <Routes>
@@ -44,10 +45,18 @@ export function AppRoutes() {
         <Route path="/" element={<Navigate to={landing} replace />} />
 
         <Route
-          path="/kategorije"
+          path="/sabloni"
           element={
             <Zasticeno allowed={isKorisnik(me)} landing={landing}>
-              <KategorijePage />
+              <SabloniPage />
+            </Zasticeno>
+          }
+        />
+        <Route
+          path="/uredjaji"
+          element={
+            <Zasticeno allowed={isKorisnik(me)} landing={landing}>
+              <UredjajiPage />
             </Zasticeno>
           }
         />

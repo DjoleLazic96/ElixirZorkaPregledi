@@ -19,13 +19,13 @@
 
 | Projekat | Odgovornost | Ključni fajlovi |
 |---|---|---|
-| `TpmPregledi.Domain` | entiteti i bazne klase; Identity tipovi; konstante rola | `Common/AuditableEntity.cs`, `SoftDeletableEntity.cs`, `AuditableAttribute.cs`; `Entities/Kategorija.cs`, `AuditLog.cs`; `Identity/ApplicationUser.cs`, `RefreshToken.cs`, `Roles.cs` |
-| `TpmPregledi.Application` | komande/upiti/handleri po feature-u; interfejsi; validacija; izuzeci; paginacija | `Features/{Auth,Korisnici,Audit,ServerStanje,Version,Kategorije}/`; `Common/Behaviors/ValidationBehavior.cs`; `Common/Exceptions/AppExceptions.cs`; `Common/Pagination/StranicaDto.cs`; `Common/DatumHelper.cs`; `Common/Interfaces/*` |
+| `TpmPregledi.Domain` | entiteti i bazne klase; Identity tipovi; konstante rola | `Common/AuditableEntity.cs`, `SoftDeletableEntity.cs`, `AuditableAttribute.cs`; `Entities/Oprema.cs`, `Sabloni.cs`, `AuditLog.cs`; `Identity/ApplicationUser.cs`, `RefreshToken.cs`, `Roles.cs` |
+| `TpmPregledi.Application` | komande/upiti/handleri po feature-u; interfejsi; validacija; izuzeci; paginacija | `Features/{Auth,Korisnici,Audit,ServerStanje,Version,Sekcije,Podesavanja,Uredjaji,Aktivnosti,DodatnaPolja,Sabloni}/`; `Common/Behaviors/ValidationBehavior.cs`; `Common/Exceptions/AppExceptions.cs`; `Common/Pagination/StranicaDto.cs`; `Common/DatumHelper.cs`; `Common/Interfaces/*` |
 | `TpmPregledi.Infrastructure` | EF Core + Postgres; Identity/JWT; audit; hardver; vreme; verzija | `Persistence/AppDbContext.cs`, `Interceptors/AuditSaveChangesInterceptor.cs`, `Migrations/`, `Seed/SeedData.cs`; `Identity/JwtTokenService.cs`, `CurrentUserService.cs`; `Audit/AuditDogadjaji.cs`; `ServerStanje/*`; `Time/SystemDateTimeProvider.cs`; `Version/AppVersion.cs`; `DependencyInjection.cs` |
 | `TpmPregledi.Api` | kompozicioni koren, endpointi, middleware | `Program.cs`; `Endpoints/*Endpoints.cs`; `Middleware/ExceptionHandlingMiddleware.cs` |
 
 Zavisnosti: `Api → Application, Infrastructure, Domain`; `Infrastructure → Application, Domain`; `Application → Domain`. Domain ne zna za EF ni ASP.NET.
-Feature = folder `Features/<Feature>/{Commands,Queries,Dtos}`; jedan fajl = `sealed record` komanda + validator + handler. Obrazac: `Features/Kategorije/`.
+Feature = folder `Features/<Feature>/{Commands,Queries,Dtos}`; jedan fajl = `sealed record` komanda + validator + handler. Obrazac: `Features/Uredjaji/` (jedan fajl po celini: DTO-i, upiti, komande, validatori, handler).
 
 ## 3. Tok zahteva
 
@@ -62,7 +62,7 @@ HTTP → ForwardedHeaders → HSTS → sigurnosni hederi → Serilog request log
 ## 6. Frontend
 
 React 19 + TS + Vite 8 + Tailwind 4; React Router 7; TanStack Query 5; axios. `src/`: `api/` (klijent + tipovi), `app/` (rute, layout,
-provideri), `components/` (ui kit + Zasticeno, ErrorBoundary, NijePronadjeno, OAplikaciji, PromenaLozinke), `features/` (auth, kategorije —
+provideri), `components/` (ui kit + Zasticeno, ErrorBoundary, NijePronadjeno, OAplikaciji, PromenaLozinke), `features/` (auth, sabloni —
 PRIMER, admin/korisnici, audit-log, stanje-servera), `lib/` (cn, permissions, apiError, datum, broj, period, download, verzija).
 Backend je autoritativan za pristup; frontend ogleda (`Zasticeno` na svakoj ruti, `NAV visibleIf`). Dev: Vite proxy `/api` → `:8080`.
 

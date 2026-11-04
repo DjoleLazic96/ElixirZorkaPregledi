@@ -14,16 +14,16 @@ function renderSidebar(roles: string[]) {
 }
 
 describe('Sidebar — navigacija po roli', () => {
-  it('Admin vidi sve četiri stavke', () => {
+  it('Admin vidi sve stavke', () => {
     renderSidebar(['Admin']);
-    ['Kategorije', 'Administracija', 'Audit log', 'Stanje servera'].forEach((l) =>
+    ['Šabloni', 'Uređaji', 'Administracija', 'Audit log', 'Stanje servera'].forEach((l) =>
       expect(screen.getByRole('link', { name: l })).toBeInTheDocument(),
     );
   });
 
-  it('Inženjer vidi samo Kategorije', () => {
+  it('Inženjer vidi Šablone i Uređaje, bez administracije', () => {
     renderSidebar(['Inzenjer']);
-    expect(screen.getByRole('link', { name: 'Kategorije' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Šabloni' })).toBeInTheDocument();
     ['Administracija', 'Audit log', 'Stanje servera'].forEach((l) =>
       expect(screen.queryByRole('link', { name: l })).not.toBeInTheDocument(),
     );

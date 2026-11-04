@@ -31,8 +31,33 @@ public interface IAppDbContext
     /// <summary>Podešavanja aplikacije (ključ → JSON).</summary>
     DbSet<Podesavanje> Podesavanja { get; }
 
-    /// <summary>PRIMER feature-a — kopiraj ili obriši: šifarnik kategorija.</summary>
-    DbSet<Kategorija> Kategorije { get; }
+    /// <summary>Registar opreme.</summary>
+    DbSet<Uredjaj> Uredjaji { get; }
+
+    /// <summary>Katalog aktivnosti.</summary>
+    DbSet<Aktivnost> Aktivnosti { get; }
+
+    /// <summary>Dodatna polja uz aktivnosti.</summary>
+    DbSet<DodatnoPolje> DodatnaPolja { get; }
+
+    /// <summary>Šest šablona.</summary>
+    DbSet<Sablon> Sabloni { get; }
+
+    /// <summary>Verzije šablona.</summary>
+    DbSet<SablonVerzija> SablonVerzije { get; }
+
+    /// <summary>Stavke verzija.</summary>
+    DbSet<SablonStavka> SablonStavke { get; }
+
+    /// <summary>Dodatna polja na stavkama.</summary>
+    DbSet<SablonStavkaPolje> SablonStavkaPolja { get; }
+
+    /// <summary>Istorijat šablona.</summary>
+    DbSet<SablonDogadjaj> SablonDogadjaji { get; }
+
+    /// <summary>Fajlovi na volumenu.</summary>
+    DbSet<Fajl> Fajlovi { get; }
+
 
     /// <summary>Snima promene (audit interceptor radi u istoj transakciji).</summary>
     Task<int> SaveChangesAsync(CancellationToken ct = default);

@@ -13,8 +13,8 @@
 
 ## Kako radi 400 vs 422
 
-`POST /kategorije` sa praznom šifrom → 400 `{"errors":{"sifra":["Šifra je obavezna."]}}` (ključevi camelCase kao u JSON-u).
-`POST /kategorije` sa šifrom koja već postoji (aktivna) → 422 `{"greske":["Kategorija sa ovom šifrom već postoji."]}`.
+`POST /uredjaji` bez naziva → 400 `{"errors":{"input.Naziv":["Naziv uređaja je obavezan."]}}`.
+`POST /uredjaji` sa parom (naziv, oznaka) koji već postoji → 422 `{"greske":["Uređaj „Redler 20-CR-05“ već postoji u registru."]}`.
 Isto za korisnike: zauzeto korisničko ime → 422. 409 je rezervisan za konkurentnu izmenu (nema ga u skeletu).
 
 ## Rute
@@ -72,14 +72,22 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 |---|---|---|
 | GET | `/stanje-servera` | `{ aplikacija, baza, host }` — vidi blueprint 10 §1 |
 
-### `/kategorije` — PRIMER
+### Registar opreme, katalog, šabloni
+Čitanje: RequireKorisnik. Izmene registra i kataloga: `Pravo:sabloni.nacrt`. Uvoz i nova dodatna polja: RequireAdmin.
+
 | Metod | Ruta | Politika | Svrha |
 |---|---|---|---|
-| GET | `/kategorije?stranica&velicina&pretraga&sort=sifra\|naziv&smer&aktivan` | RequireKorisnik | `StranicaDto<KategorijaDto>` |
-| GET | `/kategorije/{id}` | RequireKorisnik | `KategorijaDto` / 404 |
-| POST | `/kategorije` | RequireAdmin | `KategorijaInput` → 201 + Location |
-| PUT | `/kategorije/{id}` | RequireAdmin | `KategorijaInput` → 200 |
-| POST | `/kategorije/{id}/deaktiviraj` · `/aktiviraj` | RequireAdmin | 200 |
+| GET | `/uredjaji?sekcijaId&status&pretraga&bezSablona` | RequireKorisnik | `UredjajDto[]` (sa `sabloni[]` — tipovi važećih verzija koje ga sadrže) |
+| GET | `/uredjaji/{id}` | RequireKorisnik | `UredjajDto` / 404 |
+| POST · PUT | `/uredjaji` · `/uredjaji/{id}` | sabloni.nacrt | `{ naziv, oznaka, sekcijaId, vrsta }`; 422 duplikat (naziv, oznaka) |
+| POST | `/uredjaji/{id}/van-upotrebe` · `/u-upotrebi` | sabloni.nacrt | status umesto brisanja |
+| GET | `/aktivnosti` | RequireKorisnik | `AktivnostDto[]` (sa `brojStavki`) |
+| POST · PUT | `/aktivnosti` · `/aktivnosti/{id}` | sabloni.nacrt | `{ naziv, odgovorIspravan, odgovorNeispravan }`; 422 promena para odgovora aktivnosti iz važećeg šablona |
+| GET | `/dodatna-polja` | RequireKorisnik | `DodatnoPoljeDto[]` |
+| POST | `/dodatna-polja` | RequireAdmin | `{ naziv, tip, jedinica, oznake, prikaz, obavezno }` |
+| GET | `/sabloni` | RequireKorisnik | šest šablona: `{ tip, vazecaVerzija, vaziOd, brojStavki, brojUredjaja }` |
+| GET | `/sabloni/{tip}` · `/sabloni/{tip}/verzije/{broj}` | RequireKorisnik | `SablonVerzijaDto`: sekcije → uređaji → stavke (aktivnost, odgovori, polja, `kljuc`) |
+| POST | `/sabloni/uvoz` | RequireAdmin | multipart `fajl` (.xlsx ≤ 5 MB, list „Stavke“) → `{ sabloni[], novihUredjaja, novihAktivnosti }`; 422 `greske[]` „Red N (…): …“ (sve ili ništa), 422 za već uvezen šablon |
 
 ### `/_diag` (samo Development)
 Rute kojima integracioni testovi dokazuju politike: `/_diag/korisnik` (RequireKorisnik), `/_diag/admin-only` (RequireAdmin).
@@ -89,23 +97,21 @@ Rute kojima integracioni testovi dokazuju politike: `/_diag/korisnik` (RequireKo
 ```jsonc
 // LoginResponse
 { "accessToken": "eyJ…", "expiresAt": "2026-10-12T09:45:00Z",
-  "user": { "id": "…", "userName": "admin", "fullName": "Inicijalni Admin", "email": "admin@tpm-pregledi.elixirgroup.rs" }, "roles": ["Admin"] }
+  "user": { "id": "…", "userName": "admin", "fullName": "Inicijalni Admin", "email": "admin@tpm-pregledi.elixirgroup.rs" }, "roles": ["Admin"], "prava": ["analitika", "sabloni.nacrt", "neradni_dani", "korisnici", "podesavanja"] }
 
 // KorisnikDto
-{ "id": "…", "korisnickoIme": "mpetrovic", "ime": "Marko Petrović", "email": null, "rola": "Korisnik", "aktivan": true, "poslednjaPrijava": "2026-10-12T07:12:00Z" }
+{ "id": "…", "korisnickoIme": "mpetrovic", "ime": "Marko Petrović", "email": null, "rola": "Inzenjer", "prava": ["pregledi.popunjavanje", "analitika"], "aktivan": true, "poslednjaPrijava": "2026-10-12T07:12:00Z" }
 // KorisnikInput (POST)
-{ "korisnickoIme": "mpetrovic", "ime": "Marko Petrović", "email": null, "lozinka": "Tajna2026!", "rola": "Korisnik" }
+{ "korisnickoIme": "mpetrovic", "ime": "Marko Petrović", "email": null, "lozinka": "Tajna2026!", "rola": "Inzenjer" }
 
-// KategorijaDto
-{ "id": 1, "sifra": "MOT", "naziv": "Motori", "opis": null, "aktivan": true, "createdAt": "…", "updatedAt": null }
-// KategorijaInput
-{ "sifra": "MOT", "naziv": "Motori", "opis": null }
+// UredjajDto
+{ "id": 7, "naziv": "Merna vaga Sautelma", "oznaka": "10-C-07C", "sekcijaId": 1, "sekcija": "10", "vrsta": "Merna vaga", "status": "aktivan", "sabloni": ["DP1", "DP2"] }
 
 // StranicaDto<T>
 { "stavke": [ … ], "ukupno": 123, "stranica": 1, "velicina": 50 }
 
 // AuditRedDto
-{ "id": 1, "vreme": "…", "korisnik": "admin", "akcija": "UPDATE", "entitet": "Kategorija", "entitetLabela": "Kategorija",
+{ "id": 1, "vreme": "…", "korisnik": "admin", "akcija": "UPDATE", "entitet": "Uredjaj", "entitetLabela": "Uređaj",
   "entitetId": "1", "ip": "10.20.30.40", "stareVrednosti": "{…}", "noveVrednosti": "{…}" }
 
 // ServerStanjeDto — blueprint 10 §1
@@ -115,4 +121,4 @@ Rute kojima integracioni testovi dokazuju politike: `/_diag/korisnik` (RequireKo
 
 ## Model pristupa (sažetak)
 
-Anonimno: health, version, login, refresh. Svaki ulogovani: me, logout, change-password. `Korisnik`: čita kategorije. `Admin`: sve.
+Anonimno: health, version, login, refresh. Svaki ulogovani: me, logout, change-password. Svaka od četiri role: čita sekcije, registar, katalog i šablone. Ostalo po pravu (`docs/04`).

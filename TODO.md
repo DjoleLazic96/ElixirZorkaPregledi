@@ -19,7 +19,8 @@
 ### Faza 02 — prva isporuka (ceo spec)
 - [x] 2026-11-04 — plan `docs/superpowers/plans/`: `00-overview.md` (faze 01–11), detaljno `01-osnova.md` i `02-oprema-i-sabloni.md`
 - [x] 2026-11-04 — faza 01: četiri role, prava štikliranjem, podešavanja, sekcije, brojači (`01-osnova.md`)
-- [ ] faza 02: registar opreme, katalog, šabloni sa verzijama i uvoz (`02-oprema-i-sabloni.md`)
+- [x] 2026-11-04 — faza 02: registar opreme, katalog, dodatna polja, šabloni sa verzijama, uvoz iz .xlsx (`02-oprema-i-sabloni.md`)
+- [ ] naziv uređaja za red PZ1 sekcija 21 bez naziva (bez njega uvoz `sabloni-za-uvoz.xlsx` vraća 422)
 - [ ] mobilni raspored (donji meni umesto bočnog) — čeka PREDLOG „mobilni prikaz“; do tada je skelet na telefonu neupotrebljiv (bočni meni 240 px)
 - [ ] raspored, kalendar, odsustva, neradni dani, prebacivanja
 - [ ] popunjavanje i rad bez interneta (PWA, sinhronizacija, slike)

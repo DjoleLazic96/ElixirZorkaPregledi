@@ -6,11 +6,13 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- **Šabloni**: šest šablona pregleda (DP1, DP2, PZ1–PZ4) prikazani kao papirni obrasci, katalog aktivnosti i dodatna polja; administrator ih uvozi iz Excela.
+- **Uređaji**: registar opreme sa pretragom, filterima i statusom „van upotrebe“.
 - Četiri role: Inženjer, Supervizor, Direktor i Administrator; administrator svakom korisniku štiklira prava (**Administracija → Korisnici → Prava**).
 - **Administracija → Podešavanja**: vremena upozorenja, kraj radnog dana, granica pauze, rok za overu i pragovi obaveštenja.
 
 ### Izmenjeno
-- 
+- Uklonjen primer „Kategorije“ iz skeleta; početni ekran je **Šabloni**.
 
 ### Ispravljeno
 - 

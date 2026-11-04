@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Activity, ScrollText, Settings, Tag, type LucideIcon } from 'lucide-react';
+import { Activity, ScrollText, Settings, type LucideIcon, ClipboardList, Wrench } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { canSeeAdminSection, isAdmin, type Pristup } from '../../lib/permissions';
 import { GIT_SHA, VERZIJA } from '../../lib/verzija';
@@ -13,7 +13,8 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { to: '/kategorije', label: 'Kategorije', icon: Tag },
+  { to: '/sabloni', label: 'Šabloni', icon: ClipboardList },
+  { to: '/uredjaji', label: 'Uređaji', icon: Wrench },
   { to: '/admin', label: 'Administracija', icon: Settings, visibleIf: canSeeAdminSection },
   // Dijagnostika — zasebne stavke, ne pod Administracijom: nisu šifarnici i
   // otvaraju se povremeno, pa im je mesto u glavnom meniju, ne u pod-tabovima.

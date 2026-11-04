@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using TpmPregledi.Api.IntegrationTests.Infrastructure;
 using TpmPregledi.Application.Common.Pagination;
 using TpmPregledi.Application.Features.Audit.Dtos;
-using TpmPregledi.Application.Features.Kategorije.Dtos;
+using TpmPregledi.Application.Features.Uredjaji;
 
 namespace TpmPregledi.Api.IntegrationTests.Endpoints;
 
@@ -71,18 +71,18 @@ public class AuditEndpointsTests(CustomWebAppFactory factory)
     }
 
     [Fact]
-    public async Task Kreiranje_kategorije_ostavlja_CREATE_red_sa_imenom_korisnika()
+    public async Task Kreiranje_uredjaja_ostavlja_CREATE_red_sa_imenom_korisnika()
     {
         var admin = await factory.AdminClientAsync();
         var sifra = "AUD-" + Guid.NewGuid().ToString("N")[..6];
-        var dto = await (await admin.PostAsJsonAsync("/api/v1/kategorije", new KategorijaInput(sifra, "Audit test", null)))
-            .Content.ReadFromJsonAsync<KategorijaDto>();
+        var dto = await (await admin.PostAsJsonAsync("/api/v1/uredjaji", new UredjajInput("Audit test", sifra, 1, "Test")))
+            .Content.ReadFromJsonAsync<UredjajDto>();
 
-        var page = await admin.GetFromJsonAsync<StranicaDto<AuditRedDto>>("/api/v1/audit?entitet=Kategorija&akcija=CREATE");
+        var page = await admin.GetFromJsonAsync<StranicaDto<AuditRedDto>>("/api/v1/audit?entitet=Uredjaj&akcija=CREATE");
 
         var red = page!.Stavke.Should().Contain(s => s.EntitetId == dto!.Id.ToString()).Subject;
         red.Korisnik.Should().Be("admin");
-        red.EntitetLabela.Should().Be("Kategorija");
+        red.EntitetLabela.Should().Be("Uređaj");
         red.StareVrednosti.Should().BeNull();
         red.NoveVrednosti.Should().Contain(sifra);
     }
@@ -108,7 +108,7 @@ public class AuditEndpointsTests(CustomWebAppFactory factory)
 
         var lista = await admin.GetFromJsonAsync<List<EntitetLabelaDto>>("/api/v1/audit/entiteti");
 
-        lista.Should().Contain(e => e.Entitet == "Kategorija" && e.Labela == "Kategorija");
+        lista.Should().Contain(e => e.Entitet == "Uredjaj" && e.Labela == "Uređaj");
         lista.Should().Contain(e => e.Entitet == "ApplicationUser" && e.Labela == "Korisnik");
         lista.Should().Contain(e => e.Entitet == "Auth" && e.Labela == "Prijava");
         lista.Should().Contain(e => e.Entitet == "Sistem" && e.Labela == "Sistem");

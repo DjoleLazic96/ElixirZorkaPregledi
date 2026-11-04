@@ -22,8 +22,8 @@ public class AuditInterceptorTests
     public async Task CREATE_pise_red_sa_novim_vrednostima_i_puni_created_kolone()
     {
         await using var ctx = InMemoryDb.New(new FakeCurrentUser(), Sat);
-        var k = new Kategorija { Sifra = "K1", Naziv = "Prva" };
-        ctx.Kategorije.Add(k);
+        var k = new Uredjaj { Naziv = "Prva", Oznaka = "K1", SekcijaId = 1, Vrsta = "Prva" };
+        ctx.Uredjaji.Add(k);
 
         await ctx.SaveChangesAsync();
 
@@ -34,21 +34,21 @@ public class AuditInterceptorTests
 
         var log = await ctx.AuditLog.SingleAsync();
         log.Action.Should().Be("CREATE");
-        log.Entity.Should().Be(nameof(Kategorija));
+        log.Entity.Should().Be(nameof(Uredjaj));
         log.EntityId.Should().Be(k.Id.ToString());
         log.UserId.Should().Be("u-1");
         log.UserName.Should().Be("admin");
         log.IpAddress.Should().Be("10.1.2.3");
         log.OldValues.Should().BeNull();
-        JsonDocument.Parse(log.NewValues!).RootElement.GetProperty("Sifra").GetString().Should().Be("K1");
+        JsonDocument.Parse(log.NewValues!).RootElement.GetProperty("Oznaka").GetString().Should().Be("K1");
     }
 
     [Fact]
     public async Task UPDATE_pise_stare_i_nove_vrednosti_i_puni_updated_kolone()
     {
         await using var ctx = InMemoryDb.New(new FakeCurrentUser { UserId = "u-9", UserName = "marko" }, Sat);
-        var k = new Kategorija { Sifra = "K1", Naziv = "Prva" };
-        ctx.Kategorije.Add(k);
+        var k = new Uredjaj { Naziv = "Prva", Oznaka = "K1", SekcijaId = 1, Vrsta = "Prva" };
+        ctx.Uredjaji.Add(k);
         await ctx.SaveChangesAsync();
 
         Sat.UtcNow = Sat.UtcNow.AddHours(1);
@@ -68,11 +68,11 @@ public class AuditInterceptorTests
     public async Task DELETE_pise_samo_stare_vrednosti()
     {
         await using var ctx = InMemoryDb.New(new FakeCurrentUser(), Sat);
-        var k = new Kategorija { Sifra = "K1", Naziv = "Prva" };
-        ctx.Kategorije.Add(k);
+        var k = new Uredjaj { Naziv = "Prva", Oznaka = "K1", SekcijaId = 1, Vrsta = "Prva" };
+        ctx.Uredjaji.Add(k);
         await ctx.SaveChangesAsync();
 
-        ctx.Kategorije.Remove(k);
+        ctx.Uredjaji.Remove(k);
         await ctx.SaveChangesAsync();
 
         var log = await ctx.AuditLog.SingleAsync(a => a.Action == "DELETE");
@@ -139,8 +139,8 @@ public class AuditInterceptorTests
     public async Task Bez_prijavljenog_korisnika_ostali_entiteti_dobijaju_system()
     {
         await using var ctx = InMemoryDb.New(FakeCurrentUser.Anoniman, Sat);
-        var k = new Kategorija { Sifra = "SEED", Naziv = "Seed" };
-        ctx.Kategorije.Add(k);
+        var k = new Uredjaj { Naziv = "Seed", Oznaka = "SEED", SekcijaId = 1, Vrsta = "Seed" };
+        ctx.Uredjaji.Add(k);
         await ctx.SaveChangesAsync();
 
         k.CreatedBy.Should().Be("system");

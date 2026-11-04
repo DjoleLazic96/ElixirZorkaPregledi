@@ -13,8 +13,8 @@ namespace TpmPregledi.Infrastructure.Persistence;
 /// <remarks>
 /// <para>
 /// <b>Imenovanje:</b> <c>EFCore.NamingConventions</c> (<c>UseSnakeCaseNamingConvention</c>) samo
-/// snake_case-uje imena koja EF izvede (iz imena <c>DbSet</c>-a, tj. množina: <c>Kategorije</c> →
-/// <c>kategorije</c>). <b>Jednina</b> dolazi iz eksplicitnog <c>ToTable("kategorija")</c> — zato ga
+/// snake_case-uje imena koja EF izvede (iz imena <c>DbSet</c>-a, tj. množina: <c>Uredjaji</c> →
+/// <c>uredjaji</c>). <b>Jednina</b> dolazi iz eksplicitnog <c>ToTable("uredjaj")</c> — zato ga
 /// svaki entitet ima. Kolone i indeksi ostaju na konvenciji (<c>created_at</c>, <c>ix_…</c>);
 /// jedinstveni indeksi dobijaju eksplicitno <c>ux_…</c> ime.
 /// </para>
@@ -55,7 +55,32 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Sekcija> Sekcije => Set<Sekcija>();
 
     /// <inheritdoc />
-    public DbSet<Kategorija> Kategorije => Set<Kategorija>();   // PRIMER feature-a — kopiraj ili obriši
+    public DbSet<Uredjaj> Uredjaji => Set<Uredjaj>();
+
+    /// <inheritdoc />
+    public DbSet<Aktivnost> Aktivnosti => Set<Aktivnost>();
+
+    /// <inheritdoc />
+    public DbSet<DodatnoPolje> DodatnaPolja => Set<DodatnoPolje>();
+
+    /// <inheritdoc />
+    public DbSet<Sablon> Sabloni => Set<Sablon>();
+
+    /// <inheritdoc />
+    public DbSet<SablonVerzija> SablonVerzije => Set<SablonVerzija>();
+
+    /// <inheritdoc />
+    public DbSet<SablonStavka> SablonStavke => Set<SablonStavka>();
+
+    /// <inheritdoc />
+    public DbSet<SablonStavkaPolje> SablonStavkaPolja => Set<SablonStavkaPolje>();
+
+    /// <inheritdoc />
+    public DbSet<SablonDogadjaj> SablonDogadjaji => Set<SablonDogadjaj>();
+
+    /// <inheritdoc />
+    public DbSet<Fajl> Fajlovi => Set<Fajl>();
+
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder b)
@@ -65,7 +90,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         ConfigureIdentity(b);
         ConfigureSistem(b);
         ConfigureOsnova(b);
-        ConfigureKategorija(b);
+        ConfigureOprema(b);
+        ConfigureSabloni(b);
     }
 
     // ─── Identity + refresh tokeni ─────────────────────────────────────────
@@ -155,21 +181,132 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         });
     }
 
-    // ─── Kategorija (PRIMER feature-a — kopiraj ili obriši) ────────────────
+    // ─── Registar opreme, katalog aktivnosti, dodatna polja ─────────────────
 
-    private static void ConfigureKategorija(ModelBuilder b)
+    /// <summary>Fiksno vreme seed-a: HasData mora biti deterministički, a timestamptz ne prima Kind=Unspecified.</summary>
+    private static readonly DateTime Seed = new(2026, 11, 4, 0, 0, 0, DateTimeKind.Utc);
+
+    private static void ConfigureOprema(ModelBuilder b)
     {
-        b.Entity<Kategorija>(e =>
+        b.Entity<Uredjaj>(e =>
         {
-            e.ToTable("kategorija");
+            e.ToTable("uredjaj");
             e.HasKey(x => x.Id);
-            e.Property(x => x.Sifra).IsRequired().HasMaxLength(32);
+            e.Ignore(x => x.Prikaz);
             e.Property(x => x.Naziv).IsRequired().HasMaxLength(200);
-            e.Property(x => x.Opis).HasMaxLength(1000);
+            e.Property(x => x.Oznaka).IsRequired().HasMaxLength(100);
+            e.Property(x => x.Vrsta).IsRequired().HasMaxLength(100);
+            e.Property(x => x.Status).IsRequired().HasMaxLength(20);
             e.Property(x => x.CreatedBy).HasMaxLength(64);
             e.Property(x => x.UpdatedBy).HasMaxLength(64);
-            // Šifra jedinstvena samo među aktivnima — deaktivirana sme da deli šifru sa novom.
-            e.HasIndex(x => x.Sifra).IsUnique().HasFilter("aktivan = true").HasDatabaseName("ux_kategorija_sifra");
+            // Identitet je par (naziv, oznaka) kako piše na obrascu (plan faze 02).
+            e.HasIndex(x => new { x.Naziv, x.Oznaka }).IsUnique().HasDatabaseName("ux_uredjaj_naziv_oznaka");
+            e.HasIndex(x => x.QrToken).IsUnique().HasDatabaseName("ux_uredjaj_qr_token");
+            e.HasOne(x => x.Sekcija).WithMany().HasForeignKey(x => x.SekcijaId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<Aktivnost>(e =>
+        {
+            e.ToTable("aktivnost");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Naziv).IsRequired().HasMaxLength(300);
+            e.Property(x => x.OdgovorIspravan).IsRequired().HasMaxLength(50);
+            e.Property(x => x.OdgovorNeispravan).IsRequired().HasMaxLength(50);
+            e.Property(x => x.UputstvoTekst).HasMaxLength(4000);
+            e.Property(x => x.UputstvoAzuriraoId).HasMaxLength(64);
+            e.Property(x => x.CreatedBy).HasMaxLength(64);
+            e.Property(x => x.UpdatedBy).HasMaxLength(64);
+            e.HasIndex(x => new { x.Naziv, x.OdgovorIspravan, x.OdgovorNeispravan }).IsUnique()
+             .HasDatabaseName("ux_aktivnost_naziv_odgovori");
+        });
+
+        b.Entity<DodatnoPolje>(e =>
+        {
+            e.ToTable("dodatno_polje");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Naziv).IsRequired().HasMaxLength(200);
+            e.Property(x => x.Tip).IsRequired().HasMaxLength(20);
+            e.Property(x => x.Jedinica).HasMaxLength(20);
+            e.Property(x => x.Prikaz).IsRequired().HasMaxLength(20);
+            e.Property(x => x.CreatedBy).HasMaxLength(64);
+            e.Property(x => x.UpdatedBy).HasMaxLength(64);
+            e.HasIndex(x => x.Naziv).IsUnique().HasDatabaseName("ux_dodatno_polje_naziv");
+            // Tri početna polja (R2.11); nazivi moraju da se poklope sa kolonom „Dodatno polje“ šablona za uvoz.
+            e.HasData(
+                new DodatnoPolje { Id = 1, CreatedAt = Seed, CreatedBy = "system", Naziv = "Broj rolni koje ne okreću", Tip = "broj", Jedinica = "kom.", Prikaz = "uz_neispravan" },
+                new DodatnoPolje
+                {
+                    Id = 2, CreatedAt = Seed, CreatedBy = "system", Naziv = "Temperatura ležaja", Tip = "dve_vrednosti", Jedinica = "°C", Prikaz = "uz_neispravan",
+                    Oznake = ["ležaj do rotora", "ležaj do remenice/spojnice"],
+                },
+                new DodatnoPolje { Id = 3, CreatedAt = Seed, CreatedBy = "system", Naziv = "Broj nedostajućih / oštećenih komada", Tip = "broj", Jedinica = "kom.", Prikaz = "uz_neispravan" });
         });
     }
+
+    // ─── Šabloni i verzije ─────────────────────────────────────────────────
+
+    private static void ConfigureSabloni(ModelBuilder b)
+    {
+        b.Entity<Sablon>(e =>
+        {
+            e.ToTable("sablon");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Tip).IsRequired().HasMaxLength(8);
+            e.HasIndex(x => x.Tip).IsUnique().HasDatabaseName("ux_sablon_tip");
+            e.HasData(Sablon.Tipovi.Select((t, i) => new Sablon { Id = i + 1, Tip = t }));
+        });
+
+        b.Entity<SablonVerzija>(e =>
+        {
+            e.ToTable("sablon_verzija");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Status).IsRequired().HasMaxLength(20);
+            e.Property(x => x.ObjavioId).HasMaxLength(64);
+            e.HasIndex(x => new { x.SablonId, x.Broj }).IsUnique().HasDatabaseName("ux_sablon_verzija_broj");
+            e.HasOne(x => x.Sablon).WithMany().HasForeignKey(x => x.SablonId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<SablonStavka>(e =>
+        {
+            e.ToTable("sablon_stavka");
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.VerzijaId, x.UredjajId, x.AktivnostId }).IsUnique()
+             .HasDatabaseName("ux_sablon_stavka_uredjaj_aktivnost");
+            e.HasIndex(x => new { x.VerzijaId, x.Kljuc }).IsUnique().HasDatabaseName("ux_sablon_stavka_kljuc");
+            e.HasIndex(x => x.Kljuc);
+            e.HasOne(x => x.Verzija).WithMany(v => v.Stavke).HasForeignKey(x => x.VerzijaId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Uredjaj).WithMany().HasForeignKey(x => x.UredjajId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Aktivnost).WithMany().HasForeignKey(x => x.AktivnostId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Sekcija>().WithMany().HasForeignKey(x => x.SekcijaId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<SablonStavkaPolje>(e =>
+        {
+            e.ToTable("sablon_stavka_polje");
+            e.HasKey(x => new { x.StavkaId, x.DodatnoPoljeId });
+            e.HasOne<SablonStavka>().WithMany(s => s.Polja).HasForeignKey(x => x.StavkaId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.DodatnoPolje).WithMany().HasForeignKey(x => x.DodatnoPoljeId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<SablonDogadjaj>(e =>
+        {
+            e.ToTable("sablon_dogadjaj");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Vrsta).IsRequired().HasMaxLength(40);
+            e.Property(x => x.Opis).IsRequired().HasMaxLength(1000);
+            e.Property(x => x.KorisnikId).HasMaxLength(64);
+            e.HasIndex(x => new { x.SablonId, x.At });
+            e.HasOne<Sablon>().WithMany().HasForeignKey(x => x.SablonId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<Fajl>(e =>
+        {
+            e.ToTable("fajl");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Putanja).IsRequired().HasMaxLength(500);
+            e.Property(x => x.Mime).IsRequired().HasMaxLength(100);
+            e.Property(x => x.Sha256).IsRequired().HasMaxLength(64);
+        });
+    }
+
 }

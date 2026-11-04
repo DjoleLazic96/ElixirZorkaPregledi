@@ -26,7 +26,7 @@ Nalog Vam otvara administrator. Detalji: [1. Prijava i role](01-prijava-i-role.m
 | Dokument | Za koga | Šta pokriva |
 |---|---|---|
 | [1. Prijava i role](01-prijava-i-role.md) | svi | prijava, odjava, promena lozinke, šta koja rola vidi, „O aplikaciji" |
-| [2. Kategorije](02-kategorije.md) | svi (izmene: administrator) | *primer šifarnika iz skeleta — zameniti domenskim uputstvom* |
+| [8. Šabloni i uređaji](08-sabloni-i-uredjaji.md) | svi (izmene: Direktor, Administrator) | šabloni pregleda, registar opreme, katalog aktivnosti, uvoz |
 | [5. Upravljanje korisnicima](05-upravljanje-korisnicima.md) | administrator | nalozi, role, deaktivacija, reset lozinke |
 | [6. Audit log i stanje servera](06-audit-log-i-stanje-servera.md) | administrator | ko je šta promenio; zdravlje servera |
 | [7. Šta je novo](07-sta-je-novo.md) | svi | izmene po verzijama |
@@ -36,8 +36,9 @@ Nalog Vam otvara administrator. Detalji: [1. Prijava i role](01-prijava-i-role.m
 | Radnja | Korisnik | Administrator |
 |---|---|---|
 | Prijava, promena sopstvene lozinke | ✔ | ✔ |
-| Pregled kategorija | ✔ | ✔ |
-| Dodavanje i izmena kategorija | — | ✔ |
+| Pregled šablona i uređaja | ✔ | ✔ |
+| Dodavanje i izmena uređaja i aktivnosti | Direktor | ✔ |
+| Uvoz šablona iz Excela | — | ✔ |
 | Upravljanje nalozima | — | ✔ |
 | Audit log, Stanje servera | — | ✔ |
 

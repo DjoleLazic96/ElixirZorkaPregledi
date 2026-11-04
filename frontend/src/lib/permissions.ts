@@ -82,7 +82,12 @@ export function canSeeAdminSection(p: Pristup): boolean {
   return imaPravo(p, 'korisnici') || imaPravo(p, 'podesavanja');
 }
 
-/** Kreiranje/izmena/deaktivacija kategorija (primer feature-a, uklanja se u fazi 02) — Admin. */
-export function canEditKategorije(p: Pristup): boolean {
+/** Izmene registra opreme i kataloga aktivnosti (R2.3). */
+export function canEditOprema(p: Pristup): boolean {
+  return imaPravo(p, 'sabloni.nacrt');
+}
+
+/** Prvi uvoz šablona i nova dodatna polja — Admin (R2.13, R2.15). */
+export function canUvoziSablone(p: Pristup): boolean {
   return isAdmin(p);
 }

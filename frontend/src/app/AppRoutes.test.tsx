@@ -10,7 +10,8 @@ vi.mock('../features/auth/AuthProvider', () => ({
 }));
 
 // Stranice gađaju API — menjamo ih sentinelima da test ostane fokusiran na guardove.
-vi.mock('../features/kategorije/KategorijePage', () => ({ KategorijePage: () => <div>KATEGORIJE-EKRAN</div> }));
+vi.mock('../features/sabloni/SabloniPage', () => ({ SabloniPage: () => <div>SABLONI-EKRAN</div> }));
+vi.mock('../features/sabloni/UredjajiPage', () => ({ UredjajiPage: () => <div>UREDJAJI-EKRAN</div> }));
 vi.mock('../features/admin/korisnici/KorisniciPage', () => ({ KorisniciPage: () => <div>KORISNICI-EKRAN</div> }));
 vi.mock('../features/audit-log/AuditLogPage', () => ({ AuditLogPage: () => <div>AUDIT-EKRAN</div> }));
 vi.mock('../features/stanje-servera/StanjeServeraPage', () => ({
@@ -37,35 +38,35 @@ function renderAt(ruta: string, me: CurrentUserResponse | null | undefined, init
 
 describe('AppRoutes — guardovi', () => {
   it('dok se proverava sesija prikazuje „Učitavanje…" preko celog ekrana', () => {
-    renderAt('/kategorije', null, true);
+    renderAt('/sabloni', null, true);
     expect(screen.getByRole('status')).toHaveTextContent('Učitavanje…');
   });
 
   it('neulogovan korisnik na bilo kojoj ruti vidi stranicu za prijavu', () => {
-    renderAt('/kategorije', undefined);
+    renderAt('/sabloni', undefined);
     expect(screen.getByRole('heading', { name: 'TPM pregledi' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Prijavi se' })).toBeInTheDocument();
   });
 
-  it('ulogovan korisnik na / i na /login završava na /kategorije', () => {
+  it('ulogovan korisnik na / i na /login završava na /sabloni', () => {
     renderAt('/', KORISNIK);
-    expect(screen.getByText('KATEGORIJE-EKRAN')).toBeInTheDocument();
+    expect(screen.getByText('SABLONI-EKRAN')).toBeInTheDocument();
   });
 
   it('ulogovan korisnik na /login biva vraćen na landing', () => {
     renderAt('/login', ADMIN);
-    expect(screen.getByText('KATEGORIJE-EKRAN')).toBeInTheDocument();
+    expect(screen.getByText('SABLONI-EKRAN')).toBeInTheDocument();
   });
 
-  it('Korisnik na /admin biva vraćen na /kategorije (ne vidi korisnike)', () => {
+  it('Korisnik na /admin biva vraćen na /sabloni (ne vidi korisnike)', () => {
     renderAt('/admin', KORISNIK);
-    expect(screen.getByText('KATEGORIJE-EKRAN')).toBeInTheDocument();
+    expect(screen.getByText('SABLONI-EKRAN')).toBeInTheDocument();
     expect(screen.queryByText('KORISNICI-EKRAN')).not.toBeInTheDocument();
   });
 
-  it('Korisnik na /audit-log i /stanje-servera biva vraćen na /kategorije', () => {
+  it('Korisnik na /audit-log i /stanje-servera biva vraćen na /sabloni', () => {
     renderAt('/audit-log', KORISNIK);
-    expect(screen.getByText('KATEGORIJE-EKRAN')).toBeInTheDocument();
+    expect(screen.getByText('SABLONI-EKRAN')).toBeInTheDocument();
     expect(screen.queryByText('AUDIT-EKRAN')).not.toBeInTheDocument();
   });
 
@@ -84,6 +85,6 @@ describe('AppRoutes — guardovi', () => {
     renderAt('/ne-postoji', KORISNIK);
     expect(screen.getByRole('heading', { name: 'Stranica nije pronađena.' })).toBeInTheDocument();
     // Layout (sidebar) je i dalje tu.
-    expect(screen.getByRole('link', { name: /Kategorije/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Šabloni/ })).toBeInTheDocument();
   });
 });

@@ -20,8 +20,8 @@ public class IdentitySchemaTests(CustomWebAppFactory factory)
     {
         var tabele = await UpitAsync("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
 
-        tabele.Should().Contain(["AspNetUsers", "AspNetRoles", "AspNetUserRoles", "refresh_token", "audit_log", "kategorija"]);
-        tabele.Should().NotContain(["refresh_tokens", "kategorije", "asp_net_users"]);
+        tabele.Should().Contain(["AspNetUsers", "AspNetRoles", "AspNetUserRoles", "refresh_token", "audit_log", "uredjaj", "sablon_stavka"]);
+        tabele.Should().NotContain(["refresh_tokens", "uredjaji", "asp_net_users", "kategorija"]);
     }
 
     [Fact]

@@ -111,7 +111,7 @@ public class KorisniciEndpointsTests(CustomWebAppFactory factory)
         (await login.Content.ReadFromJsonAsync<LoginResponse>())!.Roles.Should().Equal(Roles.Inzenjer);
 
         var korisnik = await factory.AuthenticatedClientAsync(ime, Lozinka);
-        (await korisnik.GetAsync("/api/v1/kategorije")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await korisnik.GetAsync("/api/v1/sabloni")).StatusCode.Should().Be(HttpStatusCode.OK);
         (await korisnik.GetAsync("/api/v1/korisnici")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 

@@ -43,7 +43,7 @@ može svakom korisniku da doda ili oduzme pojedinačna prava (vidi poglavlje 5).
 
 | Stavka u levom meniju | Ko je vidi |
 |---|---|
-| Kategorije | svi (izmene samo Administrator) |
+| Šabloni, Uređaji | svi (izmene uređaja i aktivnosti: pravo „Registar opreme i nacrt šablona“) |
 | Administracija | ko ima pravo „Korisnici i prava“ ili „Podešavanja“ (podrazumevano Administrator) |
 | Audit log, Stanje servera | Administrator |
 

@@ -72,6 +72,7 @@ public static class DependencyInjection
         // ─── JWT izdavanje/rotacija ─────────────────────────────────────────
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IBrojacService, BrojacService>();
+        services.AddSingleton<TpmPregledi.Application.Features.Sabloni.ISablonUvozCitac, Sabloni.SablonUvozCitac>();
 
         // ─── Trenutni korisnik ──────────────────────────────────────────────
         services.AddHttpContextAccessor();

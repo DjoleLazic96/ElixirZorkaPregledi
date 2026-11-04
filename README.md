@@ -30,7 +30,7 @@ obrazac sa potpisom se ukida. Dizajn: `docs/superpowers/specs/2026-10-27-tpm-pre
 - Audit log: ko je, kada, šta i odakle promenio; prijave i odjave; pokretanja aplikacije.
 - Stanje servera: aplikacija, baza, host, poslednji backup — samo Admin.
 - „O aplikaciji": verzija, build, okruženje.
-- Šifarnik **Kategorije** — *primer iz skeleta; uklanja se kad stigne prvi poslovni feature.*
+- **Šabloni** i **Uređaji**: šest šablona pregleda (DP1, DP2, PZ1–PZ4) uvezenih iz Excela, registar opreme i katalog aktivnosti.
 - *Planirano (spec):* raspored i kalendar, popunjavanje bez interneta, overa i dorada, akcije i kvarovi, ekran uređaja,
   analitika, šabloni sa verzijama, obaveštenja (push i mejl), izvoz PDF/Word/Excel.
 

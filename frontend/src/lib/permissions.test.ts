@@ -3,7 +3,8 @@ import {
   PODRAZUMEVANA_PRAVA,
   PRAVA,
   ROLA_LABELE,
-  canEditKategorije,
+  canEditOprema,
+  canUvoziSablone,
   canSeeAdminSection,
   imaPravo,
   isAdmin,
@@ -29,8 +30,10 @@ describe('lib/permissions', () => {
     expect(canSeeAdminSection(p(['Direktor'], ['podesavanja']))).toBe(true);
     expect(canSeeAdminSection(p(['Admin'], ['analitika']))).toBe(false);
     expect(imaPravo(p(['Supervizor'], ['overa']), 'overa')).toBe(true);
-    expect(canEditKategorije(p(['Admin']))).toBe(true);
-    expect(canEditKategorije(p(['Inzenjer']))).toBe(false);
+    expect(canEditOprema(p(['Direktor'], ['sabloni.nacrt']))).toBe(true);
+    expect(canEditOprema(p(['Inzenjer'], ['analitika']))).toBe(false);
+    expect(canUvoziSablone(p(['Admin']))).toBe(true);
+    expect(canUvoziSablone(p(['Direktor']))).toBe(false);
   });
 
   it('popunjavanje je podrazumevano samo kod Inženjera', () => {

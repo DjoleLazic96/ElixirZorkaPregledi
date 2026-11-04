@@ -14,7 +14,7 @@ namespace TpmPregledi.Application.Features.Audit.Queries;
 /// <param name="Stranica">1-bazirana stranica (default 1).</param>
 /// <param name="Velicina">Veličina stranice (default 50, max 200 — vidi <see cref="StranicaDefaults"/>).</param>
 /// <param name="Korisnik">Filter po korisničkom imenu (contains, case-insensitive).</param>
-/// <param name="Entitet">Filter po entitetu (tačno poklapanje, npr. <c>Kategorija</c>, <c>Auth</c>).</param>
+/// <param name="Entitet">Filter po entitetu (tačno poklapanje, npr. <c>Uredjaj</c>, <c>Auth</c>).</param>
 /// <param name="Akcija">Filter po akciji (tačno: CREATE/UPDATE/DELETE/LOGIN/LOGIN_FAIL/LOGOUT/START).</param>
 /// <param name="Od">Donja granica vremena, inkluzivno, UTC.</param>
 /// <param name="Do">Gornja granica vremena, inkluzivno, UTC.</param>
