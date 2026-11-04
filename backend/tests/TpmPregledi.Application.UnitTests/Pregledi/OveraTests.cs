@@ -1,0 +1,154 @@
+using System.Text.Json;
+using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using TpmPregledi.Application.Common.Exceptions;
+using TpmPregledi.Application.Features.Popunjavanje;
+using TpmPregledi.Application.Features.Pregledi;
+using TpmPregledi.Application.Features.Sabloni;
+using TpmPregledi.Application.UnitTests.Common;
+using TpmPregledi.Application.UnitTests.Common.Fakes;
+using TpmPregledi.Domain.Entities;
+using TpmPregledi.Domain.Identity;
+using TpmPregledi.Infrastructure.Izvestaji;
+
+namespace TpmPregledi.Application.UnitTests.Pregledi;
+
+/// <summary>Overa, dorada, poništavanje, sporan unos i izveštaji (R6.1–R6.10).</summary>
+public class OveraTests
+{
+    private sealed class Citac : ISablonUvozCitac
+    {
+        public IReadOnlyList<UvozRed> Procitaj(Stream xlsx) =>
+        [
+            new(2, "DP1", "10", 1, "Elevator", "10-C-13", "Pregled rada zatezne sekcije", "Ispravno", "Neispravno", ""),
+            new(3, "DP1", "10", 2, "Transporter", "10-C-08", "Pregled rolni", "Okreće", "Ne okreće", "Broj rolni koje ne okreću"),
+        ];
+    }
+
+    private sealed record Okr(IdentityHarness H, string Ana, string Sup, string Dir, int PregledId, int[] Stavke);
+
+    /// <summary>DP1 koji je Ana popunila i predala (jedna stavka neispravna).</summary>
+    private static async Task<Okr> PredatAsync()
+    {
+        var h = IdentityHarness.New();
+        h.Db.Database.EnsureCreated();
+        var ana = await h.SeedUserAsync("ana", "Inzenjer2026!", Roles.Inzenjer);
+        var sup = await h.SeedUserAsync("sup", "Supervizor2026!", Roles.Supervizor);
+        var dir = await h.SeedUserAsync("dir", "Direktor2026!", Roles.Direktor);
+        h.Db.KorisnikPrava.Add(new KorisnikPravo { KorisnikId = ana.Id, Pravo = Prava.PreglediPopunjavanje });
+        await h.Db.SaveChangesAsync();
+        await new UvoziSabloneHandler(h.Db, new Citac(), new FakeCurrentUser(), new FakeClock()).Handle(new UvoziSabloneCommand(Stream.Null), default);
+        var p = new Pregled { Broj = "DP1-2026-0001", Tip = "DP1", PlaniraniDatum = new(2026, 11, 9), PrvobitniDatum = new(2026, 11, 9), DodeljenId = ana.Id };
+        h.Db.Pregledi.Add(p);
+        await h.Db.SaveChangesAsync();
+        var stavke = await h.Db.SablonStavke.OrderBy(s => s.Redosled).Select(s => s.Id).ToArrayAsync();
+
+        var popuni = new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana.Id }, new FakeClock());
+        OperacijaInput Op(string v, object pod) => new(Guid.NewGuid(), v, p.Id, DateTime.UtcNow, JsonSerializer.SerializeToElement(pod, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        var r = await popuni.Handle(new SinhronizacijaCommand(null, null,
+        [
+            Op("zapocni", new { }),
+            Op("odgovor", new { stavkaId = stavke[0], vrednost = 0 }),
+            Op("odgovor", new { stavkaId = stavke[1], vrednost = 1, napomena = "5 rolni", polja = new Dictionary<string, int> { ["1"] = 5 } }),
+            Op("predaja", new { }),
+        ]), default);
+        r.Odbijene.Should().BeEmpty();
+        return new Okr(h, ana.Id, sup.Id, dir.Id, p.Id, stavke);
+    }
+
+    private static PreglediHandler Kao(Okr o, string id, string rola) =>
+        new(o.H.Db, new FakeCurrentUser { UserId = id, Roles = [rola] }, new FakeClock());
+
+    [Fact]
+    public async Task Detalj_pokazuje_odgovore_polja_i_rezime_a_izvestaji_nisu_prazni()
+    {
+        var o = await PredatAsync();
+        await using var _ = o.H;
+        var d = await Kao(o, o.Sup, Roles.Supervizor).Handle(new GetPregledQuery(o.PregledId), default);
+
+        d.Status.Should().Be("ceka_overu");
+        var st = d.Sekcije.Single().Uredjaji[1].Stavke.Single();
+        st.Odgovor.Should().Be("Ne okreće");
+        st.Polja.Should().Equal("Broj rolni koje ne okreću: 5 kom.");
+        d.Istorija.Select(x => x.Vrsta).Should().Contain(["pocetak", "predaja"]);
+
+        var izv = new IzvestajPregleda();
+        izv.Pdf(d).Should().HaveCountGreaterThan(1000);
+        izv.Docx(d).Should().HaveCountGreaterThan(1000);
+        var arhiva = await Kao(o, o.Sup, Roles.Supervizor).Handle(new GetPreglediQuery(new PreglediFilteri(null, null, null, null, null, null)), default);
+        arhiva.Stavke.Single().Neispravnih.Should().Be(1);
+        izv.Excel(arhiva.Stavke).Should().HaveCountGreaterThan(1000);
+    }
+
+    [Fact]
+    public async Task Supervizor_ne_vraca_ni_ne_ponistava_overu_Direktora()
+    {
+        var o = await PredatAsync();
+        await using var _ = o.H;
+        (await Kao(o, o.Dir, Roles.Direktor).Handle(new OveriCommand(o.PregledId), default)).OverioDirektor.Should().BeTrue();
+
+        var vrati = () => Kao(o, o.Sup, Roles.Supervizor).Handle(new VratiNaDoraduCommand(o.PregledId, o.Ana, "Proveri rolne"), default);
+        (await vrati.Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal(PreglediHandler.PorukaOveraDirektora);
+        var ponisti = () => Kao(o, o.Sup, Roles.Supervizor).Handle(new PonistiCommand(o.PregledId, "Greška"), default);
+        (await ponisti.Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal(PreglediHandler.PorukaOveraDirektora);
+
+        (await Kao(o, o.Dir, Roles.Direktor).Handle(new PonistiCommand(o.PregledId, "Greška u rasporedu"), default)).Status.Should().Be("ponisten");
+    }
+
+    [Fact]
+    public async Task Vrati_na_doradu_kopira_odgovore_a_dorada_ne_menja_broj_ni_aktivno_vreme()
+    {
+        var o = await PredatAsync();
+        await using var _ = o.H;
+        var pre = await o.H.Db.Pregledi.AsNoTracking().SingleAsync();
+        var d = await Kao(o, o.Sup, Roles.Supervizor).Handle(new VratiNaDoraduCommand(o.PregledId, o.Ana, "Dopuni napomenu"), default);
+
+        d.Status.Should().Be("vracen_na_doradu");
+        d.Dorada.Should().Be(1);
+        d.Broj.Should().Be("DP1-2026-0001");
+        d.Sekcije.Single().Uredjaji[1].Stavke.Single().Napomena.Should().Be("5 rolni", "odgovori prethodne dorade su kopirani");
+
+        var r = await new PopunjavanjeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana }, new FakeClock()).Handle(new SinhronizacijaCommand(null, null,
+            [new(Guid.NewGuid(), "predaja", o.PregledId, DateTime.UtcNow.AddHours(5), JsonSerializer.SerializeToElement(new { }))]), default);
+        r.Odbijene.Should().BeEmpty();
+        var posle = await o.H.Db.Pregledi.AsNoTracking().SingleAsync();
+        posle.Status.Should().Be(StatusPregleda.CekaOveru);
+        posle.AktivnoSekundi.Should().Be(pre.AktivnoSekundi, "vreme dorade ne ulazi u aktivno vreme");
+    }
+
+    [Fact]
+    public async Task Zahtev_za_doradu_posle_overe_odlucuje_onaj_ko_je_overio_ili_Direktor()
+    {
+        var o = await PredatAsync();
+        await using var _ = o.H;
+        await Kao(o, o.Sup, Roles.Supervizor).Handle(new OveriCommand(o.PregledId), default);
+        await Kao(o, o.Ana, Roles.Inzenjer).Handle(new ZatraziDoraduCommand(o.PregledId, "Pogrešan odgovor"), default);
+
+        var drugiSup = await o.H.SeedUserAsync("sup2", "Supervizor2026!", Roles.Supervizor);
+        var tudji = () => Kao(o, drugiSup.Id, Roles.Supervizor).Handle(new OdluciODoradiCommand(o.PregledId, true), default);
+        await tudji.Should().ThrowAsync<BusinessRuleException>();
+
+        var d = await Kao(o, o.Sup, Roles.Supervizor).Handle(new OdluciODoradiCommand(o.PregledId, true), default);
+        d.Status.Should().Be("vracen_na_doradu");
+        d.ZahteviDorade.Single().Status.Should().Be("odobreno");
+    }
+
+    [Fact]
+    public async Task Sporan_odgovor_se_primenjuje_ili_odbacuje()
+    {
+        var o = await PredatAsync();
+        await using var _ = o.H;
+        o.H.Db.SporniUnosi.Add(new SporanUnos
+        {
+            PregledId = o.PregledId, KorisnikId = o.Ana, Razlog = "Ovaj pregled je dodeljen drugom inženjeru.", PrimljenoAt = DateTime.UtcNow,
+            Operacija = JsonSerializer.Serialize(new { opId = Guid.NewGuid(), vrsta = "odgovor", pregledId = o.PregledId, klijentAt = DateTime.UtcNow,
+                podaci = new { stavkaId = o.Stavke[0], vrednost = 1, napomena = "Curi" } }),
+        });
+        await o.H.Db.SaveChangesAsync();
+        var unos = await o.H.Db.SporniUnosi.SingleAsync();
+
+        var d = await Kao(o, o.Sup, Roles.Supervizor).Handle(new OdluciOSpornomUnosuCommand(o.PregledId, unos.Id, true), default);
+        d.SporniUnosi.Single().Odluka.Should().Be("primenjeno");
+        d.Sekcije.Single().Uredjaji[0].Stavke.Single().Napomena.Should().Be("Curi");
+    }
+}

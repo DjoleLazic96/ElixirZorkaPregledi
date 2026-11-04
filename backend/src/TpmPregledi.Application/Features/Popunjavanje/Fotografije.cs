@@ -50,7 +50,7 @@ public sealed class FotografijeHandler(IAppDbContext db, IFajlSkladiste skladist
                 ?? throw new NotFoundException("Pregled ne postoji.");
         if (p.DodeljenId != currentUser.UserId && p.Ucesnici.All(u => u.KorisnikId != currentUser.UserId))
             throw new ForbiddenException("Ovaj pregled je dodeljen drugom inženjeru.");
-        if (p.Status != StatusPregleda.URadu) throw new BusinessRuleException("Predat pregled se menja samo kroz doradu.");
+        if (p.Status is not (StatusPregleda.URadu or StatusPregleda.VracenNaDoradu)) throw new BusinessRuleException("Predat pregled se menja samo kroz doradu.");
         if (!await db.SablonStavke.AnyAsync(s => s.Id == req.StavkaId && s.VerzijaId == p.SablonVerzijaId, ct))
             throw new BusinessRuleException("Stavka nije u ovom pregledu.");
         if (await db.Fotografije.CountAsync(f => f.PregledId == p.Id && f.StavkaId == req.StavkaId, ct) >= NajviseSlika)

@@ -95,6 +95,9 @@ public interface IAppDbContext
     /// <summary>Sporni unosi.</summary>
     DbSet<SporanUnos> SporniUnosi { get; }
 
+    /// <summary>Zahtevi za doradu.</summary>
+    DbSet<ZahtevDorade> ZahteviDorade { get; }
+
     /// <summary>Snima promene (audit interceptor radi u istoj transakciji).</summary>
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

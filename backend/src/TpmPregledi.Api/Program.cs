@@ -224,6 +224,7 @@ try
     app.MapOpremaISabloniEndpoints();
     app.MapRasporedEndpoints();
     app.MapPopunjavanjeEndpoints();
+    app.MapPreglediEndpoints();
     app.MapAuditEndpoints();
     app.MapServerStanjeEndpoints();
 

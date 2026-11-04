@@ -114,6 +114,35 @@ public class SporanUnos
     public string? Odluka { get; set; }
 }
 
+/// <summary>Zahtev inženjera za doradu svog predatog pregleda (R6.6).</summary>
+[Auditable]
+public class ZahtevDorade
+{
+    /// <summary>PK.</summary>
+    public int Id { get; set; }
+
+    /// <summary>Pregled.</summary>
+    public int PregledId { get; set; }
+
+    /// <summary>Ko traži.</summary>
+    public string PodneoId { get; set; } = string.Empty;
+
+    /// <summary>Razlog (obavezan).</summary>
+    public string Razlog { get; set; } = string.Empty;
+
+    /// <summary><c>zahtev</c>, <c>odobreno</c>, <c>odbijeno</c>.</summary>
+    public string Status { get; set; } = "zahtev";
+
+    /// <summary>Ko je odlučio.</summary>
+    public string? OdlucioId { get; set; }
+
+    /// <summary>Kada je podnet (UTC).</summary>
+    public DateTime KreiranoAt { get; set; }
+
+    /// <summary>Kada je odlučeno (UTC).</summary>
+    public DateTime? OdlucenoAt { get; set; }
+}
+
 /// <summary>Primljena operacija sa klijenta — ponovljen <see cref="OpId"/> se ne primenjuje dva puta.</summary>
 public class SinhronizacijaOperacija
 {

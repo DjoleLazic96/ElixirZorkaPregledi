@@ -75,6 +75,7 @@ public static class DependencyInjection
         services.AddSingleton<TpmPregledi.Application.Features.Sabloni.ISablonUvozCitac, Sabloni.SablonUvozCitac>();
         services.AddHostedService<Poslovi.PrenosPropustenogDpPosao>();
         services.AddScoped<TpmPregledi.Application.Features.Popunjavanje.IFajlSkladiste, Fajlovi.FajlSkladiste>();
+        services.AddSingleton<TpmPregledi.Application.Features.Pregledi.IIzvestajPregleda, Izvestaji.IzvestajPregleda>();
 
         // ─── Trenutni korisnik ──────────────────────────────────────────────
         services.AddHttpContextAccessor();

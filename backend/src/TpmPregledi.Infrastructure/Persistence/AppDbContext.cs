@@ -85,6 +85,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<SporanUnos> SporniUnosi => Set<SporanUnos>();
 
     /// <inheritdoc />
+    public DbSet<ZahtevDorade> ZahteviDorade => Set<ZahtevDorade>();
+
+    /// <inheritdoc />
     public DbSet<Odgovor> Odgovori => Set<Odgovor>();
 
     /// <inheritdoc />
@@ -318,6 +321,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.DodeljenId).IsRequired().HasMaxLength(64);
             e.Property(x => x.Napomena).HasMaxLength(500);
             e.Property(x => x.UredjajKlijenta).HasMaxLength(64);
+            e.Property(x => x.OverioId).HasMaxLength(64);
+            e.Property(x => x.PonistioId).HasMaxLength(64);
+            e.Property(x => x.PonistenRazlog).HasMaxLength(500);
+            e.HasIndex(x => x.Status);
             e.HasIndex(x => x.Broj).IsUnique().HasDatabaseName("ux_pregled_broj");
             e.HasIndex(x => x.PlaniraniDatum);
             e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.DodeljenId).OnDelete(DeleteBehavior.Restrict);
@@ -393,6 +400,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasIndex(x => new { x.PregledId, x.StavkaId });
             e.HasOne<Pregled>().WithMany().HasForeignKey(x => x.PregledId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<Fajl>().WithMany().HasForeignKey(x => x.FajlId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<ZahtevDorade>(e =>
+        {
+            e.ToTable("zahtev_dorade");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.PodneoId).IsRequired().HasMaxLength(64);
+            e.Property(x => x.OdlucioId).HasMaxLength(64);
+            e.Property(x => x.Razlog).IsRequired().HasMaxLength(500);
+            e.Property(x => x.Status).IsRequired().HasMaxLength(20);
+            e.HasOne<Pregled>().WithMany().HasForeignKey(x => x.PregledId).OnDelete(DeleteBehavior.Restrict);
         });
 
         b.Entity<SporanUnos>(e =>

@@ -92,6 +92,17 @@ public class AuthorizationMatrixTests(CustomWebAppFactory factory)
         ("POST", "/api/v1/fotografije",                        Inzenjer),
         ("GET",  "/api/v1/fotografije/999999",                 Korisnik),
 
+        ("GET",  "/api/v1/pregledi",                           Korisnik),
+        ("GET",  "/api/v1/pregledi/999999",                    Korisnik),
+        ("GET",  "/api/v1/pregledi/999999/izvoz?format=pdf",   Korisnik),
+        ("GET",  "/api/v1/izvoz/pregledi.xlsx",                Korisnik),
+        ("POST", "/api/v1/pregledi/999999/overi",              Supervizor),
+        ("POST", "/api/v1/pregledi/999999/vrati-na-doradu",    Supervizor),
+        ("POST", "/api/v1/pregledi/999999/zahtev-za-doradu",   Inzenjer),
+        ("POST", "/api/v1/pregledi/999999/zahtev-za-doradu/odluka", Supervizor),
+        ("POST", "/api/v1/pregledi/999999/ponisti",            Supervizor),
+        ("POST", "/api/v1/pregledi/999999/sporan-unos/1/odluka", Supervizor),
+
         ("GET",  "/api/v1/_diag/admin-only",                   Admin),
         ("GET",  "/api/v1/_diag/korisnik",                     Korisnik),
     ];

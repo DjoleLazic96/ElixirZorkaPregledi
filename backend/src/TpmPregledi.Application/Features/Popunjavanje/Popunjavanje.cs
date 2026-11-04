@@ -129,7 +129,8 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
         var ja = currentUser.UserId;
         var pregledi = await db.Pregledi.Include(p => p.Ucesnici)
             .Where(p => (p.DodeljenId == ja || p.Ucesnici.Any(u => u.KorisnikId == ja))
-                        && ((p.Status == StatusPregleda.Planiran && p.PlaniraniDatum <= granica) || p.Status == StatusPregleda.URadu))
+                        && ((p.Status == StatusPregleda.Planiran && p.PlaniraniDatum <= granica)
+                            || p.Status == StatusPregleda.URadu || p.Status == StatusPregleda.VracenNaDoradu))
             .OrderBy(p => p.PlaniraniDatum).ToListAsync(ct);
         var rez = new List<PopunjavanjeDto>(pregledi.Count);
         foreach (var p in pregledi) rez.Add(await IzgradiAsync(p, ct));
@@ -271,7 +272,8 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
             await ZapocniOpAsync(p, op, ct);
             return;
         }
-        if (p.Status != StatusPregleda.URadu) throw new BusinessRuleException("Predat pregled se menja samo kroz doradu.");
+        if (p.Status is not (StatusPregleda.URadu or StatusPregleda.VracenNaDoradu))
+            throw new BusinessRuleException("Predat pregled se menja samo kroz doradu.");
         if (p.UredjajKlijenta is not null && _uredjajKlijenta is not null && p.UredjajKlijenta != _uredjajKlijenta)
             throw new BusinessRuleException(PorukaDrugiTelefon);
         var k = await RasporedKontekst.UcitajAsync(db, ct);
@@ -399,6 +401,14 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
         if (bezOdgovora.Count > 0 || bezNapomene > 0)
             throw new BusinessRuleException($"Pregled još nije potpun: nedostaje {bezOdgovora.Count} odgovora i {bezNapomene} obaveznih napomena.");
 
+        // Vreme dorade ne ulazi u aktivno vreme pregleda (R6.6) — računa se samo pri prvoj predaji.
+        if (p.Dorada > 0)
+        {
+            p.Status = StatusPregleda.CekaOveru;
+            p.PredatAt = clock.UtcNow;
+            PregledIstorija.Dodaj(db, p, "predaja", new { dorada = p.Dorada }, currentUser.UserId, clock.UtcNow);
+            return;
+        }
         var granica = TimeSpan.FromMinutes((await new PodesavanjaHandler(db).Handle(new GetPodesavanjaQuery(), ct)).GranicaPauzeMin);
         // Predaja je i sama operacija (još nije upisana), pa ulazi u raspon.
         var vremena = await db.SinhronizacijaOperacije.Where(o => o.PregledId == p.Id).Select(o => o.KlijentAt).ToListAsync(ct);

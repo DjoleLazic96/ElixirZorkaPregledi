@@ -115,6 +115,21 @@ public class Pregled
     /// <summary>Broj delova (pauze duže od granice).</summary>
     public int Delova { get; set; }
 
+    /// <summary>Ko je overio (R6.2).</summary>
+    public string? OverioId { get; set; }
+
+    /// <summary>Kada je overen (UTC).</summary>
+    public DateTime? OverenoAt { get; set; }
+
+    /// <summary>Overio Direktor — Supervizor tada ne vraća i ne poništava (R6.5).</summary>
+    public bool OverioDirektor { get; set; }
+
+    /// <summary>Razlog poništavanja (R6.10).</summary>
+    public string? PonistenRazlog { get; set; }
+
+    /// <summary>Ko je poništio.</summary>
+    public string? PonistioId { get; set; }
+
     /// <summary>ID instalacije aplikacije na telefonu koji je započeo pregled (R10.5: jedan telefon).</summary>
     public string? UredjajKlijenta { get; set; }
 
