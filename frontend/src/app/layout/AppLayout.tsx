@@ -8,6 +8,7 @@ import { PromenaLozinke } from '../../components/PromenaLozinke';
 import { AnchoredDropdown } from '../../components/ui/AnchoredDropdown';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Pretraga } from '../../features/analitika/Pretraga';
 import { DonjiMeni, Sidebar } from './Sidebar';
 
 /**
@@ -55,9 +56,10 @@ export function AppLayout() {
       <Sidebar pristup={me} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4 md:justify-end md:px-6">
+        <header className="relative flex h-14 items-center justify-between gap-2 border-b border-gray-200 bg-white px-4 md:justify-end md:px-6">
           {/* Na telefonu zaglavlje ima samo logo i ikonicu korisnika (spec §8.1); logo vodi na početnu. */}
           <Link to="/" className="text-base font-semibold text-primary-600 md:hidden">TPM pregledi</Link>
+          <Pretraga />
           <button
             ref={setMeniAnchor}
             type="button"

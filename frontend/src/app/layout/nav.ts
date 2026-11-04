@@ -1,4 +1,4 @@
-import { Activity, CalendarDays, FileCheck, ListChecks, ShieldAlert, CalendarOff, CalendarRange, CalendarX, ClipboardList, ScrollText, Settings, Wrench, type LucideIcon } from 'lucide-react';
+import { Activity, BarChart3, CalendarDays, LayoutDashboard, FileCheck, ListChecks, ShieldAlert, CalendarOff, CalendarRange, CalendarX, ClipboardList, ScrollText, Settings, Wrench, type LucideIcon } from 'lucide-react';
 import { canSeeAdminSection, imaPravo, isAdmin, type Pristup } from '../../lib/permissions';
 
 export interface NavItem {
@@ -10,6 +10,7 @@ export interface NavItem {
 }
 
 export const NAV: NavItem[] = [
+  { to: '/', label: 'Početna', icon: LayoutDashboard },
   { to: '/kalendar', label: 'Kalendar', icon: CalendarDays },
   { to: '/pregledi', label: 'Pregledi', icon: FileCheck },
   { to: '/akcije', label: 'Akcije', icon: ListChecks },
@@ -19,6 +20,7 @@ export const NAV: NavItem[] = [
     visibleIf: (p) => imaPravo(p, 'raspored.uredjivanje') || imaPravo(p, 'odsustva.odobravanje'),
   },
   { to: '/moja-odsustva', label: 'Moja odsustva', icon: CalendarOff, visibleIf: (p) => imaPravo(p, 'pregledi.popunjavanje') },
+  { to: '/analitika', label: 'Analitika', icon: BarChart3, visibleIf: (p) => imaPravo(p, 'analitika') },
   { to: '/sabloni', label: 'Šabloni', icon: ClipboardList },
   { to: '/uredjaji', label: 'Uređaji', icon: Wrench },
   { to: '/neradni-dani', label: 'Neradni dani', icon: CalendarX, visibleIf: (p) => imaPravo(p, 'neradni_dani') },

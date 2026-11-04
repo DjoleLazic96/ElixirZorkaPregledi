@@ -26,7 +26,7 @@ export function Sidebar({ pristup }: SidebarProps) {
           {vidljiveStavke(pristup).map((item) => (
             <li key={item.to}>
               <NavLink
-                to={item.to}
+                to={item.to} end={item.to === '/'}
                 className={({ isActive }) =>
                   cn(
                     'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
@@ -72,7 +72,7 @@ export function DonjiMeni({ pristup }: SidebarProps) {
         <ul className="fixed inset-x-0 bottom-16 z-40 mx-3 rounded-lg border border-gray-200 bg-white p-2 shadow-lg md:hidden" aria-label="Više">
           {ostale.map((item) => (
             <li key={item.to}>
-              <NavLink to={item.to} onClick={() => setVise(false)}
+              <NavLink to={item.to} end={item.to === '/'} onClick={() => setVise(false)}
                 className={({ isActive }) => cn('flex min-h-11 items-center gap-3 rounded-md px-3 text-sm', isActive ? 'bg-primary-50 text-primary-700' : 'text-gray-700')}>
                 <item.icon size={16} aria-hidden />
                 {item.label}
@@ -83,7 +83,7 @@ export function DonjiMeni({ pristup }: SidebarProps) {
       )}
       <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t border-gray-200 bg-white md:hidden" aria-label="Donji meni">
         {glavne.map((item) => (
-          <NavLink key={item.to} to={item.to} className={klasa}>
+          <NavLink key={item.to} to={item.to} end={item.to === '/'} className={klasa}>
             <item.icon size={20} aria-hidden />
             <span className="max-w-full truncate">{item.label}</span>
           </NavLink>

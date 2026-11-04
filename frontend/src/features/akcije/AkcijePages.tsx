@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Download, ListChecks, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, ListChecks, ShieldAlert } from 'lucide-react';
 import { useToast } from '../../app/providers/ToastProvider';
+import { IzvozDugme } from '../../components/IzvozDugme';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '../../components/ui/Card';
@@ -16,7 +17,6 @@ import { Textarea } from '../../components/ui/Textarea';
 import { porukaGreske } from '../../lib/apiError';
 import { cn } from '../../lib/cn';
 import { formatirajDatum, formatirajVreme } from '../../lib/datum';
-import { preuzmiFajl } from '../../lib/download';
 import { imaPravo } from '../../lib/permissions';
 import { useAuth } from '../auth/AuthProvider';
 import { useSekcije } from '../sabloni/hooks';
@@ -27,16 +27,6 @@ import {
 import { HITNOSTI, ZADUZENI_PREDLOZI, hitnostLabela, vrstaLabela } from './oznake';
 
 const tonHitnosti = (h: string) => (h === 'hitno' ? 'red' : h === '7_dana' ? 'amber' : 'gray') as 'red' | 'amber' | 'gray';
-
-function Izvoz({ url, params, ime }: { url: string; params: Record<string, string | number | boolean | undefined>; ime: string }) {
-  const toast = useToast();
-  const [radi, setRadi] = useState(false);
-  return (
-    <Button variant="secondary" disabled={radi} onClick={() => { setRadi(true); void preuzmiFajl(url, params, ime).catch((e) => toast.error(porukaGreske(e, 'Izvoz nije uspeo.'))).finally(() => setRadi(false)); }}>
-      <Download size={14} aria-hidden /> {radi ? 'Preuzimanje…' : 'Preuzmi Excel'}
-    </Button>
-  );
-}
 
 /** Kartica akcije za listu (R7.3, R7.6): broj, pregled, uređaj, hitnost, rok (crveno kad je istekao, R7.8), kvar na stavci. */
 function AkcijaRed({ a }: { a: AkcijaDto }) {
@@ -50,7 +40,7 @@ function AkcijaRed({ a }: { a: AkcijaDto }) {
           {a.stavkaSadaIspravna && <Badge tone="primary">stavka sada ispravna</Badge>}
         </span>
       </div>
-      <p className="mt-1 break-words text-sm">{a.uredjaj} · {a.aktivnost} · {vrstaLabela(a.vrsta)}{a.opis && ` — ${a.opis}`}</p>
+      <p className="mt-1 break-words text-sm"><Link to={`/uredjaji/${a.uredjajId}`} className="text-primary-700 hover:underline">{a.uredjaj}</Link> · {a.aktivnost} · {vrstaLabela(a.vrsta)}{a.opis && ` — ${a.opis}`}</p>
       <p className="mt-1 text-xs text-gray-600">
         Pregled <Link to={`/pregledi/${a.pregledId}`} className="whitespace-nowrap text-primary-700 hover:underline">{a.pregled}</Link>
         {a.rok && <> · rok <span className={cn(a.rokIstekao && 'font-semibold text-red-700')}>{formatirajDatum(a.rok)}</span></>}
@@ -68,7 +58,7 @@ export function AkcijePage() {
   const sekcije = useSekcije();
   return (
     <div className="space-y-4">
-      <PageHeader title="Potrebne akcije" actions={<Izvoz url="/izvoz/akcije.xlsx" params={parametriAkcija(f)} ime="Akcije.xlsx" />} />
+      <PageHeader title="Potrebne akcije" actions={<IzvozDugme url="/izvoz/akcije.xlsx" params={parametriAkcija(f)} ime="Akcije.xlsx" />} />
       <Card>
         <CardBody className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Select aria-label="Status" value={f.status} nullable placeholder="Svi statusi" onChange={(v) => setF({ ...f, status: v })}
@@ -127,7 +117,7 @@ export function AkcijaPage() {
             <Badge tone={a.status === 'otvorena' ? 'amber' : 'gray'}>{a.status}</Badge>
             {a.stavkaSadaIspravna && <Badge tone="primary">stavka sada ispravna</Badge>}
           </div>
-          <p className="break-words">{a.uredjaj} (sekcija {a.sekcija}) · {a.aktivnost}</p>
+          <p className="break-words"><Link to={`/uredjaji/${a.uredjajId}`} className="text-primary-700 hover:underline">{a.uredjaj}</Link> (sekcija {a.sekcija}) · {a.aktivnost}</p>
           <p>{vrstaLabela(a.vrsta)}{a.opis && ` — ${a.opis}`}</p>
           <p className="text-gray-600">
             Prijavio {a.prijavio} · pregled <Link className="text-primary-700 hover:underline" to={`/pregledi/${a.pregledId}`}>{a.pregled}</Link>
@@ -181,7 +171,7 @@ export function NeispravnostiPage() {
   const sekcije = useSekcije();
   return (
     <div className="space-y-4">
-      <PageHeader title="Neispravnosti" actions={<Izvoz url="/izvoz/kvarovi.xlsx" params={parametriKvarova(f)} ime="Neispravnosti.xlsx" />} />
+      <PageHeader title="Neispravnosti" actions={<IzvozDugme url="/izvoz/kvarovi.xlsx" params={parametriKvarova(f)} ime="Neispravnosti.xlsx" />} />
       <Card>
         <CardBody className="grid gap-3 sm:grid-cols-3">
           <Input aria-label="Pretraga" placeholder="Broj kvara, uređaj ili oznaka" value={f.pretraga} onChange={(e) => setF({ ...f, pretraga: e.target.value })} />
@@ -200,7 +190,7 @@ export function NeispravnostiPage() {
                 <Link to={`/neispravnosti/${k.id}`} className="whitespace-nowrap font-semibold text-primary-700 hover:underline">{k.broj}</Link>
                 <Badge tone={k.zatvoren ? 'gray' : 'red'}>{k.zatvoren ? `zatvoren ${formatirajDatum(k.zatvoren)}` : `otvoren ${k.trajanjeDana} dana`}</Badge>
               </div>
-              <p className="mt-1 break-words text-sm">{k.uredjaj} (sekcija {k.sekcija}) · {k.aktivnost}</p>
+              <p className="mt-1 break-words text-sm"><Link to={`/uredjaji/${k.uredjajId}`} className="text-primary-700 hover:underline">{k.uredjaj}</Link> (sekcija {k.sekcija}) · {k.aktivnost}</p>
               <p className="mt-1 text-xs text-gray-600">
                 Pregled <Link to={`/pregledi/${k.otvorioPregledId}`} className="whitespace-nowrap text-primary-700 hover:underline">{k.otvorioPregled}</Link>
                 {` · prijava ${k.prijava}`}{k.otvorenihAkcija > 0 && ` · otvorenih akcija ${k.otvorenihAkcija}`}{k.poslednjaNapomena && ` · ${k.poslednjaNapomena}`}
@@ -228,7 +218,7 @@ export function KvarPage() {
         <CardBody className="space-y-1 text-sm">
           <div className="flex flex-wrap items-center gap-2"><h1 className="whitespace-nowrap text-xl font-semibold">{k.broj}</h1>
             <Badge tone={k.zatvoren ? 'gray' : 'red'}>{k.zatvoren ? 'zatvoren' : 'otvoren'}</Badge></div>
-          <p className="break-words">{k.uredjaj} (sekcija {k.sekcija}) · {k.aktivnost}</p>
+          <p className="break-words"><Link to={`/uredjaji/${k.uredjajId}`} className="text-primary-700 hover:underline">{k.uredjaj}</Link> (sekcija {k.sekcija}) · {k.aktivnost}</p>
           <p className="text-gray-600">Otvoren {formatirajDatum(k.otvoren)}{k.zatvoren && `, zatvoren ${formatirajDatum(k.zatvoren)}`} · trajanje {k.trajanjeDana} dana · prijava {k.prijava}</p>
         </CardBody>
       </Card>

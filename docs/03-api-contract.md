@@ -148,6 +148,17 @@ Odbijene operacije: „Pregled još nije potpun: nedostaje N odgovora i M obavez
 
 Popunjavanje (`GET /pregledi/{id}/popunjavanje`, paket) uz svaki uređaj vraća `otvoreneAkcije` za pop-up.
 
+### Uređaj, analitika, Dashboard, pretraga (faza 08)
+| Metod | Ruta | Politika | Svrha |
+|---|---|---|---|
+| GET | `/uredjaji/{id}/ekran?dana=90` | RequireKorisnik | `UredjajEkranDto`: status, poslednji pregled, šabloni, istorija po danu (`dana` 30–365), analitika, pregledi sa stanjem uređaja, dosije, akcije, kvarovi, `qrToken` |
+| GET | `/uredjaji/qr/{token}` | RequireKorisnik | `{ id }` uređaja sa QR nalepnice; 404 ako ne postoji |
+| GET | `/uredjaji/{id}/pregledi.xlsx` | RequireKorisnik | svi pregledi uređaja u Excel |
+| GET | `/analitika/opsta?od&do` | analitika | kvarovi po sekciji, uređaju, aktivnosti i mesecu, najčešći, prosečno trajanje, trajanje pregleda po tipu i inženjeru, „nije u funkciji“ (podrazumevano 90 dana) |
+| GET | `/analitika/ispunjenje?od&do` | analitika | ispunjenje plana: ukupno, po mesecu, po inženjeru (podrazumevano tekuća godina) |
+| GET | `/dashboard` | RequireKorisnik | `DashboardDto`; `moje` samo uz pravo popunjavanja, `cekaOdluku` samo Supervizoru i Direktoru |
+| GET | `/pretraga?q` | RequireKorisnik | `PretragaRezultatDto[]` (`vrsta`: uredjaj, pregled, akcija, kvar); prazno ispod 2 znaka |
+
 ### `/_diag` (samo Development)
 Rute kojima integracioni testovi dokazuju politike: `/_diag/korisnik` (RequireKorisnik), `/_diag/admin-only` (RequireAdmin).
 

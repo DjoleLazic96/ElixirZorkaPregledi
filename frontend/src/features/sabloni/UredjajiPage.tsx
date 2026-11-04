@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { Wrench } from 'lucide-react';
 import type { UredjajDto, UredjajInput } from '../../api/types';
 import { useToast } from '../../app/providers/ToastProvider';
@@ -132,7 +133,9 @@ export function UredjajiPage() {
                 <Card className="h-full">
                   <CardBody className="flex h-full flex-col gap-2">
                     <p className="break-words font-medium text-gray-900">
-                      {u.naziv} {u.oznaka && <span className="whitespace-nowrap text-gray-600">{u.oznaka}</span>}
+                      <Link to={`/uredjaji/${u.id}`} className="hover:text-primary-700 hover:underline">
+                        {u.naziv} {u.oznaka && <span className="whitespace-nowrap text-gray-600">{u.oznaka}</span>}
+                      </Link>
                     </p>
                     <p className="text-xs text-gray-500">
                       Sekcija {u.sekcija} · {u.vrsta}

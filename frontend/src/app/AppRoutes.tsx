@@ -8,6 +8,10 @@ import { KorisniciPage } from '../features/admin/korisnici/KorisniciPage';
 import { AuditLogPage } from '../features/audit-log/AuditLogPage';
 import { useAuth } from '../features/auth/AuthProvider';
 import { LoginPage } from '../features/auth/LoginPage';
+import { AnalitikaPage } from '../features/analitika/AnalitikaPage';
+import { DashboardPage } from '../features/analitika/DashboardPage';
+import { QrPage } from '../features/analitika/Pretraga';
+import { UredjajEkranPage } from '../features/analitika/UredjajEkranPage';
 import { PopunjavanjePage } from '../features/popunjavanje/PopunjavanjePage';
 import { AkcijaPage, AkcijePage, KvarPage, NeispravnostiPage } from '../features/akcije/AkcijePages';
 import { PregledDetaljPage } from '../features/pregledi/PregledDetaljPage';
@@ -25,7 +29,7 @@ import { AppLayout } from './layout/AppLayout';
  * Mapa ruta (blueprint 13 §4).
  *   - inicijalizacija → ceo ekran „Učitavanje…" (proverava se postojeća sesija)
  *   - neulogovan → samo /login, sve ostalo preusmerava tamo
- *   - ulogovan → landing je /sabloni za sve role (do Početne iz faze 08); svaka ruta ima `Zasticeno`
+ *   - ulogovan → landing je Početna (/) za sve role; svaka ruta ima `Zasticeno`
  *     guard, a nepoznata adresa daje 404 stranicu (ne tihi redirect)
  */
 export function AppRoutes() {
@@ -42,14 +46,17 @@ export function AppRoutes() {
     );
   }
 
-  const landing = '/sabloni';
+  const landing = '/';
 
   return (
     <Routes>
       <Route path="/login" element={<Navigate to={landing} replace />} />
 
       <Route element={<AppLayout />}>
-        <Route path="/" element={<Navigate to={landing} replace />} />
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/uredjaji/:id" element={<Zasticeno allowed={isKorisnik(me)} landing={landing}><UredjajEkranPage /></Zasticeno>} />
+        <Route path="/qr/:token" element={<Zasticeno allowed={isKorisnik(me)} landing={landing}><QrPage /></Zasticeno>} />
+        <Route path="/analitika" element={<Zasticeno allowed={imaPravo(me, 'analitika')} landing={landing}><AnalitikaPage /></Zasticeno>} />
 
         <Route
           path="/sabloni"

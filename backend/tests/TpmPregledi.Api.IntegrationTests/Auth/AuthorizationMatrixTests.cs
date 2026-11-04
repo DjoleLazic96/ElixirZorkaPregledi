@@ -113,6 +113,15 @@ public class AuthorizationMatrixTests(CustomWebAppFactory factory)
         ("GET",  "/api/v1/izvoz/akcije.xlsx",                  Korisnik),
         ("GET",  "/api/v1/izvoz/kvarovi.xlsx",                 Korisnik),
 
+        // Analitiku podrazumevano imaju sve četiri role.
+        ("GET",  "/api/v1/uredjaji/999999/ekran?dana=90",      Korisnik),
+        ("GET",  $"/api/v1/uredjaji/qr/{NemaId}",              Korisnik),
+        ("GET",  "/api/v1/uredjaji/999999/pregledi.xlsx",      Korisnik),
+        ("GET",  "/api/v1/analitika/opsta",                    Korisnik),
+        ("GET",  "/api/v1/analitika/ispunjenje",               Korisnik),
+        ("GET",  "/api/v1/dashboard",                          Korisnik),
+        ("GET",  "/api/v1/pretraga?q=10",                      Korisnik),
+
         ("GET",  "/api/v1/_diag/admin-only",                   Admin),
         ("GET",  "/api/v1/_diag/korisnik",                     Korisnik),
     ];

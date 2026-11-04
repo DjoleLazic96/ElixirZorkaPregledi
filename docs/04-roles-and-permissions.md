@@ -72,6 +72,9 @@ korisnika: nova prava važe najkasnije kad istekne trenutni access token (15 min
 | Akcije i neispravnosti — čitanje, Excel | RequireKorisnik |
 | Zatvaranje, otkazivanje, zaduženi | `Pravo:akcije.zatvaranje` |
 | Otvaranje akcije i odgovor na pop-up | kroz `/sinhronizacija` (`Pravo:pregledi.popunjavanje`) |
+| Ekran uređaja, QR, Dashboard, pretraga | RequireKorisnik |
+| Opšta analitika i ispunjenje plana (`/analitika`) | `Pravo:analitika` (podrazumevano sve četiri role) |
+| „Moje aktivnosti“ / „Čeka moju odluku“ na Dashboardu | pravo popunjavanja / rola Supervizor ili Direktor, stavke po pravima |
 
 Frontend: „Administracija“ se vidi uz pravo `korisnici` ili `podesavanja`; tab „Korisnici“ uz `korisnici`, tab „Podešavanja“ uz `podesavanja`.
 

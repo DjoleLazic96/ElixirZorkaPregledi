@@ -226,6 +226,7 @@ try
     app.MapPopunjavanjeEndpoints();
     app.MapPreglediEndpoints();
     app.MapAkcijeEndpoints();
+    app.MapAnalitikaEndpoints();
     app.MapAuditEndpoints();
     app.MapServerStanjeEndpoints();
 

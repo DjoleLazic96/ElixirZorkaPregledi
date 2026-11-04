@@ -6,6 +6,10 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- **Početna**: današnji i sutrašnji pregledi, overe, akcije po hitnosti, kvarovi, uređaji van funkcije i ispunjenje plana; inženjer ima „Moje aktivnosti“, Supervizor i Direktor „Čeka moju odluku“.
+- **Ekran uređaja**: status, istorija u bojama sa klizačem perioda, dani bez kvara i trajanje kvarova, svi pregledi uređaja i dosije (napomene, slike, akcije), QR nalepnica za štampu.
+- **Analitika**: ispunjenje plana po mesecu i inženjeru, kvarovi po sekciji, uređaju i aktivnosti, trajanje pregleda.
+- **Pretraga** u zaglavlju po broju pregleda, akcije ili kvara i nazivu uređaja, sa žutim obeležavanjem.
 - **Potrebne akcije**: akcija na stavci pregleda (vrsta, hitnost, rok), pop-up „da li je urađena“ na sledećem pregledu, lista sa filterima, zaduženi, zatvaranje i otkazivanje, izvoz u Excel.
 - **Neispravnosti**: kvarovi se sami otvaraju i zatvaraju iz predatih pregleda, sa trajanjem, svim prijavama i akcijama na stavci.
 - **Pregledi**: arhiva sa filterima i izvozom u Excel, detalj pregleda sa aktivnim vremenom, upozorenjima, problematičnim stavkama, slikama i istorijom; PDF i Word izveštaj.

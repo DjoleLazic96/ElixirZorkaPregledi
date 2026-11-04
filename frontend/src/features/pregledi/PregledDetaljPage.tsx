@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, FileText } from 'lucide-react';
 import { useToast } from '../../app/providers/ToastProvider';
+import { Slike } from '../../components/Slike';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '../../components/ui/Card';
@@ -28,6 +29,7 @@ type Dijalog = null | 'vrati' | 'ponisti' | 'zatrazi';
  */
 export function PregledDetaljPage() {
   const id = Number(useParams().id);
+  const izdvojenId = Number(useSearchParams()[0].get('uredjaj'));
   const navigate = useNavigate();
   const { me } = useAuth();
   const pristup = me ?? { roles: [], prava: [] };
@@ -55,6 +57,7 @@ export function PregledDetaljPage() {
   const problemi = p.sekcije.flatMap((s) => s.uredjaji.flatMap((u) => u.stavke.filter((x) => x.neispravan).map((x) => ({ s: s.sifra, u, x }))));
   const van = p.sekcije.flatMap((s) => s.uredjaji.filter((u) => u.vanFunkcije));
   const zahtev = p.zahteviDorade.find((z) => z.status === 'zahtev');
+  const izdvojen = p.sekcije.flatMap((s) => s.uredjaji.map((u) => ({ s: s.sifra, u }))).find((x) => x.u.uredjajId === izdvojenId);
 
   return (
     <div className="space-y-4">
@@ -134,6 +137,13 @@ export function PregledDetaljPage() {
         </Card>
       )}
 
+      {izdvojen && (
+        <Card className="border-primary-300">
+          <CardHeader><CardTitle>Ovaj uređaj · sekcija {izdvojen.s}</CardTitle></CardHeader>
+          <CardBody><UredjajStavke u={izdvojen.u} /></CardBody>
+        </Card>
+      )}
+
       <Card>
         <CardHeader><CardTitle>Problematične stavke ({problemi.length})</CardTitle></CardHeader>
         <CardBody className="space-y-2 text-sm">
@@ -153,20 +163,7 @@ export function PregledDetaljPage() {
         <Card key={s.sifra}>
           <CardHeader><CardTitle>Sekcija {s.sifra}</CardTitle></CardHeader>
           <CardBody className="space-y-3">
-            {s.uredjaji.map((u) => (
-              <div key={u.uredjajId}>
-                <p className="break-words font-medium">{u.naziv}{u.vanFunkcije && <Badge tone="amber" className="ml-2">nije u funkciji</Badge>}</p>
-                <ul className="mt-1 space-y-1 text-sm">
-                  {u.stavke.map((x) => (
-                    <li key={x.stavkaId} className="flex flex-wrap justify-between gap-x-3">
-                      <span className="min-w-0 break-words">{x.aktivnost}{x.napomena && <span className="text-gray-500"> — {x.napomena}</span>}</span>
-                      <span className={cn('whitespace-nowrap', x.neispravan ? 'font-semibold text-red-700' : 'text-gray-600')}>{u.vanFunkcije ? '—' : x.odgovor ?? 'bez odgovora'}</span>
-                      {x.fotografije.length > 0 && <Slike ids={x.fotografije} />}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            {s.uredjaji.map((u) => <UredjajStavke key={u.uredjajId} u={u} />)}
           </CardBody>
         </Card>
       ))}
@@ -198,30 +195,26 @@ export function PregledDetaljPage() {
   );
 }
 
-function Polje({ l, v }: { l: string; v: string }) {
-  return <div className="min-w-0"><dt className="inline text-gray-500">{l}: </dt><dd className="inline break-words">{v}</dd></div>;
-}
-
-/** Sličice slika; klik otvara sliku u punoj veličini (svi vide sve preglede, R1.7). */
-function Slike({ ids }: { ids: number[] }) {
-  if (ids.length === 0) return null;
+/** Stavke jednog uređaja u pregledu. */
+function UredjajStavke({ u }: { u: PregledDetaljDto['sekcije'][number]['uredjaji'][number] }) {
   return (
-    <span className="mt-1 flex flex-wrap gap-1">
-      {ids.map((id) => <ZasticenaSlika key={id} id={id} />)}
-    </span>
+    <div>
+      <p className="break-words font-medium">{u.naziv}{u.vanFunkcije && <Badge tone="amber" className="ml-2">nije u funkciji</Badge>}</p>
+      <ul className="mt-1 space-y-1 text-sm">
+        {u.stavke.map((x) => (
+          <li key={x.stavkaId} className="flex flex-wrap justify-between gap-x-3">
+            <span className="min-w-0 break-words">{x.aktivnost}{x.napomena && <span className="text-gray-500"> — {x.napomena}</span>}</span>
+            <span className={cn('whitespace-nowrap', x.neispravan ? 'font-semibold text-red-700' : 'text-gray-600')}>{u.vanFunkcije ? '—' : x.odgovor ?? 'bez odgovora'}</span>
+            {x.fotografije.length > 0 && <Slike ids={x.fotografije} />}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
-/** Slika ide kroz API sa tokenom, pa se učitava kao blob (img src ne nosi Authorization zaglavlje). */
-function ZasticenaSlika({ id }: { id: number }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [ucitaj, setUcitaj] = useState(false);
-  if (!ucitaj)
-    return <button type="button" className="h-11 rounded border border-gray-300 px-2 text-xs text-primary-700" onClick={() => {
-      setUcitaj(true);
-      void import('../../api/client').then(({ api }) => api.get<Blob>(`/fotografije/${id}`, { responseType: 'blob' })).then((r) => setSrc(URL.createObjectURL(r.data)));
-    }}>Slika</button>;
-  return src ? <a href={src} target="_blank" rel="noreferrer"><img src={src} alt="Slika uz stavku" className="h-16 w-16 rounded object-cover" /></a> : <span className="text-xs text-gray-500">…</span>;
+function Polje({ l, v }: { l: string; v: string }) {
+  return <div className="min-w-0"><dt className="inline text-gray-500">{l}: </dt><dd className="inline break-words">{v}</dd></div>;
 }
 
 function VratiDijalog({ p, onClose, posalji }: { p: PregledDetaljDto; onClose: () => void; posalji: (putanja: string, telo: object, uspeh: string) => Promise<string | null> }) {
