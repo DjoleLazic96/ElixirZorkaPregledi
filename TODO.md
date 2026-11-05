@@ -7,7 +7,7 @@
 
 ### Pre početka razvoja
 - [ ] Vlasnik projekta (Miroslav Zec) odobrava spec `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md`
-- [ ] Vlasnik blueprinta odlučuje o PREDLOZIMA u `docs/odluke.md` (PWA i rad bez interneta, mobilni prikaz, fotografije, push, duža sesija, biblioteke); četiri role + prava odobreno 2026-11-04
+- [ ] Vlasnik blueprinta upoznat sa odstupanjima u `docs/odluke.md` — vlasnik projekta ih je odobrio 2026-11-04/05 (četiri role, mobilni prikaz, fotografije, PWA i rad bez interneta, duža sesija, biblioteke, push i zakazane provere, izgled po mockup-u)
 - [ ] Port 55434 upisati u registar blueprinta (03 §1)
 - [x] 2026-11-04 — GitHub remote: https://github.com/DjoleLazic96/ElixirZorkaPregledi (javan)
 
@@ -20,7 +20,7 @@
 - [x] 2026-11-04 — plan `docs/superpowers/plans/`: `00-overview.md` (faze 01–11), detaljno `01-osnova.md` i `02-oprema-i-sabloni.md`
 - [x] 2026-11-04 — faza 01: četiri role, prava štikliranjem, podešavanja, sekcije, brojači (`01-osnova.md`)
 - [x] 2026-11-04 — faza 02: registar opreme, katalog, dodatna polja, šabloni sa verzijama, uvoz iz .xlsx (`02-oprema-i-sabloni.md`)
-- [ ] mobilni raspored (donji meni umesto bočnog) — čeka PREDLOG „mobilni prikaz“; do tada je skelet na telefonu neupotrebljiv (bočni meni 240 px)
+- [x] mobilni raspored (donji meni umesto bočnog) — faza 04
 - [x] 2026-11-04 — faza 03: raspored, kalendar, odsustva, neradni dani, prebacivanja, prenos propuštenog DP-a (`03-raspored.md`); obaveštenja o pomeranju čekaju fazu 09
 - [x] 2026-11-04 — faza 04: popunjavanje sa internetom, slike, aktivno vreme, mobilni raspored (`04-popunjavanje.md`)
 - [x] 2026-11-04 — faza 05: rad bez interneta, PWA, Zapamti me, jedan telefon, sporan unos, sat telefona (`05-rad-bez-interneta.md`); odluka o spornom unosu je faza 06
@@ -32,8 +32,8 @@
 - [x] 2026-11-04 — faza 10: nacrt, razlike, objava sa datumom i zakazana verzija, predlozi, istorijat, uputstva (`10-izmene-sablona.md`)
 - [x] 2026-11-04 — faza 09: zvono, Web Push, mejl (Graph; log dok IT ne da nalog), lična obaveštenja, zakazane provere, primaoci (`09-obavestenja.md`); ručna provera push-a na Android Chrome-u ide u fazu 11
 - [x] 2026-11-04 — faza 08: ekran uređaja (istorija, dosije, QR), analitika i ispunjenje plana, Početna sa „Moje aktivnosti“ i „Čeka moju odluku“, pretraga (`08-uredjaj-analitika-dashboard.md`); broj na zvoncu je faza 09
-- [ ] obaveštenja (push, mejl), pozadinski poslovi, pretraga, podešavanja
-- [ ] korisnička uputstva po temama
+- [x] obaveštenja (push, mejl), pozadinski poslovi, pretraga, podešavanja — faze 08–09
+- [x] korisnička uputstva po temama — `docs/user/` 01–10
 
 ### Faza 03 — druga faza: Pumpe, Trake, Plansko stajanje
 - [~] Pumpe — opis i mockup gotovi (`../Druga faza/2026-10-28 Pumpe – druga faza.docx`), čekaju odgovore klijenta
