@@ -55,7 +55,7 @@ export function Pagination({
         <div className="flex items-center gap-2 text-xs text-gray-600">
           <span>Po stranici:</span>
           <Select
-            className="h-11 min-w-20 md:h-9"
+            className="h-11 min-w-20 md:h-10"
             aria-label="Broj stavki po stranici"
             value={pageSize}
             options={pageSizeOptions.map((v) => ({ value: v, label: String(v) }))}

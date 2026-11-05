@@ -26,6 +26,7 @@
 - [x] 2026-11-04 — faza 05: rad bez interneta, PWA, Zapamti me, jedan telefon, sporan unos, sat telefona (`05-rad-bez-interneta.md`); odluka o spornom unosu je faza 06
 - [x] 2026-11-04 — faza 06: arhiva, detalj, overa, dorada, zahtev za doradu, poništavanje, sporni unosi, PDF/Word/Excel (`06-overa-i-arhiva.md`); automatski PDF/rezime pri predaji i obaveštenja su faza 09
 - [x] 2026-11-04 — faza 07: akcije, pop-up, kvarovi, Neispravnosti (`07-akcije-i-kvarovi.md`); obaveštenja (hitna akcija, istekao rok) su faza 09
+- [x] 2026-11-05 — izgled po mockup-u (odluka u `docs/odluke.md`): tokeni, komponente, okvir, Početna, popunjavanje, kalendar, prijava; dugmad 40 px (44 na telefonu), razmaci 16 px; provera prikaza ponovljena (375/768/1366)
 - [x] 2026-11-04 — faza 11: test prikaza (4 role × 4 širine × sa/bez interneta, `docs/deploy/test-prikaza.md`), povratak posle prijave, 44 px na telefonu, nginx CSP `blob:` i SW `no-cache`, `docs/05-pravila-pregleda.md`, check-lista telefona, lista za puštanje u rad (`11-zavrsna-provera.md`)
 - [ ] Puštanje u rad po `deploy/README.md` §0 (IT #1–#9, uvoz šablona, nalozi, provera na telefonu, restore test) — radi čovek
 - [x] 2026-11-04 — faza 10: nacrt, razlike, objava sa datumom i zakazana verzija, predlozi, istorijat, uputstva (`10-izmene-sablona.md`)

@@ -4,8 +4,8 @@ import { cn } from '../../lib/cn';
 
 /**
  * Dugme po mockup-u (`.btn`): primary — puna zelena; secondary — belo sa zelenim okvirom i tekstom; ghost — bez podloge, sivi okvir;
- * danger — crvena. Sve varijante iste visine po veličini (md 40 px, sm 32 px; na telefonu 44 px) i istog zaobljenja (8 px), da
- * dugmad u istom redu budu poravnata.
+ * danger — crvena. Sva dugmad su iste visine (40 px, na telefonu 44 px) i istog zaobljenja (8 px), da dugmad u istom redu i na svim
+ * ekranima budu jednaka; `sm` je samo uže i sitnijeg teksta (za dugmad u redovima liste i tabele).
  */
 const buttonVariants = cva(
   // bazne klase za sve varijante
@@ -26,7 +26,7 @@ const buttonVariants = cva(
       },
       size: {
         // Na telefonu dugme je najmanje 44 × 44 px (spec §8.1 t. 6); od md širine kompaktno kao u blueprintu.
-        sm: 'h-11 min-w-11 px-3 text-xs md:h-8 md:min-w-0',
+        sm: 'h-11 min-w-11 px-3 text-[13px] md:h-10 md:min-w-10',
         md: 'h-11 px-4 text-sm md:h-10',
       },
     },

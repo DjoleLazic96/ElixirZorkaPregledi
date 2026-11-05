@@ -78,7 +78,7 @@ export function DashboardPage() {
   const datum = formatirajDatumDug(danasYmd());
 
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-4">
       <div>
         <h1 className="text-[19px] font-semibold leading-tight text-gray-800 md:text-[22px]">{pozdrav()}{ime && `, ${ime}`}</h1>
         <p className="mt-1 text-sm text-gray-500"><span className="capitalize">{datum}</span> · svi vide sve, uz oznaku kome je šta dodeljeno</p>
@@ -105,7 +105,7 @@ export function DashboardPage() {
         </Kartica>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <Plocica vrednost={formatirajProcenat(kpi.procenatNaDan)} naslov="ispunjenje plana (mesec)" to="/analitika" />
         <Plocica vrednost={String(kpi.cekaOveru)} naslov="čeka overu" to="/pregledi" />
         <Plocica vrednost={String(d.data.akcijePoHitnosti.hitno ?? 0)} naslov="hitnih akcija" upozorenje={(d.data.akcijePoHitnosti.hitno ?? 0) > 0} to="/akcije" />
@@ -114,7 +114,7 @@ export function DashboardPage() {
         <Plocica vrednost={String(kpi.vanFunkcije)} naslov="uređaja van funkcije" to="/uredjaji" />
       </div>
 
-      <div className="grid gap-3.5 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Kartica naslov="Danas i sutra">
           <Lista>
             <StavkePregleda pregledi={[...d.data.danas, ...d.data.sutra]} prazno="Danas i sutra nema pregleda." />
