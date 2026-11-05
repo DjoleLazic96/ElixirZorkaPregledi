@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { KeyRound, Plus, Users } from 'lucide-react';
+import { KeyRound, Plus, UserCheck, UserX, Users } from 'lucide-react';
 import type { KorisnikDto } from '../../../api/types';
 import { useConfirm } from '../../../app/providers/ConfirmProvider';
 import { useToast } from '../../../app/providers/ToastProvider';
@@ -151,7 +151,7 @@ export function KorisniciPage() {
           <FetchingOverlay fetching={korisnici.isFetching}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-gray-200 bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+                <thead className="border-b border-gray-200 bg-gray-50 text-left text-[13px] text-gray-500">
                   <tr>
                     <th className="px-3 py-2 font-medium">Korisničko ime</th>
                     <th className="px-3 py-2 font-medium">Ime</th>
@@ -181,7 +181,7 @@ export function KorisniciPage() {
                         {k.poslednjaPrijava ? relativnoVreme(k.poslednjaPrijava) : 'nikad'}
                       </td>
                       <td className="px-3 py-2 text-right">
-                        <div className="flex flex-wrap justify-end gap-1">
+                        <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="sm" onClick={() => otvoriFormu(k)}>
                             Izmeni
                           </Button>
@@ -202,15 +202,17 @@ export function KorisniciPage() {
                             aria-label={`Reset lozinke — ${k.korisnickoIme}`}
                             title="Reset lozinke"
                           >
-                            <KeyRound size={12} aria-hidden />
+                            <KeyRound size={14} aria-hidden />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => void promeniAktivnost(k)}
                             disabled={deaktiviraj.isPending || aktiviraj.isPending}
+                            aria-label={k.aktivan ? 'Deaktiviraj' : 'Aktiviraj'}
+                            title={k.aktivan ? 'Deaktiviraj' : 'Aktiviraj'}
                           >
-                            {k.aktivan ? 'Deaktiviraj' : 'Aktiviraj'}
+                            {k.aktivan ? <UserX size={14} aria-hidden /> : <UserCheck size={14} aria-hidden />}
                           </Button>
                         </div>
                       </td>

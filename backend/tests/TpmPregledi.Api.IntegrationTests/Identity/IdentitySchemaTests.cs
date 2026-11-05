@@ -56,6 +56,6 @@ public class IdentitySchemaTests(CustomWebAppFactory factory)
         var indeksi = await UpitAsync("SELECT indexname || ' ' || indexdef FROM pg_indexes WHERE schemaname = 'public'");
 
         indeksi.Should().Contain(i => i.StartsWith("ux_refresh_token_token_hash ") && i.Contains("UNIQUE"));
-        indeksi.Should().Contain(i => i.StartsWith("ux_kategorija_sifra ") && i.Contains("UNIQUE") && i.Contains("WHERE (aktivan = true)"));
+        indeksi.Should().Contain(i => i.StartsWith("ux_obavestenje_kljuc ") && i.Contains("UNIQUE") && i.Contains("WHERE (kljuc IS NOT NULL)"));
     }
 }

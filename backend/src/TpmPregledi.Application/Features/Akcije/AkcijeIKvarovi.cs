@@ -225,7 +225,7 @@ public sealed class AkcijeIKvaroviHandler(IAppDbContext db, ICurrentUser current
         {
             var u = uredjaji[x.UredjajId];
             return new KvarDto(x.Id, x.Broj, x.UredjajId, u.Prikaz, u.Sekcija?.Sifra ?? "", aktivnosti.GetValueOrDefault(x.AktivnostId, ""),
-                x.Otvoren, x.Zatvoren, (x.Zatvoren ?? danas).DayNumber - x.Otvoren.DayNumber, x.Prijava, x.PoslednjaNapomena, x.OtvorioPregledId,
+                x.Otvoren, x.Zatvoren, Math.Max(0, (x.Zatvoren ?? danas).DayNumber - x.Otvoren.DayNumber), x.Prijava, x.PoslednjaNapomena, x.OtvorioPregledId,
                 pregledi.GetValueOrDefault(x.OtvorioPregledId, ""), otvoreneAkcije.Count(a => a.UredjajId == x.UredjajId && a.AktivnostId == x.AktivnostId));
         }).ToList();
     }

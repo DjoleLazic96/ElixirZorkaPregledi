@@ -43,7 +43,8 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Uklonjen primer „Kategorije“ iz skeleta; početni ekran je **Početna**.
 
 ### Ispravljeno
-- 
+- Neispravan zahtev za uvoz šablona (bez fajla) vraća 400 umesto 500.
+- Trajanje kvara i „van funkcije“ se ne prikazuje kao negativan broj dana.
 
 ### Bezbednost
 - 

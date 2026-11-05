@@ -227,6 +227,10 @@ public class KorisniciEndpointsTests(CustomWebAppFactory factory)
         // Jedini način da aktivan Admin pokuša da ukloni DRUGOG poslednjeg admina je da sam već bude
         // deaktiviran, a JWT mu još važi (do 15 min). Guardovi moraju da drže i tada.
         var admin = await factory.AdminClientAsync();
+        // Baza je zajednička za sve testove; admini koje su drugi testovi napravili bi seed admina učinili ne-poslednjim.
+        foreach (var ostali in (await admin.GetFromJsonAsync<List<KorisnikDto>>("/api/v1/korisnici"))!
+                     .Where(k => k.Aktivan && k.Rola == Roles.Admin && k.KorisnickoIme != CustomWebAppFactory.AdminUserName))
+            (await admin.PostAsync($"/api/v1/korisnici/{ostali.Id}/deaktiviraj", null)).EnsureSuccessStatusCode();
         var drugi = await KreirajAsync(admin, Novi(Ime("adm2"), rola: Roles.Admin));
         var drugiClient = await factory.AuthenticatedClientAsync(drugi.KorisnickoIme, Lozinka);   // token izdat dok je aktivan
         (await admin.PostAsync($"/api/v1/korisnici/{drugi.Id}/deaktiviraj", null)).EnsureSuccessStatusCode();

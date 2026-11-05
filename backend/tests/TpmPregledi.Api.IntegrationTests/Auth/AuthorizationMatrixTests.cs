@@ -165,7 +165,10 @@ public class AuthorizationMatrixTests(CustomWebAppFactory factory)
     {
         var req = new HttpRequestMessage(new HttpMethod(metod), ruta);
         if (metod is "POST" or "PUT")
-            req.Content = new StringContent("{}", Encoding.UTF8, "application/json");   // prazno telo → najviše 400
+            // Rute za fajlove primaju samo multipart; JSON bi ruting odbio sa 415 pre provere prava.
+            req.Content = ruta.EndsWith("/uvoz")
+                ? new MultipartFormDataContent()
+                : new StringContent("{}", Encoding.UTF8, "application/json");   // prazno telo → najviše 400
         return req;
     }
 

@@ -189,7 +189,7 @@ public sealed class DashboardHandler(IAppDbContext db, ICurrentUser currentUser,
         }
         var ids = rez.Select(r => r.Id).ToList();
         var nazivi = await db.Uredjaji.AsNoTracking().Where(u => ids.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Prikaz, ct);
-        return rez.Select(r => new VanFunkcijeDto(r.Id, nazivi.GetValueOrDefault(r.Id, ""), r.Od, danas.DayNumber - r.Od.DayNumber))
+        return rez.Select(r => new VanFunkcijeDto(r.Id, nazivi.GetValueOrDefault(r.Id, ""), r.Od, Math.Max(0, danas.DayNumber - r.Od.DayNumber)))
             .OrderByDescending(v => v.Dana).ToList();
     }
 }

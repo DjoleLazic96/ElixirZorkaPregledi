@@ -50,6 +50,8 @@ public sealed class ExceptionHandlingMiddleware(
         NotFoundException             => (HttpStatusCode.NotFound,            "Resurs nije pronađen"),
         ConflictException             => (HttpStatusCode.Conflict,            "Konflikt"),
         BusinessRuleException         => (HttpStatusCode.UnprocessableEntity, "Poslovno pravilo nije ispunjeno"),
+        // Telo koje framework ne može da pročita (npr. multipart bez fajla) je greška klijenta, ne servera.
+        BadHttpRequestException       => (HttpStatusCode.BadRequest,          "Neispravan zahtev"),
         _                             => (HttpStatusCode.InternalServerError, "Neočekivana greška"),
     };
 

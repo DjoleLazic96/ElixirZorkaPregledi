@@ -68,7 +68,9 @@ function PrimaociForma({ pocetno }: { pocetno: PrimaociDto }) {
           </tbody>
         </table>
       </div>
-      <Button disabled={sacuvaj.isPending} onClick={() => void posalji()}>{sacuvaj.isPending ? 'Čuvanje…' : 'Sačuvaj primaoce'}</Button>
+      <div className="flex justify-end">
+        <Button disabled={sacuvaj.isPending} onClick={() => void posalji()}>{sacuvaj.isPending ? 'Čuvanje…' : 'Sačuvaj primaoce'}</Button>
+      </div>
     </div>
   );
 }

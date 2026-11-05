@@ -133,7 +133,7 @@ export function AuditLogPage() {
             <FetchingOverlay fetching={upit.isFetching}>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="border-b border-gray-200 bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+                  <thead className="border-b border-gray-200 bg-gray-50 text-left text-[13px] text-gray-500">
                     <tr>
                       <th className="px-3 py-2 font-medium">Vreme</th>
                       <th className="px-3 py-2 font-medium">Korisnik</th>

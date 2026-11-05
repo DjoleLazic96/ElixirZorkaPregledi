@@ -90,7 +90,7 @@ export function DiffPrikaz({ akcija, stareVrednosti, noveVrednosti }: DiffPrikaz
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+        <tr className="border-b border-gray-200 text-left text-[13px] text-gray-500">
           <th className="py-1.5 pr-3 font-medium">Polje</th>
           <th className="py-1.5 pr-3 font-medium">Staro</th>
           <th className="py-1.5 font-medium">Novo</th>

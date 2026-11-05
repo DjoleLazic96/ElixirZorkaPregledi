@@ -70,7 +70,7 @@ export function PreglediPage() {
         <FetchingOverlay fetching={pregledi.isFetching}>
           <Card className="hidden xl:block">
             <table className="w-full text-sm">
-              <thead className="border-b border-gray-200 bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+              <thead className="border-b border-gray-200 bg-gray-50 text-left text-[13px] text-gray-500">
                 <tr>{['Broj', 'Datum', 'Inženjer', 'Status', 'Neispravnih', 'Predat', 'Overio'].map((h) => <th key={h} className="px-3 py-2 font-medium">{h}</th>)}</tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
