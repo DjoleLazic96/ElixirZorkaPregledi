@@ -51,13 +51,22 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Aktivno vreme u Word/PDF izveštaju se zaokružuje isto kao na ekranu.
 - Datum na Početnoj: naziv meseca malim slovom („9. novembar“).
 - Bez interneta odgovori, slike i predaja se odmah čuvaju na telefonu (ranije su čekali povratak veze).
-- Slike snimljene bez interneta stižu na server pre predaje, pa ih server više ne odbija kao izmenu predatog pregleda.
+- Slike snimljene bez interneta se više ne gube kad se pregled preda: telefon prvo pošalje slike, pa tek onda predaju. Slika koju server odbije ostaje sačuvana na telefonu, i posle odjave.
+- Jedna neispravna promena sa telefona više ne zaustavlja slanje svih ostalih: odbija se samo ta promena, uz razlog.
+- Slike do 3 MB i uvoz šablona do 5 MB više ne odbija web server (greška 413).
+- Sporan odgovor se primenjuje samo na pregled koji je u radu ili na doradi; predat ili overen pregled prvo se vraća na doradu.
+- Kad dvoje istovremeno odluče o istom pregledu (npr. overa i vraćanje na doradu), druga odluka dobija poruku da je pregled u međuvremenu izmenjen, umesto da tiho prepiše prvu.
 
 ### Bezbednost
+- Kad više inženjera koristi isti telefon, svako šalje samo svoje neposlate promene; posle isteka sesije sledeći prijavljeni ne šalje tuđe urađeno pod svojim imenom.
+- Ažurirani `follow-redirects` (1.16.3) i `undici` (7.30.2) zbog bezbednosnih nalaza visoke ozbiljnosti (`npm audit`).
 - 
 
 ### Napomene za nadogradnju
 - Postojeći nalozi sa rolom „Korisnik“ postaju „Inženjer“; nalozi bez prava dobijaju podrazumevana prava svoje role pri prvom startu.
+- Migracija `PregledVerzija` ne menja šemu (koristi sistemsku kolonu `xmin`), ali je potrebna da bi se istovremene izmene pregleda prepoznale.
+- nginx u frontend slici sada prima zahteve do 6 MB (`client_max_body_size 6m`); potreban je novi build frontend slike.
+- Neposlate promene sa telefona iz prethodne verzije pripisuju se prvom inženjeru koji se prijavi posle nadogradnje.
 - 
 
 ## [0.1.0] — 2026-10-12

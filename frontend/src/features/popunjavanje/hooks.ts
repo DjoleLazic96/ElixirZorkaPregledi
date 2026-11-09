@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { useAuth } from '../auth/AuthProvider';
 import { db, dodajOperaciju, dodajSliku, obezbediPregled, useLokalno } from '../../offline/sinhronizacija';
 
 /**
@@ -101,7 +102,8 @@ export function usePopunjavanje(id: number) {
     obezbediPregled(id).catch((e) => ziv && setGreska(e)).finally(() => ziv && setUcitava(false));
     return () => { ziv = false; };
   }, [id]);
-  const odbijene = useLokalno(() => db.odbijene.where('pregledId').equals(id).toArray(), [id], []);
+  const korisnikId = useAuth().me?.user.id;
+  const odbijene = useLokalno(() => db.odbijene.where('pregledId').equals(id).filter((o) => o.korisnikId === korisnikId).toArray(), [id, korisnikId], []);
   return { data: pregled, isLoading: ucitava && !pregled, isError: !pregled && greska !== null, error: greska, odbijene };
 }
 

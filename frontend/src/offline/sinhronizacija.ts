@@ -10,9 +10,13 @@ import { primeniLokalno } from './lokalno';
  * (outbox), slike koje čekaju slanje i odbijene operacije. Svaka radnja se primeni na lokalnu kopiju i stane u red;
  * `sinhronizuj()` šalje red redom (server je idempotentan po `opId`), pa preuzme novi paket (ETag) i na njega ponovo
  * primeni ono što još nije poslato. Token se ne čuva ovde (blueprint 12 §38) — samo podaci pregleda.
+ *
+ * Telefon može da deli više inženjera: svaka stavka reda, slika i odbijena operacija nosi `korisnikId`, a šalje se samo
+ * ono što pripada prijavljenom korisniku. Neposlato urađeno prethodnog korisnika ostaje na telefonu dok se on ne prijavi.
  */
 export interface StavkaReda {
   seq?: number;
+  korisnikId?: string;
   opId: string;
   pregledId: number;
   klijentAt: string;
@@ -21,6 +25,7 @@ export interface StavkaReda {
 
 export interface SlikaUCekanju {
   klijentId: string;
+  korisnikId?: string;
   pregledId: number;
   stavkaId: number;
   izvor: 'kamera' | 'galerija';
@@ -29,10 +34,13 @@ export interface SlikaUCekanju {
 
 export interface OdbijenaOperacija {
   id?: number;
+  korisnikId?: string;
   opId: string;
   pregledId: number;
   razlog: string;
   at: string;
+  /** Slika koju server nije primio — čuva se na telefonu da se ne izgubi. */
+  slika?: Blob;
 }
 
 class TpmDb extends Dexie {
@@ -51,10 +59,47 @@ class TpmDb extends Dexie {
       odbijene: '++id, pregledId',
       meta: 'kljuc',
     });
+    this.version(2).stores({
+      red: '++seq, pregledId, korisnikId',
+      slike: 'klijentId, pregledId, korisnikId',
+      odbijene: '++id, pregledId, korisnikId',
+    });
   }
 }
 
 export const db = new TpmDb();
+
+let korisnik: string | null = null;
+
+/** Prijavljeni korisnik čiji se red šalje; `null` posle odjave ili isteka sesije. */
+export function aktivniKorisnik(): string | null {
+  return korisnik;
+}
+
+/**
+ * Poziva se pri prijavi, odjavi i isteku sesije. Stavke iz verzije bez `korisnikId` pripadaju prvom korisniku koji se
+ * prijavi posle nadogradnje. Kad se prijavi drugi korisnik, briše se samo paket (pregledi i ETag) — tuđi red ostaje.
+ */
+export async function postaviKorisnika(id: string | null): Promise<void> {
+  korisnik = id;
+  if (id === null) return;
+  await db.transaction('rw', [db.pregledi, db.red, db.slike, db.odbijene, db.meta], async () => {
+    await db.red.filter((x) => x.korisnikId === undefined).modify({ korisnikId: id });
+    await db.slike.filter((x) => x.korisnikId === undefined).modify({ korisnikId: id });
+    await db.odbijene.filter((x) => x.korisnikId === undefined).modify({ korisnikId: id });
+    const vlasnik = (await db.meta.get('korisnikPaketa'))?.vrednost;
+    if (vlasnik !== id) {
+      await db.pregledi.clear();
+      await db.meta.bulkDelete(['etag', 'poslednjaSinhronizacija']);
+      await db.meta.put({ kljuc: 'korisnikPaketa', vrednost: id });
+    }
+  });
+}
+
+function prijavljen(): string {
+  if (!korisnik) throw new Error('Niste prijavljeni.');
+  return korisnik;
+}
 
 /** ID instalacije na ovom telefonu (R10.5). Nije tajna; ako storage nije dostupan, svaki start dobija novi. */
 export function uredjajKlijenta(): string {
@@ -72,20 +117,22 @@ export function uredjajKlijenta(): string {
 
 /** Radnja u pregledu: odmah na lokalnoj kopiji, pa u red za slanje; slanje kreće odmah ako ima veze. */
 export async function dodajOperaciju(pregledId: number, op: Operacija): Promise<void> {
+  const korisnikId = prijavljen();
   const sada = new Date().toISOString();
   await db.transaction('rw', db.pregledi, db.red, async () => {
     const p = await db.pregledi.get(pregledId);
     if (p) await db.pregledi.put(primeniLokalno(p, op, sada));
-    await db.red.add({ opId: noviId(), pregledId, klijentAt: sada, op });
+    await db.red.add({ korisnikId, opId: noviId(), pregledId, klijentAt: sada, op });
   });
   void sinhronizuj();
 }
 
 /** Slika ide u IndexedDB i šalje se pri sinhronizaciji; lokalno se odmah broji uz stavku. */
 export async function dodajSliku(pregledId: number, stavkaId: number, blob: Blob, izvor: 'kamera' | 'galerija'): Promise<void> {
+  const korisnikId = prijavljen();
   const klijentId = noviId();
   await db.transaction('rw', db.pregledi, db.slike, async () => {
-    await db.slike.add({ klijentId, pregledId, stavkaId, izvor, blob });
+    await db.slike.add({ klijentId, korisnikId, pregledId, stavkaId, izvor, blob });
     const p = await db.pregledi.get(pregledId);
     if (p) {
       for (const s of p.sekcije) for (const u of s.uredjaji) for (const st of u.stavke) if (st.stavkaId === stavkaId) st.fotografije.push(-Date.now());
@@ -106,24 +153,65 @@ let uToku: Promise<void> | null = null;
 
 /** Jedno slanje u isto vreme; poziva se posle svake radnje, pri povratku veze i periodično. */
 export function sinhronizuj(): Promise<void> {
-  if (!navigator.onLine) return Promise.resolve();
-  uToku ??= posalji().finally(() => {
+  const k = korisnik;
+  if (!navigator.onLine || !k) return Promise.resolve();
+  uToku ??= posalji(k).finally(() => {
     uToku = null;
   });
   return uToku;
 }
 
-async function posalji(): Promise<void> {
-  // 1) Operacije redom, u paketima.
+function status(err: unknown): number | undefined {
+  return (err as { response?: { status?: number } }).response?.status;
+}
+
+/** Nema veze, server ne radi ili je istovremena izmena (409) — pokušava se ponovo pri sledećoj sinhronizaciji. */
+function privremena(err: unknown): boolean {
+  const s = status(err);
+  return s === undefined || s === 409 || s === 429 || s >= 500;
+}
+
+/**
+ * Slike jednog pregleda (ili svih). Svaka ima svoj klijentId, pa ponovljeno slanje ne pravi duplikat. Slika koju server
+ * trajno odbije prelazi u `odbijene` zajedno sa sadržajem — ne briše se sa telefona.
+ */
+async function posaljiSlike(korisnikId: string, pregledId?: number): Promise<void> {
+  const slike = await db.slike.where('korisnikId').equals(korisnikId).toArray();
+  for (const s of slike.filter((x) => pregledId === undefined || x.pregledId === pregledId)) {
+    const telo = new FormData();
+    telo.append('fajl', s.blob, 'slika.jpg');
+    telo.append('klijentId', s.klijentId);
+    telo.append('pregledId', String(s.pregledId));
+    telo.append('stavkaId', String(s.stavkaId));
+    telo.append('izvor', s.izvor);
+    try {
+      await api.post('/fotografije', telo);
+      await db.slike.delete(s.klijentId);
+    } catch (err) {
+      if (privremena(err)) throw err;
+      const razlog =
+        status(err) === 413
+          ? 'Slika je prevelika i nije poslata. Sačuvana je na telefonu.'
+          : ((err as { response?: { data?: { greske?: string[] } } }).response?.data?.greske?.[0] ?? 'Slika nije primljena.');
+      await db.transaction('rw', db.slike, db.odbijene, async () => {
+        await db.odbijene.add({ korisnikId, opId: s.klijentId, pregledId: s.pregledId, razlog, at: new Date().toISOString(), slika: s.blob });
+        await db.slike.delete(s.klijentId);
+      });
+    }
+  }
+}
+
+async function posalji(korisnikId: string): Promise<void> {
+  // 1) Operacije redom, u paketima. Predaja pregleda čeka da se pošalju njegove slike — server posle predaje slike ne prima.
   for (;;) {
-    let deo = await db.red.orderBy('seq').limit(50).toArray();
-    if (deo.length === 0) break;
-    // Posle predaje server ne prima slike, pa slike tog pregleda moraju da odu pre nje (slikano i predato bez veze).
-    const k = deo.findIndex((s) => s.op.vrsta === 'predaja');
-    if (k > 0) deo = deo.slice(0, k);
-    else if (k === 0) {
-      await posaljiSlike(deo[0].pregledId);
-      deo = [deo[0]];
+    const red = await db.red.orderBy('seq').filter((x) => x.korisnikId === korisnikId).limit(50).toArray();
+    if (red.length === 0) break;
+    const saSlikama = new Set((await db.slike.where('korisnikId').equals(korisnikId).toArray()).map((x) => x.pregledId));
+    const i = red.findIndex((x) => x.op.vrsta === 'predaja' && saSlikama.has(x.pregledId));
+    const deo = i === -1 ? red : red.slice(0, i);
+    if (deo.length === 0) {
+      await posaljiSlike(korisnikId, red[0].pregledId);
+      continue;
     }
     const r = (
       await api.post<SinhronizacijaRezultat>('/sinhronizacija', {
@@ -136,14 +224,14 @@ async function posalji(): Promise<void> {
     await db.transaction('rw', db.red, db.odbijene, async () => {
       for (const s of deo) {
         const razlog = odbijene.get(s.opId);
-        if (razlog) await db.odbijene.add({ opId: s.opId, pregledId: s.pregledId, razlog, at: new Date().toISOString() });
+        if (razlog) await db.odbijene.add({ korisnikId, opId: s.opId, pregledId: s.pregledId, razlog, at: new Date().toISOString() });
         await db.red.delete(s.seq!);
       }
     });
   }
 
-  // 2) Slike (svaka sa svojim klijentId-jem — ponovljeno slanje ne pravi duplikat).
-  await posaljiSlike();
+  // 2) Ostale slike.
+  await posaljiSlike(korisnikId);
 
   // 3) Novi paket (ETag) i ponovna primena onoga što je u međuvremenu stalo u red.
   const etag = (await db.meta.get('etag'))?.vrednost;
@@ -153,7 +241,7 @@ async function posalji(): Promise<void> {
   });
   if (res.status === 200) {
     await db.transaction('rw', db.pregledi, db.red, db.meta, async () => {
-      const naCekanju = await db.red.orderBy('seq').toArray();
+      const naCekanju = await db.red.orderBy('seq').filter((x) => x.korisnikId === korisnikId).toArray();
       await db.pregledi.clear();
       for (let p of res.data.pregledi) {
         for (const s of naCekanju.filter((x) => x.pregledId === p.id)) p = primeniLokalno(p, s.op, s.klijentAt);
@@ -166,10 +254,17 @@ async function posalji(): Promise<void> {
   await db.meta.put({ kljuc: 'poslednjaSinhronizacija', vrednost: new Date().toISOString() });
 }
 
-/** Briše lokalne podatke (odjava) — samo kad ništa ne čeka slanje, inače bi se urađeno izgubilo. */
+/** Briše lokalne podatke prijavljenog korisnika (odjava) — samo kad ništa njegovo ne čeka slanje, inače bi se urađeno izgubilo. Odbijene slike ostaju (jedini primerak). */
 export async function obrisiLokalno(): Promise<boolean> {
-  if ((await db.red.count()) + (await db.slike.count()) > 0) return false;
-  await Promise.all([db.pregledi.clear(), db.odbijene.clear(), db.meta.clear()]);
+  const k = korisnik;
+  if (!k) return true;
+  const ceka = (await db.red.where('korisnikId').equals(k).count()) + (await db.slike.where('korisnikId').equals(k).count());
+  if (ceka > 0) return false;
+  await db.transaction('rw', db.pregledi, db.odbijene, db.meta, async () => {
+    await db.pregledi.clear();
+    await db.odbijene.where('korisnikId').equals(k).filter((x) => x.slika === undefined).delete();
+    await db.meta.bulkDelete(['etag', 'poslednjaSinhronizacija', 'korisnikPaketa']);
+  });
   return true;
 }
 
@@ -185,7 +280,7 @@ export function useLokalno<T>(upit: () => Promise<T> | T, zavisnosti: unknown[],
 }
 
 /** Stanje veze i reda: za traku „Bez interneta“ i „Poslednja sinhronizacija“ (R10.3, R10.4). */
-export function useStanjeSinhronizacije() {
+export function useStanjeSinhronizacije(korisnikId: string | undefined) {
   const [online, setOnline] = useState(() => navigator.onLine);
   useEffect(() => {
     const on = () => { setOnline(true); void sinhronizuj(); };
@@ -194,30 +289,9 @@ export function useStanjeSinhronizacije() {
     window.addEventListener('offline', off);
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
-  const promena = useLokalno(() => db.red.count(), [], 0);
-  const slika = useLokalno(() => db.slike.count(), [], 0);
+  const k = korisnikId ?? '';
+  const promena = useLokalno(() => db.red.where('korisnikId').equals(k).count(), [k], 0);
+  const slika = useLokalno(() => db.slike.where('korisnikId').equals(k).count(), [k], 0);
   const poslednja = useLokalno(async () => (await db.meta.get('poslednjaSinhronizacija'))?.vrednost ?? null, [], null as string | null);
   return { online, promena, slika, poslednja };
-}
-
-/** Šalje slike koje čekaju (samo jednog pregleda, ako je zadat); odbijena slika ide među odbijene, nema veze → izuzetak. */
-async function posaljiSlike(pregledId?: number): Promise<void> {
-  const slike = pregledId === undefined ? await db.slike.toArray() : await db.slike.where('pregledId').equals(pregledId).toArray();
-  for (const s of slike) {
-    const telo = new FormData();
-    telo.append('fajl', s.blob, 'slika.jpg');
-    telo.append('klijentId', s.klijentId);
-    telo.append('pregledId', String(s.pregledId));
-    telo.append('stavkaId', String(s.stavkaId));
-    telo.append('izvor', s.izvor);
-    try {
-      await api.post('/fotografije', telo);
-    } catch (err) {
-      const status = (err as { response?: { status?: number } }).response?.status;
-      if (status === undefined || status >= 500) throw err;   // nema veze ili server ne radi — pokušava se ponovo
-      const razlog = (err as { response?: { data?: { greske?: string[] } } }).response?.data?.greske?.[0] ?? 'Slika nije primljena.';
-      await db.odbijene.add({ opId: s.klijentId, pregledId: s.pregledId, razlog, at: new Date().toISOString() });
-    }
-    await db.slike.delete(s.klijentId);
-  }
 }

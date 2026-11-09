@@ -21,7 +21,7 @@ export function AppLayout() {
   const { me, logout } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
-  const sinh = useStanjeSinhronizacije();
+  const sinh = useStanjeSinhronizacije(me?.user.id);
   const inzenjer = me ? imaPravo(me, 'pregledi.popunjavanje') : false;
 
   // Inženjer: paket i red za slanje se sinhronizuju odmah, na svakih minut i pri povratku veze (R10.4).

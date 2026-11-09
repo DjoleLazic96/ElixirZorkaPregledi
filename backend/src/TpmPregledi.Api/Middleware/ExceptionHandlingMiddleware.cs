@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using TpmPregledi.Api.Common;
 using TpmPregledi.Application.Common.Exceptions;
+using Microsoft.EntityFrameworkCore;
 
 namespace TpmPregledi.Api.Middleware;
 
@@ -25,6 +26,9 @@ public sealed class ExceptionHandlingMiddleware(
     ILogger<ExceptionHandlingMiddleware> logger,
     IHostEnvironment env)
 {
+    /// <summary>Detalj za 409 kad je isti zapis u međuvremenu izmenio neko drugi.</summary>
+    public const string PorukaIstovremenaIzmena = "Neko je u međuvremenu izmenio ove podatke. Osvežite stranicu i pokušajte ponovo.";
+
     /// <summary>Poruka za 500 van Development-a; <c>{0}</c> je traceId.</summary>
     public const string Poruka500 = "Došlo je do neočekivane greške. Navedite ovaj kod podršci: {0}";
 
@@ -49,6 +53,7 @@ public sealed class ExceptionHandlingMiddleware(
         ForbiddenException            => (HttpStatusCode.Forbidden,           "Pristup nije dozvoljen"),
         NotFoundException             => (HttpStatusCode.NotFound,            "Resurs nije pronađen"),
         ConflictException             => (HttpStatusCode.Conflict,            "Konflikt"),
+        DbUpdateConcurrencyException  => (HttpStatusCode.Conflict,            "Konflikt"),
         BusinessRuleException         => (HttpStatusCode.UnprocessableEntity, "Poslovno pravilo nije ispunjeno"),
         // Telo koje framework ne može da pročita (npr. multipart bez fajla) je greška klijenta, ne servera.
         BadHttpRequestException       => (HttpStatusCode.BadRequest,          "Neispravan zahtev"),
@@ -65,7 +70,7 @@ public sealed class ExceptionHandlingMiddleware(
 
         var detail = status == HttpStatusCode.InternalServerError && !env.IsDevelopment()
             ? string.Format(Poruka500, traceId)
-            : ex.Message;
+            : ex is DbUpdateConcurrencyException ? PorukaIstovremenaIzmena : ex.Message;
 
         var problem = new Dictionary<string, object?>
         {

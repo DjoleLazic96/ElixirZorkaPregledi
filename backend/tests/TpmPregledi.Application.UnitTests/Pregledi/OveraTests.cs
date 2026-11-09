@@ -147,8 +147,35 @@ public class OveraTests
         await o.H.Db.SaveChangesAsync();
         var unos = await o.H.Db.SporniUnosi.SingleAsync();
 
-        var d = await Kao(o, o.Sup, Roles.Supervizor).Handle(new OdluciOSpornomUnosuCommand(o.PregledId, unos.Id, true), default);
+        var sup = Kao(o, o.Sup, Roles.Supervizor);
+        var naPredatom = () => sup.Handle(new OdluciOSpornomUnosuCommand(o.PregledId, unos.Id, true), default);
+        (await naPredatom.Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Contain(PreglediHandler.PorukaSporanPredat);
+        (await o.H.Db.Odgovori.Where(x => x.PregledId == o.PregledId && x.StavkaId == o.Stavke[0]).SingleAsync()).Napomena.Should().NotBe("Curi");
+
+        await sup.Handle(new VratiNaDoraduCommand(o.PregledId, o.Ana, "Primena spornog unosa"), default);
+        var d = await sup.Handle(new OdluciOSpornomUnosuCommand(o.PregledId, unos.Id, true), default);
         d.SporniUnosi.Single().Odluka.Should().Be("primenjeno");
         d.Sekcije.Single().Uredjaji[0].Stavke.Single().Napomena.Should().Be("Curi");
+    }
+
+    [Fact]
+    public async Task Sporan_odgovor_na_overenom_pregledu_se_ne_primenjuje()
+    {
+        var o = await PredatAsync();
+        await using var _ = o.H;
+        await Kao(o, o.Dir, Roles.Direktor).Handle(new OveriCommand(o.PregledId), default);
+        o.H.Db.SporniUnosi.Add(new SporanUnos
+        {
+            PregledId = o.PregledId, KorisnikId = o.Ana, Razlog = "Ovaj pregled je dodeljen drugom inženjeru.", PrimljenoAt = DateTime.UtcNow,
+            Operacija = JsonSerializer.Serialize(new { opId = Guid.NewGuid(), vrsta = "odgovor", pregledId = o.PregledId, klijentAt = DateTime.UtcNow,
+                podaci = new { stavkaId = o.Stavke[0], vrednost = 1, napomena = "Curi" } }),
+        });
+        await o.H.Db.SaveChangesAsync();
+        var unos = await o.H.Db.SporniUnosi.SingleAsync();
+
+        var primeni = () => Kao(o, o.Dir, Roles.Direktor).Handle(new OdluciOSpornomUnosuCommand(o.PregledId, unos.Id, true), default);
+
+        (await primeni.Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Contain(PreglediHandler.PorukaSporanPredat);
+        (await o.H.Db.SporniUnosi.SingleAsync()).Odluka.Should().BeNull();
     }
 }

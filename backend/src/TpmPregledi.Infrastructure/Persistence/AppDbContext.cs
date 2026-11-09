@@ -333,6 +333,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             e.ToTable("pregled");
             e.HasKey(x => x.Id);
+            // Optimistička konkurentnost preko Postgres sistemske kolone xmin: dve istovremene odluke o istom pregledu
+            // (overa, dorada, poništavanje) ne prepisuju jedna drugu — druga dobija 409.
+            e.Property<uint>("Verzija").IsRowVersion();
             e.Ignore(x => x.JeDp);
             e.Property(x => x.Broj).IsRequired().HasMaxLength(20);
             e.Property(x => x.Tip).IsRequired().HasMaxLength(8);

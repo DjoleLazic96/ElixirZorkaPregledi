@@ -24,6 +24,7 @@ public class ExceptionMappingTests
         [new NotFoundException("Uređaj ne postoji."),                    404],
         [new NotFoundException("Korisnik", "x"),                             404],
         [new ConflictException("Već postoji."),                              409],
+        [new Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException("x"), 409],
         [new BusinessRuleException("Pravilo."),                              422],
         [new Microsoft.AspNetCore.Http.BadHttpRequestException("Telo."),     400],
         [new InvalidOperationException("boom"),                              500],
