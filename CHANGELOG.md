@@ -45,7 +45,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ### Ispravljeno
 - Neispravan zahtev za uvoz šablona (bez fajla) vraća 400 umesto 500.
 - Trajanje kvara i „van funkcije“ se ne prikazuje kao negativan broj dana.
-- Slike snimljene bez interneta se više ne gube kad se pregled preda: telefon prvo pošalje slike, pa tek onda predaju. Slika koju server odbije ostaje sačuvana na telefonu.
+- Slike snimljene bez interneta se više ne gube kad se pregled preda: telefon prvo pošalje slike, pa tek onda predaju. Slika koju server odbije ostaje sačuvana na telefonu, i posle odjave.
 - Jedna neispravna promena sa telefona više ne zaustavlja slanje svih ostalih: odbija se samo ta promena, uz razlog.
 - Slike do 3 MB i uvoz šablona do 5 MB više ne odbija web server (greška 413).
 - Sporan odgovor se primenjuje samo na pregled koji je u radu ili na doradi; predat ili overen pregled prvo se vraća na doradu.
@@ -53,6 +53,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 
 ### Bezbednost
 - Kad više inženjera koristi isti telefon, svako šalje samo svoje neposlate promene; posle isteka sesije sledeći prijavljeni ne šalje tuđe urađeno pod svojim imenom.
+- Ažurirani `follow-redirects` (1.16.3) i `undici` (7.30.2) zbog bezbednosnih nalaza visoke ozbiljnosti (`npm audit`).
 - 
 
 ### Napomene za nadogradnju
