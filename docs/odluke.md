@@ -64,7 +64,7 @@ stavke lista sa „›“, sadržaj centriran. Tokeni u `frontend/src/styles/glo
 
 **Kontekst:** blueprint 12 §28 dozvoljava upload samo `.xlsx` do 5 MB.
 **Odluka:** fotografije (JPEG, smanjene na telefonu na 1–2 MB, limit 3 MB po fajlu, najviše 5 po stavci) na volumenu `data/fotografije`; uvoz šablona `.xlsx` ostaje kao u blueprintu.
-**Posledice:** odstupanje od blueprinta 12 §28; nginx `client_max_body_size 4m`; provera MIME i sadržaja; bekap volumena.
+**Posledice:** odstupanje od blueprinta 12 §28; nginx `client_max_body_size 6m` (dopuna 2026-11-09: 4m nije dovoljno za uvoz `.xlsx` do 5 MB sa multipart zaglavljima); provera MIME i sadržaja; bekap volumena.
 **Alternative odbijene:** slike u bazi — rast baze i bekapa.
 **Odlučio:** vlasnik projekta (zahtev, 2026-10-20); odobreno za implementaciju 2026-11-04 (faza 04).
 

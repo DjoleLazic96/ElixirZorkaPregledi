@@ -20,6 +20,7 @@ import { cn } from '../../lib/cn';
 import { formatirajDatum, formatirajVreme } from '../../lib/datum';
 import { nedostaje } from '../../offline/lokalno';
 import { useStanjeSinhronizacije } from '../../offline/sinhronizacija';
+import { useAuth } from '../auth/AuthProvider';
 import { smanjiSliku } from '../../lib/slika';
 import {
   useOperacija, useOtpremiSliku, usePopunjavanje, useZapocni,
@@ -185,7 +186,7 @@ const NAZIV_TIPA: Record<string, string> = {
 
 /** „Poslednja sinhronizacija: HH:MM“ i šta čeka slanje (R10.3, R10.4). */
 function StanjeSlanja() {
-  const st = useStanjeSinhronizacije();
+  const st = useStanjeSinhronizacije(useAuth().me?.user.id);
   return (
     <p className="text-xs text-gray-500">
       {st.promena > 0 || st.slika > 0 ? `⏳ Čeka slanje: ${st.promena} promena, ${st.slika} slika` : '✓ Sve je poslato'}

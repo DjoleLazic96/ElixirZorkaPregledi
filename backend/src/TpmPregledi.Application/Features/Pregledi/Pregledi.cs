@@ -339,6 +339,10 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
         return await Handle(new GetPregledQuery(p.Id), ct);
     }
 
+    /// <summary>Poruka: sporan odgovor ne menja predat ili overen pregled mimo dorade (kvarovi i overa bi ostali stari).</summary>
+    public const string PorukaSporanPredat =
+        "Pregled je predat. Sporan odgovor se primenjuje u doradi: vratite pregled na doradu, pa primenite unos.";
+
     /// <inheritdoc />
     public async Task<PregledDetaljDto> Handle(OdluciOSpornomUnosuCommand req, CancellationToken ct)
     {
@@ -354,9 +358,12 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
             if (op.GetProperty("vrsta").GetString() != "odgovor")
                 throw new BusinessRuleException("Primenjuje se samo sporan odgovor; ostale radnje se odbacuju.");
             if (p.Status is StatusPregleda.Ponisten) throw new BusinessRuleException("Pregled je poništen.");
+            if (p.Status is not (StatusPregleda.URadu or StatusPregleda.VracenNaDoradu)) throw new BusinessRuleException(PorukaSporanPredat);
             var podaci = op.GetProperty("podaci");
             var stavkaId = podaci.GetProperty("stavkaId").GetInt32();
             var vrednost = (short)podaci.GetProperty("vrednost").GetInt32();
+            if (vrednost is not (0 or 1) || !await db.SablonStavke.AnyAsync(x => x.Id == stavkaId && x.VerzijaId == p.SablonVerzijaId, ct))
+                throw new BusinessRuleException("Sporan odgovor se ne odnosi na stavku ovog pregleda.");
             var napomena = podaci.TryGetProperty("napomena", out var n) && n.ValueKind == JsonValueKind.String ? n.GetString() : null;
             var o = await db.Odgovori.FirstOrDefaultAsync(x => x.PregledId == p.Id && x.StavkaId == stavkaId && x.Dorada == p.Dorada, ct);
             if (o is null)

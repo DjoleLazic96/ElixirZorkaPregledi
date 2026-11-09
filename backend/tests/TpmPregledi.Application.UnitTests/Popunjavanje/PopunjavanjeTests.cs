@@ -125,6 +125,25 @@ public class PopunjavanjeTests
     }
 
     [Fact]
+    public async Task Neispravni_podaci_odbijaju_samo_tu_operaciju_a_sledece_se_primenjuju()
+    {
+        var o = await PripremiAsync();
+        await using var _ = o.H;
+        var sut = Sut(o, o.Ana);
+        await sut.Handle(new ZapocniPregledCommand(o.PregledId), default);
+
+        var bezVrednosti = Op(o, "odgovor", new { stavkaId = o.Stavke[0] }, 0);
+        var pogresanTip = Op(o, "odgovor", new { stavkaId = "x", vrednost = 1 }, 1);
+        var ispravna = Op(o, "odgovor", new { stavkaId = o.Stavke[1], vrednost = 1 }, 2);
+        var r = await sut.Handle(new SinhronizacijaCommand(null, null, [bezVrednosti, pogresanTip, ispravna]), default);
+
+        r.Odbijene.Select(x => x.OpId).Should().Equal(bezVrednosti.OpId, pogresanTip.OpId);
+        r.Odbijene.Should().OnlyContain(x => x.Razlog == PopunjavanjeHandler.PorukaNeispravnaOperacija);
+        r.Prihvacene.Should().Equal(ispravna.OpId);
+        (await o.H.Db.Odgovori.SingleAsync()).StavkaId.Should().Be(o.Stavke[1]);
+    }
+
+    [Fact]
     public async Task Uredjaj_van_funkcije_ne_trazi_odgovore_i_vidi_se_na_sledecem_pregledu()
     {
         var o = await PripremiAsync();

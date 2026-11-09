@@ -32,6 +32,9 @@ preglede za danas i narednih 7 dana. Bez interneta popunjavate isto kao inače; 
 slanje: N promena, M slika**, a predat pregled ima status **Predato – čeka slanje**. Kad se veza vrati, sve se šalje samo.
 Na ekranu pregleda piše **Poslednja sinhronizacija: HH:MM**. Odjava je moguća tek kad se sve pošalje.
 Započet pregled se nastavlja samo na telefonu na kom je započet.
+Slike pregleda se šalju pre predaje. Ako server sliku ipak ne primi, razlog piše na ekranu pregleda, a slika ostaje na telefonu.
+Kad isti telefon koristi više inženjera, šalju se samo promene prijavljenog; neposlato urađeno prethodnog inženjera čeka
+na telefonu dok se on ponovo ne prijavi.
 
 ## 2.5 PZ sa dva inženjera
 

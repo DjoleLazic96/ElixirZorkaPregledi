@@ -230,6 +230,29 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 prihvacene.Add(op.OpId);   // već primenjeno — ponovljeno slanje posle prekida veze
                 continue;
             }
+            var razlog = await PrimeniJednuAsync(op, ct);
+            if (razlog is null) prihvacene.Add(op.OpId);
+            else odbijene.Add(new OdbijenaOperacija(op.OpId, razlog));
+        }
+
+        await ZabeleziOdstupanjeSataAsync(req, ct);
+        return new SinhronizacijaRezultat(prihvacene, odbijene, clock.UtcNow);
+    }
+
+    /// <summary>Poruka za operaciju čiji podaci nisu u očekivanom obliku (npr. stara verzija aplikacije).</summary>
+    public const string PorukaNeispravnaOperacija = "Operacija ima neispravne podatke i nije primenjena.";
+
+    private const int NajvisePokusaja = 3;
+
+    /// <summary>
+    /// Primenjuje jednu operaciju; vraća razlog odbijanja ili <c>null</c> ako je prihvaćena. Neispravni podaci odbijaju samo tu
+    /// operaciju (inače bi telefon beskonačno ponavljao isti paket). Paralelni upis (isti <c>opId</c> sa drugog zahteva ili
+    /// istovremena izmena pregleda) se ponavlja; ako je operacija u međuvremenu upisana, smatra se prihvaćenom.
+    /// </summary>
+    private async Task<string?> PrimeniJednuAsync(OperacijaInput op, CancellationToken ct)
+    {
+        for (var pokusaj = 1; ; pokusaj++)
+        {
             try
             {
                 await PrimeniAsync(op, ct);
@@ -238,14 +261,13 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                     OpId = op.OpId, PregledId = op.PregledId, Vrsta = op.Vrsta, KlijentAt = op.KlijentAt.ToUniversalTime(), PrimljenoAt = clock.UtcNow,
                 });
                 await db.SaveChangesAsync(ct);
-                prihvacene.Add(op.OpId);
+                return null;
             }
             catch (AppException ex)
             {
                 // Odbijena operacija ne zaustavlja ostale; klijent dobija razlog za korisnika.
                 db.ChangeTracker.Clear();
                 var razlog = ex is BusinessRuleException b ? string.Join(" ", b.Greske) : ex.Message;
-                odbijene.Add(new OdbijenaOperacija(op.OpId, razlog));
                 // Pregled je u međuvremenu prebačen ili poništen: urađeno se čuva kao sporan unos (R6.8).
                 if ((ex is ForbiddenException || razlog == "Pregled je poništen.") && await db.Pregledi.AnyAsync(p => p.Id == op.PregledId, ct))
                 {
@@ -256,11 +278,19 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                     });
                     await db.SaveChangesAsync(ct);
                 }
+                return razlog;
+            }
+            catch (Exception ex) when (ex is KeyNotFoundException or InvalidOperationException or FormatException or JsonException or OverflowException)
+            {
+                db.ChangeTracker.Clear();
+                return PorukaNeispravnaOperacija;
+            }
+            catch (DbUpdateException) when (pokusaj < NajvisePokusaja)
+            {
+                db.ChangeTracker.Clear();
+                if (await db.SinhronizacijaOperacije.AnyAsync(o => o.OpId == op.OpId, ct)) return null;
             }
         }
-
-        await ZabeleziOdstupanjeSataAsync(req, ct);
-        return new SinhronizacijaRezultat(prihvacene, odbijene, clock.UtcNow);
     }
 
     /// <summary>Sat telefona koji odstupa više od dozvoljenog (R5.1) se beleži kontroloru; inženjer ne vidi poruku.</summary>

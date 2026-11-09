@@ -22,7 +22,10 @@ napomenama, dodatnim poljima i slikama — klik na **Slika**), ceo pregled po se
 - **Poništi pregled** — uz razlog; pregled ostaje u arhivi kao „Poništen“.
 - Supervizor ne može da vrati ni da poništi pregled koji je overio Direktor.
 - **Sporni unosi** — ako je inženjer bez interneta radio pregled koji je u međuvremenu prebačen ili poništen, njegovi odgovori
-  čekaju ovde: **Primeni** ili **Odbaci**.
+  čekaju ovde: **Primeni** ili **Odbaci**. Primeniti se može samo na pregled koji je u radu ili na doradi; ako je pregled
+  predat ili overen, prvo ga **vratite na doradu**, pa primenite unos.
+- Ako je neko drugi u međuvremenu odlučio o istom pregledu, aplikacija javlja da je pregled izmenjen — osvežite stranicu i
+  odlučite ponovo.
 
 ## 3.4 Zatraži doradu (Inženjer)
 

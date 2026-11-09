@@ -1209,6 +1209,12 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("uredjaj_klijenta");
 
+                    b.Property<uint>("Verzija")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.Property<DateTime?>("ZapocetAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("zapocet_at");
