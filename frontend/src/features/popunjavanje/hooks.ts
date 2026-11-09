@@ -107,17 +107,20 @@ export function usePopunjavanje(id: number) {
 
 export function useZapocni(id: number) {
   return useMutation({
+    networkMode: 'always',
     mutationFn: async (verzijaId: number | null) => dodajOperaciju(id, { vrsta: 'zapocni', podaci: { verzijaId } }),
   });
 }
 
 /** Radnja u pregledu: lokalno odmah, server kad stigne veza; razlog odbijanja stiže u `odbijene`. */
 export function useOperacija(pregledId: number) {
-  return useMutation({ mutationFn: async (op: Operacija) => dodajOperaciju(pregledId, op) });
+  // Upis je lokalan (IndexedDB), pa ne sme da čeka internet; podrazumevani 'online' bi bez veze pauzirao svaki klik.
+  return useMutation({ networkMode: 'always', mutationFn: async (op: Operacija) => dodajOperaciju(pregledId, op) });
 }
 
 export function useOtpremiSliku(pregledId: number) {
   return useMutation({
+    networkMode: 'always',
     mutationFn: async (v: { stavkaId: number; slika: Blob; izvor: 'kamera' | 'galerija' }) => dodajSliku(pregledId, v.stavkaId, v.slika, v.izvor),
   });
 }

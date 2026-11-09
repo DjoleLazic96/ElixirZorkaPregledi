@@ -116,8 +116,15 @@ export function sinhronizuj(): Promise<void> {
 async function posalji(): Promise<void> {
   // 1) Operacije redom, u paketima.
   for (;;) {
-    const deo = await db.red.orderBy('seq').limit(50).toArray();
+    let deo = await db.red.orderBy('seq').limit(50).toArray();
     if (deo.length === 0) break;
+    // Posle predaje server ne prima slike, pa slike tog pregleda moraju da odu pre nje (slikano i predato bez veze).
+    const k = deo.findIndex((s) => s.op.vrsta === 'predaja');
+    if (k > 0) deo = deo.slice(0, k);
+    else if (k === 0) {
+      await posaljiSlike(deo[0].pregledId);
+      deo = [deo[0]];
+    }
     const r = (
       await api.post<SinhronizacijaRezultat>('/sinhronizacija', {
         uredjajKlijenta: uredjajKlijenta(),
@@ -136,23 +143,7 @@ async function posalji(): Promise<void> {
   }
 
   // 2) Slike (svaka sa svojim klijentId-jem — ponovljeno slanje ne pravi duplikat).
-  for (const s of await db.slike.toArray()) {
-    const telo = new FormData();
-    telo.append('fajl', s.blob, 'slika.jpg');
-    telo.append('klijentId', s.klijentId);
-    telo.append('pregledId', String(s.pregledId));
-    telo.append('stavkaId', String(s.stavkaId));
-    telo.append('izvor', s.izvor);
-    try {
-      await api.post('/fotografije', telo);
-    } catch (err) {
-      const status = (err as { response?: { status?: number } }).response?.status;
-      if (status === undefined || status >= 500) throw err;   // nema veze ili server ne radi — pokušava se ponovo
-      const razlog = (err as { response?: { data?: { greske?: string[] } } }).response?.data?.greske?.[0] ?? 'Slika nije primljena.';
-      await db.odbijene.add({ opId: s.klijentId, pregledId: s.pregledId, razlog, at: new Date().toISOString() });
-    }
-    await db.slike.delete(s.klijentId);
-  }
+  await posaljiSlike();
 
   // 3) Novi paket (ETag) i ponovna primena onoga što je u međuvremenu stalo u red.
   const etag = (await db.meta.get('etag'))?.vrednost;
@@ -207,4 +198,26 @@ export function useStanjeSinhronizacije() {
   const slika = useLokalno(() => db.slike.count(), [], 0);
   const poslednja = useLokalno(async () => (await db.meta.get('poslednjaSinhronizacija'))?.vrednost ?? null, [], null as string | null);
   return { online, promena, slika, poslednja };
+}
+
+/** Šalje slike koje čekaju (samo jednog pregleda, ako je zadat); odbijena slika ide među odbijene, nema veze → izuzetak. */
+async function posaljiSlike(pregledId?: number): Promise<void> {
+  const slike = pregledId === undefined ? await db.slike.toArray() : await db.slike.where('pregledId').equals(pregledId).toArray();
+  for (const s of slike) {
+    const telo = new FormData();
+    telo.append('fajl', s.blob, 'slika.jpg');
+    telo.append('klijentId', s.klijentId);
+    telo.append('pregledId', String(s.pregledId));
+    telo.append('stavkaId', String(s.stavkaId));
+    telo.append('izvor', s.izvor);
+    try {
+      await api.post('/fotografije', telo);
+    } catch (err) {
+      const status = (err as { response?: { status?: number } }).response?.status;
+      if (status === undefined || status >= 500) throw err;   // nema veze ili server ne radi — pokušava se ponovo
+      const razlog = (err as { response?: { data?: { greske?: string[] } } }).response?.data?.greske?.[0] ?? 'Slika nije primljena.';
+      await db.odbijene.add({ opId: s.klijentId, pregledId: s.pregledId, razlog, at: new Date().toISOString() });
+    }
+    await db.slike.delete(s.klijentId);
+  }
 }
