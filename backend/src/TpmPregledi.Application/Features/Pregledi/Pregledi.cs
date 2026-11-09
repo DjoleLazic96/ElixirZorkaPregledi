@@ -373,6 +373,8 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
                     KlijentAt = op.GetProperty("klijentAt").GetDateTime().ToUniversalTime(), ServerAt = clock.UtcNow, OpId = Guid.NewGuid(), Dorada = p.Dorada,
                 });
             else (o.Vrednost, o.Napomena, o.KorisnikId, o.ServerAt) = (vrednost, napomena, s.KorisnikId, clock.UtcNow);
+            // Pregled ulazi u UPDATE da bi xmin otkrio predaju posle provere statusa.
+            db.ChangeTracker.Entries<Pregled>().First(e => e.Entity == p).Property(x => x.Status).IsModified = true;
         }
         s.Odluka = req.Primeni ? "primenjeno" : "odbaceno";
         PregledIstorija.Dodaj(db, p, "sporan_unos", new { unosId = s.Id, odluka = s.Odluka }, currentUser.UserId, clock.UtcNow);
