@@ -73,6 +73,9 @@ describe('sinhronizacija', () => {
     expect(odbijena.razlog).toMatch(/prevelika/);
     expect(odbijena.slika).toBeDefined();
     expect(await db.red.count()).toBe(0);
+
+    expect(await obrisiLokalno()).toBe(true);
+    expect((await db.odbijene.toArray()).map((x) => x.slika)).toHaveLength(1);
   });
 
   it('bez veze sa serverom slika ostaje u redu, a predaja čeka', async () => {

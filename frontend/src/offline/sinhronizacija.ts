@@ -254,7 +254,7 @@ async function posalji(korisnikId: string): Promise<void> {
   await db.meta.put({ kljuc: 'poslednjaSinhronizacija', vrednost: new Date().toISOString() });
 }
 
-/** Briše lokalne podatke prijavljenog korisnika (odjava) — samo kad ništa njegovo ne čeka slanje, inače bi se urađeno izgubilo. */
+/** Briše lokalne podatke prijavljenog korisnika (odjava) — samo kad ništa njegovo ne čeka slanje, inače bi se urađeno izgubilo. Odbijene slike ostaju (jedini primerak). */
 export async function obrisiLokalno(): Promise<boolean> {
   const k = korisnik;
   if (!k) return true;
@@ -262,7 +262,7 @@ export async function obrisiLokalno(): Promise<boolean> {
   if (ceka > 0) return false;
   await db.transaction('rw', db.pregledi, db.odbijene, db.meta, async () => {
     await db.pregledi.clear();
-    await db.odbijene.where('korisnikId').equals(k).delete();
+    await db.odbijene.where('korisnikId').equals(k).filter((x) => x.slika === undefined).delete();
     await db.meta.bulkDelete(['etag', 'poslednjaSinhronizacija', 'korisnikPaketa']);
   });
   return true;
