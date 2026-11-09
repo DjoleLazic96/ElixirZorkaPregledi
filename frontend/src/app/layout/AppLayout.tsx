@@ -8,7 +8,7 @@ import { OAplikaciji } from '../../components/OAplikaciji';
 import { PromenaLozinke } from '../../components/PromenaLozinke';
 import { AnchoredDropdown } from '../../components/ui/AnchoredDropdown';
 import { useAuth } from '../../features/auth/AuthProvider';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Pretraga } from '../../features/analitika/Pretraga';
 import { iskljuciPush } from '../../features/obavestenja/hooks';
 import { PushDijalog, Zvono } from '../../features/obavestenja/Zvono';
@@ -19,6 +19,7 @@ import { DonjiMeni, Sidebar } from './Sidebar';
  */
 export function AppLayout() {
   const { me, logout } = useAuth();
+  const navigate = useNavigate();
   const toast = useToast();
   const sinh = useStanjeSinhronizacije();
   const inzenjer = me ? imaPravo(me, 'pregledi.popunjavanje') : false;
@@ -39,6 +40,8 @@ export function AppLayout() {
     }
     // Sledeći korisnik na istom telefonu ne sme da dobija obaveštenja prethodnog.
     await iskljuciPush().catch(() => {});
+    // Bez ovoga bi prijava sledećeg korisnika otvorila ekran na kom je prethodni stao.
+    navigate('/login', { replace: true });
     await logout();
   }
   const location = useLocation();

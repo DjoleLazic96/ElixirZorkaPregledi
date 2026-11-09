@@ -81,7 +81,7 @@ export function DashboardPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-[19px] font-semibold leading-tight text-gray-800 md:text-[22px]">{pozdrav()}{ime && `, ${ime}`}</h1>
-        <p className="mt-1 text-sm text-gray-500"><span className="capitalize">{datum}</span> · svi vide sve, uz oznaku kome je šta dodeljeno</p>
+        <p className="mt-1 text-sm text-gray-500">{datum.charAt(0).toUpperCase() + datum.slice(1)} · svi vide sve, uz oznaku kome je šta dodeljeno</p>
       </div>
 
       {moje && (

@@ -84,8 +84,8 @@ export function PregledDetaljPage() {
             <Polje l="Šablon" v={`${p.tip}, verzija ${p.verzijaBroj ?? '—'}`} />
             <Polje l="Planirani datum" v={`${formatirajDatum(p.planiraniDatum)}${p.prvobitniDatum !== p.planiraniDatum ? ` (prvobitno ${formatirajDatum(p.prvobitniDatum)})` : ''}`} />
             <Polje l="Inženjer" v={p.inzenjer} />
-            <Polje l="Početak" v={p.zapocetAt ? `${formatirajDatum(p.zapocetAt)} ${formatirajVreme(p.zapocetAt)}` : '—'} />
-            <Polje l="Predaja" v={p.predatAt ? `${formatirajDatum(p.predatAt)} ${formatirajVreme(p.predatAt)}` : '—'} />
+            <Polje l="Početak" v={p.zapocetAt ? formatirajVreme(p.zapocetAt) : '—'} />
+            <Polje l="Predaja" v={p.predatAt ? formatirajVreme(p.predatAt) : '—'} />
             <Polje l="Aktivno vreme" v={`${Math.round(p.aktivnoSekundi / 60)} min · ${p.delova} ${p.delova === 1 ? 'deo' : 'dela'}`} />
             <Polje l="Overio" v={p.overio ? `${p.overio}${p.overenoAt ? `, ${formatirajDatum(p.overenoAt)}` : ''}` : '—'} />
             {p.ponistenRazlog && <Polje l="Razlog poništavanja" v={p.ponistenRazlog} />}
@@ -174,7 +174,7 @@ export function PregledDetaljPage() {
           <ul className="space-y-1 text-sm">
             {p.istorija.map((d, i) => (
               <li key={i} className="flex flex-wrap gap-x-3">
-                <span className="whitespace-nowrap text-gray-500">{formatirajDatum(d.at)} {formatirajVreme(d.at)}</span>
+                <span className="whitespace-nowrap text-gray-500">{formatirajVreme(d.at)}</span>
                 <span className="min-w-0 break-words">{d.opis}{d.korisnik && <span className="text-gray-500"> · {d.korisnik}</span>}</span>
               </li>
             ))}

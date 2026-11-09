@@ -38,7 +38,7 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
         ("Inženjer", p.Inzenjer),
         ("Početak", Vreme(p.ZapocetAt)),
         ("Predaja", Vreme(p.PredatAt)),
-        ("Aktivno vreme", $"{p.AktivnoSekundi / 60} min ({p.Delova} {(p.Delova == 1 ? "deo" : "dela")})"),
+        ("Aktivno vreme", $"{(int)Math.Round(p.AktivnoSekundi / 60.0, MidpointRounding.AwayFromZero)} min ({p.Delova} {(p.Delova == 1 ? "deo" : "dela")})"),
         ("Status", Status(p.Status)),
         ("Overio", p.Overio is null ? "—" : $"{p.Overio}, {Vreme(p.OverenoAt)}"),
     ];

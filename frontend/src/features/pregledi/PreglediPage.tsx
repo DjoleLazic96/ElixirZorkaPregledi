@@ -81,7 +81,7 @@ export function PreglediPage() {
                     <td className="px-3 py-2">{p.inzenjer}</td>
                     <td className="px-3 py-2"><Badge tone={tonStatusa(p.status)}>{statusLabela(p.status)}</Badge></td>
                     <td className="px-3 py-2">{p.neispravnih > 0 ? <span className="font-semibold text-red-700">{p.neispravnih}</span> : '0'}</td>
-                    <td className="whitespace-nowrap px-3 py-2">{p.predatAt ? `${formatirajDatum(p.predatAt)} ${formatirajVreme(p.predatAt)}` : '—'}</td>
+                    <td className="whitespace-nowrap px-3 py-2">{p.predatAt ? formatirajVreme(p.predatAt) : '—'}</td>
                     <td className="px-3 py-2">{p.overio ?? '—'}</td>
                   </tr>
                 ))}

@@ -45,6 +45,11 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ### Ispravljeno
 - Neispravan zahtev za uvoz šablona (bez fajla) vraća 400 umesto 500.
 - Trajanje kvara i „van funkcije“ se ne prikazuje kao negativan broj dana.
+- Posle predaje pregleda Kalendar i Početna odmah pokazuju novi status.
+- Posle odjave sledeći korisnik ne dobija ekran na kom je prethodni stao.
+- Vreme početka i predaje pregleda se ne ispisuje sa duplim datumom.
+- Aktivno vreme u Word/PDF izveštaju se zaokružuje isto kao na ekranu.
+- Datum na Početnoj: naziv meseca malim slovom („9. novembar“).
 
 ### Bezbednost
 - 

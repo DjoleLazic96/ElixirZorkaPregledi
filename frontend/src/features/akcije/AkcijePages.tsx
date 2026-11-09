@@ -143,7 +143,7 @@ export function AkcijaPage() {
         <CardBody>
           <ul className="space-y-1 text-sm">
             {akcija.data.istorija.map((d, i) => (
-              <li key={i} className="flex flex-wrap gap-x-3"><span className="whitespace-nowrap text-gray-500">{formatirajDatum(d.at)} {formatirajVreme(d.at)}</span><span className="break-words">{d.tekst}{d.korisnik && ` · ${d.korisnik}`}</span></li>
+              <li key={i} className="flex flex-wrap gap-x-3"><span className="whitespace-nowrap text-gray-500">{formatirajVreme(d.at)}</span><span className="break-words">{d.tekst}{d.korisnik && ` · ${d.korisnik}`}</span></li>
             ))}
           </ul>
         </CardBody>

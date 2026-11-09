@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { UputstvoDugme } from '../sabloni/UputstvoDijalog';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Camera, Check, ImagePlus, MessageSquare, Wrench } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
 import { Select } from '../../components/ui/Select';
@@ -47,6 +48,7 @@ export function PopunjavanjePage() {
   const id = Number(useParams().id);
   const navigate = useNavigate();
   const toast = useToast();
+  const qc = useQueryClient();
   const pregled = usePopunjavanje(id);
   const zapocni = useZapocni(id);
   const operacija = useOperacija(id);
@@ -95,7 +97,11 @@ export function PopunjavanjePage() {
       toast.error(`Pregled još nije potpun: nedostaje ${n.odgovora} odgovora i ${n.napomena} obaveznih napomena.`);
       return;
     }
-    if (await posalji({ vrsta: 'predaja', podaci: {} }, navigator.onLine ? 'Pregled je predat.' : 'Predato – čeka slanje.')) navigate('/kalendar');
+    if (await posalji({ vrsta: 'predaja', podaci: {} }, navigator.onLine ? 'Pregled je predat.' : 'Predato – čeka slanje.')) {
+      // Kalendar, Početna i lista još drže stari status (keš 30 s); posle predaje sve se učitava iznova.
+      void qc.invalidateQueries();
+      navigate('/kalendar');
+    }
   }
 
   const ukupno = napredak(p);
