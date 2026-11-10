@@ -128,6 +128,25 @@ public sealed record UnesiOdsustvoCommand(string KorisnikId, DateOnly Od, DateOn
 /// <param name="Prebacivanja">„Odobri i prebaci“.</param>
 public sealed record OdluciOOdsustvuCommand(int Id, bool Odobreno, string? Razlog, IReadOnlyList<PrebacivanjeInput>? Prebacivanja) : IRequest<OdsustvoDto>;
 
+/// <summary>Izmena perioda odsustva (Supervizor/Direktor; npr. raniji povratak), odluka 2026-11-10.</summary>
+/// <param name="Id">Odsustvo.</param>
+/// <param name="Od">Novi početak.</param>
+/// <param name="Do">Novi kraj.</param>
+public sealed record IzmeniOdsustvoCommand(int Id, DateOnly Od, DateOnly Do) : IRequest<OdsustvoDto>;
+
+/// <summary>Otkazivanje odsustva: Supervizor/Direktor bilo koje, inženjer samo svoj zahtev koji čeka odluku (odluka 2026-11-10).</summary>
+/// <param name="Id">Odsustvo.</param>
+/// <param name="MozeSva">Prijavljeni ima pravo odobravanja odsustva.</param>
+public sealed record OtkaziOdsustvoCommand(int Id, bool MozeSva) : IRequest<OdsustvoDto>;
+
+/// <summary>Oblik ulaza.</summary>
+public sealed class IzmeniOdsustvoValidator : AbstractValidator<IzmeniOdsustvoCommand>
+{
+    /// <summary>Pravila.</summary>
+    public IzmeniOdsustvoValidator() =>
+        RuleFor(x => x).Must(x => x.Do >= x.Od).WithMessage("Datum „do“ ne može biti pre datuma „od“.");
+}
+
 /// <summary>Planirani pregledi inženjera u periodu, sa predlogom zamene.</summary>
 /// <param name="KorisnikId">Inženjer.</param>
 /// <param name="Od">Od.</param>
@@ -154,8 +173,13 @@ public sealed class OdsustvaHandler(IAppDbContext db, ICurrentUser currentUser, 
     IRequestHandler<GetOdsustvaQuery, IReadOnlyList<OdsustvoDto>>,
     IRequestHandler<UnesiOdsustvoCommand, OdsustvoDto>,
     IRequestHandler<OdluciOOdsustvuCommand, OdsustvoDto>,
-    IRequestHandler<GetPreglediUOdsustvuQuery, IReadOnlyList<PregledZaPrebacivanjeDto>>
+    IRequestHandler<GetPreglediUOdsustvuQuery, IReadOnlyList<PregledZaPrebacivanjeDto>>,
+    IRequestHandler<IzmeniOdsustvoCommand, OdsustvoDto>,
+    IRequestHandler<OtkaziOdsustvoCommand, OdsustvoDto>
 {
+    /// <summary>Statusi koji ne zauzimaju period (ne preklapaju se, ne preskaču se u rasporedu).</summary>
+    private static readonly string[] Neaktivna = ["odbijeno", "otkazano"];
+
     /// <summary>Poruka kad se preklapa sa postojećim odsustvom.</summary>
     public const string PorukaPreklapanje = "Za taj period već postoji odsustvo.";
 
@@ -175,7 +199,7 @@ public sealed class OdsustvaHandler(IAppDbContext db, ICurrentUser currentUser, 
     /// <inheritdoc />
     public async Task<OdsustvoDto> Handle(UnesiOdsustvoCommand req, CancellationToken ct)
     {
-        if (await db.Odsustva.AnyAsync(o => o.KorisnikId == req.KorisnikId && o.Status != "odbijeno" && o.Od <= req.Do && o.Do >= req.Od, ct))
+        if (await db.Odsustva.AnyAsync(o => o.KorisnikId == req.KorisnikId && !Neaktivna.Contains(o.Status) && o.Od <= req.Do && o.Do >= req.Od, ct))
             throw new BusinessRuleException(PorukaPreklapanje);
 
         var sada = clock.UtcNow;
@@ -225,6 +249,39 @@ public sealed class OdsustvaHandler(IAppDbContext db, ICurrentUser currentUser, 
                 i => i != req.KorisnikId && !k.JeOdsutan(i, p.PlaniraniDatum));
             return new PregledZaPrebacivanjeDto(RasporedHandler.Dto(p, k), predlog, k.Ime(predlog));
         }).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<OdsustvoDto> Handle(IzmeniOdsustvoCommand req, CancellationToken ct)
+    {
+        var o = await db.Odsustva.FirstOrDefaultAsync(x => x.Id == req.Id, ct) ?? throw new NotFoundException("Odsustvo ne postoji.");
+        if (Neaktivna.Contains(o.Status)) throw new BusinessRuleException("Odbijeno ili otkazano odsustvo se ne menja.");
+        if (await db.Odsustva.AnyAsync(x => x.Id != o.Id && x.KorisnikId == o.KorisnikId && !Neaktivna.Contains(x.Status) && x.Od <= req.Do && x.Do >= req.Od, ct))
+            throw new BusinessRuleException(PorukaPreklapanje);
+        var stari = $"{o.Od:dd.MM.yyyy}–{o.Do:dd.MM.yyyy}";
+        (o.Od, o.Do) = (req.Od, req.Do);
+        await Obavesti.DodajAsync(db, [o.KorisnikId], VrsteObavestenja.IshodZahteva, "Odsustvo izmenjeno",
+            $"Odsustvo {stari} je sada {o.Od:dd.MM.yyyy}–{o.Do:dd.MM.yyyy}.", "/moja-odsustva", null, clock.UtcNow, ct);
+        await db.SaveChangesAsync(ct);
+        return Dto(o, await ImenaAsync(ct));
+    }
+
+    /// <summary>
+    /// Otkazano odsustvo ostaje zapisano (status „otkazano“) i više se ne računa u rasporedu. Pregledi prebačeni zbog njega
+    /// ostaju zamenama — vraća ih Supervizor ili Direktor ručno, da se raspored ne menja bez njihovog znanja.
+    /// </summary>
+    public async Task<OdsustvoDto> Handle(OtkaziOdsustvoCommand req, CancellationToken ct)
+    {
+        var o = await db.Odsustva.FirstOrDefaultAsync(x => x.Id == req.Id, ct) ?? throw new NotFoundException("Odsustvo ne postoji.");
+        if (!req.MozeSva && (o.KorisnikId != currentUser.UserId || o.Status != "zahtev"))
+            throw new ForbiddenException("Možete da povučete samo svoj zahtev dok o njemu nije odlučeno.");
+        if (Neaktivna.Contains(o.Status)) throw new BusinessRuleException("Odsustvo je već odbijeno ili otkazano.");
+        o.Status = "otkazano";
+        if (o.KorisnikId != currentUser.UserId)
+            await Obavesti.DodajAsync(db, [o.KorisnikId], VrsteObavestenja.IshodZahteva, "Odsustvo otkazano",
+                $"Odsustvo {o.Od:dd.MM.yyyy}–{o.Do:dd.MM.yyyy} je otkazano.", "/moja-odsustva", null, clock.UtcNow, ct);
+        await db.SaveChangesAsync(ct);
+        return Dto(o, await ImenaAsync(ct));
     }
 
     /// <summary>Prebacuje preglede na zamene; započet pregled se ne prebacuje automatski (R3.20).</summary>

@@ -6,7 +6,8 @@ import { odgovor, renderSaProviderima } from '../../test/utils';
 import type { PregledKalendarDto, RasporedDto } from './hooks';
 import { bojaPregleda, stavkeDana } from './kalendar';
 import { PregledKartica } from './KalendarPage';
-import { RasporedPage } from './RasporedPage';
+import { RasporedPage, SvaOdsustva } from './RasporedPage';
+import { MojaOdsustvaPage } from './OdsustvaINeradniPages';
 
 vi.mock('../../api/client', () => ({ api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() } }));
 
@@ -113,5 +114,44 @@ describe('RasporedPage', () => {
 
     expect(api.post).toHaveBeenCalledWith('/raspored/potvrdi', { stavke: [{ datum: '2026-11-09', tip: 'DP1', inzenjerId: 'ana' }] });
     expect(await screen.findByText(/Raspored je potvrđen: DP1-2026-0001/)).toBeInTheDocument();
+  });
+});
+
+describe('Odsustva', () => {
+  const O = (id: number, korisnikId: string, ime: string, od: string, doD: string, status: string) =>
+    ({ id, korisnikId, ime, od, do: doD, vrsta: 'godisnji', napomena: null, status, razlogOdbijanja: null, kreiranoAt: '2026-11-01T00:00:00Z' });
+
+  beforeEach(() => {
+    vi.mocked(api.get).mockReset();
+    vi.mocked(api.post).mockReset();
+  });
+
+  it('Direktor vidi tekuća i buduća odsustva, a „Otkaži“ šalje otkazivanje (prošla tek uz „Prikaži i ranija“)', async () => {
+    vi.mocked(api.get).mockImplementation(async (url: string) => odgovor(url === '/odsustva'
+      ? [O(1, 'ana', 'Ana', '2099-01-10', '2099-01-12', 'odobreno'), O(2, 'bora', 'Bora', '2020-01-01', '2020-01-02', 'odobreno'), O(3, 'ana', 'Ana', '2099-02-01', '2099-02-01', 'otkazano')]
+      : [{ id: 'ana', ime: 'Ana' }]));
+    vi.mocked(api.post).mockResolvedValue(odgovor({}));
+    renderSaProviderima(<SvaOdsustva />);
+    expect(await screen.findByText(/10.01.2099/)).toBeInTheDocument();
+    expect(screen.queryByText(/01.01.2020/)).not.toBeInTheDocument();
+    expect(screen.queryByText('otkazano')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Otkaži' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Otkaži odsustvo' }));
+    expect(api.post).toHaveBeenCalledWith('/odsustva/1/otkazi');
+
+    await userEvent.click(screen.getByLabelText('Prikaži i ranija'));
+    expect(screen.getByText(/01.01.2020/)).toBeInTheDocument();
+    expect(screen.getByText('otkazano')).toBeInTheDocument();
+  });
+
+  it('„Moja odsustva“ pokazuje samo svoja; zahtev na čekanju može da se povuče', async () => {
+    vi.mocked(api.get).mockResolvedValue(odgovor([O(4, 'ana', 'Ana', '2099-03-01', '2099-03-02', 'zahtev'), O(5, 'bora', 'Bora', '2099-04-01', '2099-04-01', 'odobreno')]));
+    vi.mocked(api.post).mockResolvedValue(odgovor({}));
+    renderSaProviderima(<MojaOdsustvaPage />);
+    expect(await screen.findByText(/01.03.2099/)).toBeInTheDocument();
+    expect(screen.queryByText(/01.04.2099/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Povuci zahtev' }));
+    expect(api.post).toHaveBeenCalledWith('/odsustva/4/otkazi');
   });
 });

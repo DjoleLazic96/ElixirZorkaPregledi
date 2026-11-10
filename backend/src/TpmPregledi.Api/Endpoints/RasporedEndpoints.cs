@@ -41,6 +41,11 @@ public sealed record OdsustvoInput(string KorisnikId, DateOnly Od, DateOnly Do, 
 /// <param name="Prebacivanja">„Odobri i prebaci“.</param>
 public sealed record OdlukaOdsustvaInput(bool Odobreno, string? Razlog, IReadOnlyList<PrebacivanjeInput>? Prebacivanja);
 
+/// <summary>Telo izmene perioda odsustva.</summary>
+/// <param name="Od">Od.</param>
+/// <param name="Do">Do.</param>
+public sealed record IzmenaOdsustvaInput(DateOnly Od, DateOnly Do);
+
 /// <summary>Telo zahteva za prebacivanje.</summary>
 /// <param name="PregledId">Pregled.</param>
 /// <param name="Razlog">Razlog.</param>
@@ -147,6 +152,12 @@ public static class RasporedEndpoints
         o.MapPost("/{id:int}/odluka", async (int id, [FromBody] OdlukaOdsustvaInput i, IMediator m) =>
                 Results.Ok(await m.Send(new OdluciOOdsustvuCommand(id, i.Odobreno, i.Razlog, i.Prebacivanja))))
             .RequireAuthorization(odsustva).WithSummary("Odobri (i prebaci) ili odbij zahtev");
+        o.MapPut("/{id:int}", async (int id, [FromBody] IzmenaOdsustvaInput i, IMediator m) =>
+                Results.Ok(await m.Send(new IzmeniOdsustvoCommand(id, i.Od, i.Do))))
+            .RequireAuthorization(odsustva).WithSummary("Izmena perioda odsustva");
+        o.MapPost("/{id:int}/otkazi", async (int id, ClaimsPrincipal u, IMediator m) =>
+                Results.Ok(await m.Send(new OtkaziOdsustvoCommand(id, Ima(u, Prava.OdsustvaOdobravanje)))))
+            .WithSummary("Otkazivanje odsustva (inženjer: samo svoj zahtev na čekanju)");
         o.MapGet("/{korisnikId}/pregledi", async (string korisnikId, [FromQuery] DateOnly od, [FromQuery(Name = "do")] DateOnly doDatuma, IMediator m) =>
                 Results.Ok(await m.Send(new GetPreglediUOdsustvuQuery(korisnikId, od, doDatuma))))
             .RequireAuthorization(odsustva).WithSummary("Planirani pregledi inženjera u periodu sa predlogom zamene");

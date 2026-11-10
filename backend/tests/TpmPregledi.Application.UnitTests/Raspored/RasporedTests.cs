@@ -262,6 +262,30 @@ public class RasporedTests
     }
 
     [Fact]
+    public async Task Odsustvo_se_menja_i_otkazuje_a_inzenjer_povlaci_samo_svoj_zahtev_na_cekanju()
+    {
+        var (h, ana, bora, _) = await HarnessAsync();
+        await using var __ = h;
+        var sup = new OdsustvaHandler(h.Db, new FakeCurrentUser { UserId = bora }, new FakeClock());
+        var o = await sup.Handle(new UnesiOdsustvoCommand(ana, Pon, Pon.AddDays(4), "godisnji", null, false, null), default);
+
+        var izmenjeno = await sup.Handle(new IzmeniOdsustvoCommand(o.Id, Pon, Pon.AddDays(1)), default);
+        (izmenjeno.Od, izmenjeno.Do).Should().Be((Pon, Pon.AddDays(1)));
+        (await h.Db.Obavestenja.CountAsync(x => x.KorisnikId == ana && x.Naslov == "Odsustvo izmenjeno")).Should().Be(1);
+
+        var anaH = new OdsustvaHandler(h.Db, new FakeCurrentUser { UserId = ana }, new FakeClock());
+        await FluentActions.Awaiting(() => anaH.Handle(new OtkaziOdsustvoCommand(o.Id, false), default)).Should().ThrowAsync<ForbiddenException>();
+
+        (await sup.Handle(new OtkaziOdsustvoCommand(o.Id, true), default)).Status.Should().Be("otkazano");
+        (await RasporedKontekst.UcitajAsync(h.Db, default)).JeOdsutan(ana, Pon).Should().BeFalse("otkazano odsustvo se ne računa");
+        await FluentActions.Awaiting(() => sup.Handle(new IzmeniOdsustvoCommand(o.Id, Pon, Pon), default)).Should().ThrowAsync<BusinessRuleException>();
+
+        // Posle otkazivanja period je slobodan; inženjer povlači svoj zahtev dok čeka odluku.
+        var zahtev = await anaH.Handle(new UnesiOdsustvoCommand(ana, Pon, Pon, "slobodan_dan", null, true, null), default);
+        (await anaH.Handle(new OtkaziOdsustvoCommand(zahtev.Id, false), default)).Status.Should().Be("otkazano");
+    }
+
+    [Fact]
     public void Podesavanja_imaju_DP_na_dan_PZ_iskljuceno_podrazumevano()
         => PodesavanjaDto.Podrazumevana.DpNaDanPz.Should().BeFalse();
 }

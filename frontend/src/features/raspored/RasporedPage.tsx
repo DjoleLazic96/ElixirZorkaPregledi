@@ -4,6 +4,7 @@ import { useToast } from '../../app/providers/ToastProvider';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '../../components/ui/Card';
+import { Checkbox } from '../../components/ui/Checkbox';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { FormField } from '../../components/ui/FormField';
@@ -18,7 +19,7 @@ import { danasYmd, dodajDane, formatirajDatum, kratakDan, ponedeljakNedelje } fr
 import { imaPravo } from '../../lib/permissions';
 import { useAuth } from '../auth/AuthProvider';
 import {
-  VRSTE_ODSUSTVA, useInzenjeri, useOdluciOdsustvo, useOdluciPrebacivanje, useOdsustva, usePotvrdi, usePredlog,
+  STATUS_ODSUSTVA, VRSTE_ODSUSTVA, useInzenjeri, useIzmeniOdsustvo, useOtkaziOdsustvo, useOdluciOdsustvo, useOdluciPrebacivanje, useOdsustva, usePotvrdi, usePredlog,
   usePreglediUOdsustvu, useRaspored, useSledeciPz, useUnesiOdsustvo, useZahteviPrebacivanja, useZakaziPz,
   type OdsustvoDto, type PredlogStavka, type PregledKalendarDto, type ZahtevPrebacivanjaDto,
 } from './hooks';
@@ -110,6 +111,7 @@ export function RasporedPage() {
         {smeRaspored && <ZahteviPrebacivanja />}
         {smeOdsustva && <OdsustvaNaCekanju />}
       </div>
+      {smeOdsustva && <SvaOdsustva />}
 
       {predlog && <PredlogModal predlog={predlog} onClose={() => setPredlog(null)} />}
       {pzOtvoren && <PzModal onClose={() => setPzOtvoren(false)} />}
@@ -285,6 +287,126 @@ function OdlukaPrebacivanja({ zahtev, onClose }: { zahtev: ZahtevPrebacivanjaDto
 }
 
 // ─── Odsustva ─────────────────────────────────────────────────────────────
+
+/**
+ * Sva odsustva (Supervizor i Direktor): tekuća i buduća, a uz „Prikaži i ranija“ i prošla, odbijena i otkazana.
+ * Odobreno odsustvo se menja (npr. raniji povratak) ili otkazuje (odluka 2026-11-10).
+ */
+export function SvaOdsustva() {
+  const odsustva = useOdsustva();
+  const inzenjeri = useInzenjeri();
+  const [inz, setInz] = useState<string | null>(null);
+  const [sva, setSva] = useState(false);
+  const [izmena, setIzmena] = useState<OdsustvoDto | null>(null);
+  const [otkaz, setOtkaz] = useState<OdsustvoDto | null>(null);
+  const danas = danasYmd();
+  const lista = (odsustva.data ?? [])
+    .filter((o) => o.status !== 'zahtev')
+    .filter((o) => sva || (o.status === 'odobreno' && o.do >= danas))
+    .filter((o) => !inz || o.korisnikId === inz)
+    .sort((a, b) => (sva ? b.od.localeCompare(a.od) : a.od.localeCompare(b.od)));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Odsustva</CardTitle>
+        <div className="flex flex-wrap items-center gap-3">
+          <Select aria-label="Inženjer" className="w-48" value={inz} nullable placeholder="Svi inženjeri" onChange={setInz}
+            options={(inzenjeri.data ?? []).map((i) => ({ value: i.id, label: i.ime }))} />
+          <Checkbox label="Prikaži i ranija" checked={sva} onChange={(e) => setSva(e.target.checked)} />
+        </div>
+      </CardHeader>
+      <CardBody>
+        {odsustva.isLoading ? <Ucitavanje /> : !lista.length ? <EmptyState title={sva ? 'Nema odsustava.' : 'Nema tekućih ni budućih odsustava.'} /> : (
+          <ul className="divide-y divide-gray-100">
+            {lista.map((o) => (
+              <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                <span className="min-w-0">
+                  <span className="font-semibold">{o.ime}</span> · {formatirajDatum(o.od)} – {formatirajDatum(o.do)} · {VRSTE_ODSUSTVA.find((v) => v.value === o.vrsta)?.label}
+                  {o.napomena && <span className="block break-words text-xs text-gray-500">{o.napomena}</span>}
+                </span>
+                <span className="flex items-center gap-1">
+                  {o.status !== 'odobreno' && <Badge tone={STATUS_ODSUSTVA[o.status][0]}>{STATUS_ODSUSTVA[o.status][1]}</Badge>}
+                  {o.status === 'odobreno' && o.do >= danas && (
+                    <>
+                      <Button size="sm" variant="secondary" onClick={() => setIzmena(o)}>Izmeni</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setOtkaz(o)}>Otkaži</Button>
+                    </>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardBody>
+      {izmena && <IzmenaOdsustva odsustvo={izmena} onClose={() => setIzmena(null)} />}
+      {otkaz && <OtkazOdsustva odsustvo={otkaz} onClose={() => setOtkaz(null)} />}
+    </Card>
+  );
+}
+
+function IzmenaOdsustva({ odsustvo, onClose }: { odsustvo: OdsustvoDto; onClose: () => void }) {
+  const izmeni = useIzmeniOdsustvo();
+  const toast = useToast();
+  const [od, setOd] = useState(odsustvo.od);
+  const [doDatuma, setDo] = useState(odsustvo.do);
+  const [greska, setGreska] = useState<string | null>(null);
+
+  async function sacuvaj() {
+    try {
+      await izmeni.mutateAsync({ id: odsustvo.id, od, do: doDatuma });
+      toast.success('Odsustvo je izmenjeno.');
+      onClose();
+    } catch (err) {
+      setGreska(porukaGreske(err, 'Izmena nije sačuvana.'));
+    }
+  }
+
+  return (
+    <Modal open title={`Izmena odsustva — ${odsustvo.ime}`} onClose={onClose}>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField label="Od" htmlFor="izo-od"><DatePicker id="izo-od" value={od} onChange={setOd} clearable={false} /></FormField>
+        <FormField label="Do" htmlFor="izo-do"><DatePicker id="izo-do" value={doDatuma} onChange={setDo} min={od} clearable={false} /></FormField>
+      </div>
+      <p className="mt-3 text-xs text-gray-500">Prebačeni pregledi ostaju zamenama; vratite ih u rasporedu ako treba.</p>
+      {greska && <p role="alert" className="mt-3 text-sm text-red-600">{greska}</p>}
+      <div className="flex justify-end gap-2 pt-4">
+        <Button variant="ghost" onClick={onClose}>Odustani</Button>
+        <Button onClick={() => void sacuvaj()} disabled={izmeni.isPending}>{izmeni.isPending ? 'Čuvanje…' : 'Sačuvaj'}</Button>
+      </div>
+    </Modal>
+  );
+}
+
+function OtkazOdsustva({ odsustvo, onClose }: { odsustvo: OdsustvoDto; onClose: () => void }) {
+  const otkazi = useOtkaziOdsustvo();
+  const toast = useToast();
+  const [greska, setGreska] = useState<string | null>(null);
+
+  async function potvrdi() {
+    try {
+      await otkazi.mutateAsync(odsustvo.id);
+      toast.success('Odsustvo je otkazano.');
+      onClose();
+    } catch (err) {
+      setGreska(porukaGreske(err, 'Odsustvo nije otkazano.'));
+    }
+  }
+
+  return (
+    <Modal open title="Otkaži odsustvo" onClose={onClose}>
+      <p className="text-sm text-gray-700">
+        {odsustvo.ime}, {formatirajDatum(odsustvo.od)} – {formatirajDatum(odsustvo.do)}. Inženjer dobija obaveštenje, a odsustvo ostaje zapisano kao otkazano.
+      </p>
+      <p className="mt-2 text-xs text-gray-500">Prebačeni pregledi ostaju zamenama; vratite ih u rasporedu ako treba.</p>
+      {greska && <p role="alert" className="mt-3 text-sm text-red-600">{greska}</p>}
+      <div className="flex justify-end gap-2 pt-4">
+        <Button variant="ghost" onClick={onClose}>Odustani</Button>
+        <Button variant="danger" onClick={() => void potvrdi()} disabled={otkazi.isPending}>Otkaži odsustvo</Button>
+      </div>
+    </Modal>
+  );
+}
 
 function OdsustvaNaCekanju() {
   const zahtevi = useOdsustva('zahtev');

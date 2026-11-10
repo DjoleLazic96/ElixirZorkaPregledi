@@ -16,14 +16,17 @@ import { danasYmd, formatirajDatum } from '../../lib/datum';
 import { imaPravo } from '../../lib/permissions';
 import { useAuth } from '../auth/AuthProvider';
 import {
-  VRSTE_NERADNIH, VRSTE_ODSUSTVA, useNeradniDani, useObrisiNeradni, useOdsustva, useUnesiNeradne, useZahtevOdsustva,
+  STATUS_ODSUSTVA, VRSTE_NERADNIH, VRSTE_ODSUSTVA, useNeradniDani, useObrisiNeradni, useOdsustva, useOtkaziOdsustvo, useUnesiNeradne, useZahtevOdsustva,
 } from './hooks';
 
-const STATUS_ODSUSTVA = { zahtev: ['amber', 'čeka odluku'], odobreno: ['primary', 'odobreno'], odbijeno: ['red', 'odbijeno'] } as const;
 
 /** „Moja odsustva“ (R3.19): zahtev za odsustvo i spisak ranijih sa statusom. */
 export function MojaOdsustvaPage() {
+  const { me } = useAuth();
   const odsustva = useOdsustva();
+  const otkazi = useOtkaziOdsustvo();
+  // Ko ima pravo odobravanja dobija sva odsustva; ovde su samo njegova.
+  const moja = (odsustva.data ?? []).filter((o) => o.korisnikId === me?.user.id);
   const posalji = useZahtevOdsustva();
   const toast = useToast();
   const [od, setOd] = useState(danasYmd());
@@ -65,15 +68,23 @@ export function MojaOdsustvaPage() {
       <Card>
         <CardHeader><CardTitle>Zahtevi i odsustva</CardTitle></CardHeader>
         <CardBody>
-          {odsustva.isLoading ? <Ucitavanje /> : !odsustva.data?.length ? <EmptyState icon={CalendarOff} title="Još nema odsustava." /> : (
+          {odsustva.isLoading ? <Ucitavanje /> : !moja.length ? <EmptyState icon={CalendarOff} title="Još nema odsustava." /> : (
             <ul className="divide-y divide-gray-100">
-              {odsustva.data.map((o) => (
+              {moja.map((o) => (
                 <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                   <span>
                     {formatirajDatum(o.od)} – {formatirajDatum(o.do)} · {VRSTE_ODSUSTVA.find((v) => v.value === o.vrsta)?.label}
                     {o.razlogOdbijanja && <span className="block text-xs text-gray-500">{o.razlogOdbijanja}</span>}
                   </span>
-                  <Badge tone={STATUS_ODSUSTVA[o.status][0]}>{STATUS_ODSUSTVA[o.status][1]}</Badge>
+                  <span className="flex items-center gap-2">
+                    <Badge tone={STATUS_ODSUSTVA[o.status][0]}>{STATUS_ODSUSTVA[o.status][1]}</Badge>
+                    {o.status === 'zahtev' && (
+                      <Button size="sm" variant="ghost" disabled={otkazi.isPending}
+                        onClick={() => void otkazi.mutateAsync(o.id).then(() => toast.success('Zahtev je povučen.')).catch((e) => toast.error(porukaGreske(e, 'Zahtev nije povučen.')))}>
+                        Povuci zahtev
+                      </Button>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>

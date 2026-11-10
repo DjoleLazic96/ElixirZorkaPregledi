@@ -6,6 +6,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- **Odsustva**: na Rasporedu spisak svih odsustava (filter po inženjeru, i ranija), sa izmenom perioda i otkazivanjem; inženjer povlači svoj zahtev dok čeka odluku.
 - Na stranici pregleda Supervizor i Direktor imaju „Promeni u rasporedu“, a za PZ i „Dodaj inženjera“ (kao u Kalendaru).
 - **Dva inženjera na PZ-u**: Supervizor ili Direktor u Kalendaru dodaje drugog inženjera i deli sekcije („Označi sve sekcije“).
 - Istorijat šablona ima i filter po korisniku.

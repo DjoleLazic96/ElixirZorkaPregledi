@@ -43,9 +43,13 @@ odmah može da ga započne; **Odbij** ostavlja zakazani datum. DP se ne radi ran
 ## 4.6 Odsustva
 
 - Inženjer: levi meni → **Moja odsustva** → od, do, vrsta, napomena → **Pošalji zahtev**; ispod je spisak sa statusom.
+  Zahtev o kome još nije odlučeno može da se povuče (**Povuci zahtev**).
 - Supervizor/Direktor: **Raspored** → **Zahtevi za odsustvo** → **Odluči**, ili **Unesi odsustvo**. Prikazuju se planirani pregledi
   inženjera u tom periodu sa predlogom zamene; **Prebaci sve na** postavlja istu zamenu svima. **Odobri i prebaci** / **Sačuvaj i prebaci**.
 - Preklapanje sa postojećim odsustvom nije dozvoljeno: „Za taj period već postoji odsustvo.“
+- **Sva odsustva**: **Raspored** → kartica **Odsustva** — tekuća i buduća odsustva svih inženjera; filter po inženjeru, a
+  **Prikaži i ranija** dodaje prošla, odbijena i otkazana. **Izmeni** menja period (npr. raniji povratak), **Otkaži** otkazuje odsustvo.
+  Inženjer dobija obaveštenje. Pregledi koji su zbog odsustva prebačeni na zamenu ostaju zameni — vratite ih u rasporedu ako treba.
 
 ## 4.7 Neradni dani (Administrator, Direktor)
 

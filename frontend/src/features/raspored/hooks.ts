@@ -42,6 +42,9 @@ export interface InzenjerDto {
   ime: string;
 }
 
+/** Oznaka i boja statusa odsustva. */
+export const STATUS_ODSUSTVA = { zahtev: ['amber', 'čeka odluku'], odobreno: ['primary', 'odobreno'], odbijeno: ['red', 'odbijeno'], otkazano: ['gray', 'otkazano'] } as const;
+
 export interface OdsustvoDto {
   id: number;
   korisnikId: string;
@@ -50,7 +53,7 @@ export interface OdsustvoDto {
   do: string;
   vrsta: string;
   napomena: string | null;
-  status: 'zahtev' | 'odobreno' | 'odbijeno';
+  status: 'zahtev' | 'odobreno' | 'odbijeno' | 'otkazano';
   razlogOdbijanja: string | null;
   kreiranoAt: string;
 }
@@ -170,6 +173,24 @@ export function useIzmeniDodelu() {
   return useMutation({
     mutationFn: async (v: { id: number; inzenjerId: string | null; datum: string | null }) =>
       (await api.put<PregledKalendarDto>(`/pregledi/${v.id}/dodela`, { inzenjerId: v.inzenjerId, datum: v.datum })).data,
+    onSuccess: inv,
+  });
+}
+
+/** Izmena perioda odsustva (Supervizor/Direktor). */
+export function useIzmeniOdsustvo() {
+  const inv = useInvalidiraj();
+  return useMutation({
+    mutationFn: async (v: { id: number; od: string; do: string }) => (await api.put<OdsustvoDto>(`/odsustva/${v.id}`, { od: v.od, do: v.do })).data,
+    onSuccess: inv,
+  });
+}
+
+/** Otkazivanje odsustva; inženjer tako povlači svoj zahtev dok o njemu nije odlučeno. */
+export function useOtkaziOdsustvo() {
+  const inv = useInvalidiraj();
+  return useMutation({
+    mutationFn: async (id: number) => (await api.post<OdsustvoDto>(`/odsustva/${id}/otkazi`)).data,
     onSuccess: inv,
   });
 }
