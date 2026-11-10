@@ -247,6 +247,21 @@ public class RasporedTests
     }
 
     [Fact]
+    public async Task Istorija_pokazuje_sta_je_promenjeno_u_rasporedu_i_drugog_inzenjera_PZ_a()
+    {
+        var (h, ana, bora, ceca) = await HarnessAsync();
+        await using var __ = h;
+        var pz = await Sut(h).Handle(new ZakaziPzCommand(Pon.AddDays(8), "PZ1", ana, null), default);
+        await Sut(h).Handle(new IzmeniDodeluCommand(pz.Id, bora, Pon.AddDays(9)), default);
+        await Sut(h).Handle(new PostaviUcesnikaCommand(pz.Id, ceca, ["20", "30"]), default);
+
+        var detalj = await new TpmPregledi.Application.Features.Pregledi.PreglediHandler(h.Db, new FakeCurrentUser(), new FakeClock()).Handle(new TpmPregledi.Application.Features.Pregledi.GetPregledQuery(pz.Id), default);
+        detalj.Istorija.Select(x => x.Opis).Should().Contain("Izmena rasporeda: inženjer Ana → Bora; datum 17.11.2026 → 18.11.2026")
+            .And.Contain("Drugi inženjer: Ceca, sekcije 20, 30");
+        detalj.Ucesnici.Single().Sekcije.Should().Equal("20", "30");
+    }
+
+    [Fact]
     public void Podesavanja_imaju_DP_na_dan_PZ_iskljuceno_podrazumevano()
         => PodesavanjaDto.Podrazumevana.DpNaDanPz.Should().BeFalse();
 }

@@ -80,7 +80,7 @@ public sealed record PregledDetaljDto(
     string DodeljenId, string Inzenjer, int? VerzijaBroj, DateTime? ZapocetAt, DateTime? PredatAt, int AktivnoSekundi, int Delova,
     string? Overio, DateTime? OverenoAt, bool OverioDirektor, string? PonistenRazlog,
     IReadOnlyList<string> Upozorenja, IReadOnlyList<DetaljSekcijaDto> Sekcije, IReadOnlyList<DogadjajDto> Istorija,
-    IReadOnlyList<SporanUnosDto> SporniUnosi, IReadOnlyList<ZahtevDoradeDto> ZahteviDorade);
+    IReadOnlyList<SporanUnosDto> SporniUnosi, IReadOnlyList<ZahtevDoradeDto> ZahteviDorade, IReadOnlyList<UcesnikDto> Ucesnici);
 
 // ─── Zahtevi ──────────────────────────────────────────────────────────────
 
@@ -201,7 +201,7 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
     /// <inheritdoc />
     public async Task<PregledDetaljDto> Handle(GetPregledQuery req, CancellationToken ct)
     {
-        var p = await db.Pregledi.AsNoTracking().FirstOrDefaultAsync(x => x.Id == req.Id, ct) ?? throw new NotFoundException("Pregled ne postoji.");
+        var p = await db.Pregledi.AsNoTracking().Include(x => x.Ucesnici).FirstOrDefaultAsync(x => x.Id == req.Id, ct) ?? throw new NotFoundException("Pregled ne postoji.");
         var k = await RasporedKontekst.UcitajAsync(db, ct);
 
         var sekcije = new List<DetaljSekcijaDto>();
@@ -255,7 +255,8 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
             p.OverioDirektor, p.PonistenRazlog, upozorenja, sekcije,
             dogadjaji.Select(d => new DogadjajDto(d.Vrsta, OpisDogadjaja(d), k.Ime(d.KorisnikId), d.At)).ToList(),
             sporni.Select(s => new SporanUnosDto(s.Id, k.Ime(s.KorisnikId), OpisOperacije(s.Operacija), s.Razlog, s.PrimljenoAt, s.Odluka)).ToList(),
-            zahtevi.Select(z => new ZahtevDoradeDto(z.Id, k.Ime(z.PodneoId), z.Razlog, z.Status, z.KreiranoAt)).ToList());
+            zahtevi.Select(z => new ZahtevDoradeDto(z.Id, k.Ime(z.PodneoId), z.Razlog, z.Status, z.KreiranoAt)).ToList(),
+            p.Ucesnici.Select(u => new UcesnikDto(u.KorisnikId, k.Ime(u.KorisnikId), u.Sekcije)).ToList());
     }
 
     /// <inheritdoc />
@@ -427,9 +428,12 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
             "dodela" => $"Dodeljen: {S("inzenjer")}",
             "prenos" => "Prenet na sledeći radni dan",
             "promena_pz" => $"Promena PZ-a (po redu je bio {S("sledeciPoRedu")}). {S("napomena")}".Trim(),
-            "izmena_rasporeda" => "Izmena rasporeda",
+            "izmena_rasporeda" => OpisIzmeneRasporeda(r),
+            "raniji_pocetak" => $"Raniji početak odobren: {Dan(S("stari"))} → {Dan(S("novi"))}. {S("razlog")}".Trim(),
             "prebacivanje" => $"Prebačen: {S("stari")} → {S("novi")}",
-            "ucesnik" => $"Drugi inženjer: {S("inzenjer")}",
+            "ucesnik" => r.TryGetProperty("sekcije", out var sek) && sek.ValueKind == JsonValueKind.Array && sek.GetArrayLength() == 0
+                ? $"Uklonjen drugi inženjer: {S("inzenjer")}"
+                : $"Drugi inženjer: {S("inzenjer")}, sekcije {string.Join(", ", r.GetProperty("sekcije").EnumerateArray().Select(x => x.GetString()))}",
             "pocetak" => "Započet",
             "izmena_odgovora" => $"Izmenjen odgovor: {S("uredjaj")} — {S("aktivnost")}",
             "sve_ispravno" => $"„Sve neoznačeno je ispravno“ u sekciji {S("sekcija")} ({S("stavki")} stavki)",
@@ -445,6 +449,20 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
             _ => d.Vrsta,
         };
     }
+
+    /// <summary>„Izmena rasporeda: inženjer A → B; datum X → Y“ — samo ono što se stvarno promenilo.</summary>
+    private static string OpisIzmeneRasporeda(JsonElement r)
+    {
+        if (!r.TryGetProperty("stari", out var st) || !r.TryGetProperty("novi", out var nv)) return "Izmena rasporeda";
+        string P(JsonElement e, string k) => e.TryGetProperty(k, out var v) ? v.ToString() : string.Empty;
+        var delovi = new List<string>();
+        if (P(st, "inzenjer") != P(nv, "inzenjer")) delovi.Add($"inženjer {P(st, "inzenjer")} → {P(nv, "inzenjer")}");
+        if (P(st, "datum") != P(nv, "datum")) delovi.Add($"datum {Dan(P(st, "datum"))} → {Dan(P(nv, "datum"))}");
+        return delovi.Count == 0 ? "Izmena rasporeda" : $"Izmena rasporeda: {string.Join("; ", delovi)}";
+    }
+
+    /// <summary>ISO dan iz JSON-a („2026-11-17“) u prikaz „17.11.2026“.</summary>
+    private static string Dan(string iso) => DateOnly.TryParse(iso, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d.ToString("dd.MM.yyyy") : iso;
 
     private static string OpisOperacije(string json)
     {

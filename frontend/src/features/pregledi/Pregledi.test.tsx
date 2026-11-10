@@ -22,7 +22,7 @@ const DETALJ: PregledDetaljDto = {
     { stavkaId: 9, aktivnost: 'Pregled rolni', odgovor: 'Ne okreće', neispravan: true, napomena: '5 rolni', polja: ['Broj rolni koje ne okreću: 5 kom.'], fotografije: [] },
   ] }] }],
   istorija: [{ vrsta: 'predaja', opis: 'Predat', korisnik: 'Ana', at: '2026-11-09T08:00:00Z' }],
-  sporniUnosi: [], zahteviDorade: [],
+  sporniUnosi: [], zahteviDorade: [], ucesnici: [],
 };
 
 function renderDetalj() {
@@ -64,6 +64,31 @@ describe('PregledDetaljPage', () => {
     expect(await screen.findByRole('button', { name: 'Zatraži doradu' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Overio' })).not.toBeInTheDocument();
     expect(screen.queryByText('Pregled je rađen u 2 dela.')).not.toBeInTheDocument();
+  });
+});
+
+describe('PregledDetaljPage — planiran pregled', () => {
+  const PLANIRAN: PregledDetaljDto = { ...DETALJ, id: 7, broj: 'PZ1-2026-0001', tip: 'PZ1', status: 'planiran', zapocetAt: null, predatAt: null, upozorenja: [], sekcije: [], istorija: [] };
+
+  beforeEach(() => {
+    vi.mocked(api.get).mockReset();
+    vi.mocked(api.get).mockImplementation(async (url: string) => (url === '/pregledi/7' ? odgovor(PLANIRAN) : odgovor([{ id: 'ana', ime: 'Ana' }])));
+  });
+
+  it('PDF i Word ne mogu da se kliknu dok pregled ne počne; ko uređuje raspored vidi „Promeni u rasporedu“ i „Dodaj inženjera“', async () => {
+    pristup = { ...pristup, user: { ...pristup.user, id: 'sup' }, roles: ['Supervizor'], prava: ['raspored.uredjivanje'] };
+    renderSaProviderima(<Routes><Route path="/pregledi/:id" element={<PregledDetaljPage />} /></Routes>, { ruta: '/pregledi/7' });
+    expect(await screen.findByRole('button', { name: 'PDF' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Word' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Promeni u rasporedu' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dodaj inženjera' })).toBeInTheDocument();
+  });
+
+  it('bez prava rasporeda nema dugmadi za raspored', async () => {
+    pristup = { ...pristup, user: { ...pristup.user, id: 'ana' }, roles: ['Inzenjer'], prava: ['pregledi.popunjavanje'] };
+    renderSaProviderima(<Routes><Route path="/pregledi/:id" element={<PregledDetaljPage />} /></Routes>, { ruta: '/pregledi/7' });
+    await screen.findByRole('button', { name: 'PDF' });
+    expect(screen.queryByRole('button', { name: 'Promeni u rasporedu' })).not.toBeInTheDocument();
   });
 });
 

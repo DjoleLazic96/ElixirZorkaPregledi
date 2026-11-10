@@ -50,6 +50,8 @@ export interface PregledDetaljDto {
   istorija: { vrsta: string; opis: string; korisnik: string; at: string }[];
   sporniUnosi: { id: number; korisnik: string; opis: string; razlog: string; primljenoAt: string; odluka: string | null }[];
   zahteviDorade: { id: number; podneo: string; razlog: string; status: string; kreiranoAt: string }[];
+  /** Drugi inženjer na PZ-u sa svojim sekcijama (R3.14). */
+  ucesnici: { korisnikId: string; ime: string; sekcije: string[] }[];
 }
 
 export interface PreglediFilteri {

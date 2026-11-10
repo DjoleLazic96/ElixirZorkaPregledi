@@ -243,7 +243,7 @@ function PrebacivanjeForma({ pregled, onDone, onBack }: { pregled: PregledKalend
   );
 }
 
-function IzmenaForma({ pregled, onDone, onBack }: { pregled: PregledKalendarDto; onDone: () => void; onBack: () => void }) {
+export function IzmenaForma({ pregled, onDone, onBack }: { pregled: PregledKalendarDto; onDone: () => void; onBack: () => void }) {
   const inzenjeri = useInzenjeri();
   const izmeni = useIzmeniDodelu();
   const toast = useToast();

@@ -126,7 +126,7 @@ Odbijene operacije: „Pregled još nije potpun: nedostaje N odgovora i M obavez
 | Metod | Ruta | Politika | Svrha |
 |---|---|---|---|
 | GET | `/pregledi?od&do&tip&status&inzenjerId&pretraga&stranica&velicina` | RequireKorisnik | `StranicaDto<PregledRedDto>` (sa brojem neispravnih) |
-| GET | `/pregledi/{id}` | RequireKorisnik | detalj: zaglavlje, aktivno vreme i delovi, upozorenja, sekcije sa odgovorima/poljima/slikama, istorija, sporni unosi, zahtevi za doradu |
+| GET | `/pregledi/{id}` | RequireKorisnik | detalj: zaglavlje, aktivno vreme i delovi, upozorenja, sekcije sa odgovorima/poljima/slikama, istorija, sporni unosi, zahtevi za doradu, `ucesnici` (drugi inženjer PZ-a sa sekcijama) |
 | GET | `/pregledi/{id}/izvoz?format=pdf\|docx` | RequireKorisnik | izveštaj sa rezimeom problematičnih stavki |
 | GET | `/izvoz/pregledi.xlsx?…filteri` | RequireKorisnik | arhiva u Excel (filtrirano) |
 | POST | `/pregledi/{id}/overi` | overa | `ceka_overu` → `overen` |

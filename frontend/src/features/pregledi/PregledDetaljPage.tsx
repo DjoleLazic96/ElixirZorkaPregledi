@@ -17,10 +17,12 @@ import { formatirajDatum, formatirajVreme } from '../../lib/datum';
 import { preuzmiFajl } from '../../lib/download';
 import { imaPravo } from '../../lib/permissions';
 import { useAuth } from '../auth/AuthProvider';
-import { useInzenjeri } from '../raspored/hooks';
+import { useQueryClient } from '@tanstack/react-query';
+import { useInzenjeri, type PregledKalendarDto } from '../raspored/hooks';
+import { IzmenaForma, UcesnikForma } from '../raspored/KalendarPage';
 import { statusLabela, tonStatusa, useOdluka, usePregled, type PregledDetaljDto } from './hooks';
 
-type Dijalog = null | 'vrati' | 'ponisti' | 'zatrazi';
+type Dijalog = null | 'vrati' | 'ponisti' | 'zatrazi' | 'raspored' | 'ucesnik';
 
 /**
  * Detalj pregleda (R6.x, R5.3–R5.4): vreme i upozorenja za kontrolora, rezime problematičnih stavki, ceo pregled sa
@@ -36,6 +38,7 @@ export function PregledDetaljPage() {
   const pregled = usePregled(id);
   const odluka = useOdluka(id);
   const toast = useToast();
+  const qc = useQueryClient();
   const [dijalog, setDijalog] = useState<Dijalog>(null);
 
   async function posalji(putanja: string, telo: object | undefined, uspeh: string) {
@@ -57,17 +60,28 @@ export function PregledDetaljPage() {
   const problemi = p.sekcije.flatMap((s) => s.uredjaji.flatMap((u) => u.stavke.filter((x) => x.neispravan).map((x) => ({ s: s.sifra, u, x }))));
   const van = p.sekcije.flatMap((s) => s.uredjaji.filter((u) => u.vanFunkcije));
   const zahtev = p.zahteviDorade.find((z) => z.status === 'zahtev');
+  const nezapocet = p.status === 'planiran';
+  // Isto kao kartica u Kalendaru: ko uređuje raspored menja inženjera/datum, a na PZ-u dodaje drugog inženjera (R3.6, R3.14).
+  const raspored = imaPravo(pristup, 'raspored.uredjivanje') && (p.status === 'planiran' || p.status === 'u_radu');
+  const zaRaspored: PregledKalendarDto = {
+    id: p.id, broj: p.broj, tip: p.tip, planiraniDatum: p.planiraniDatum, prvobitniDatum: p.prvobitniDatum,
+    status: p.status as PregledKalendarDto['status'], dodeljenId: p.dodeljenId, dodeljen: p.inzenjer, ucesnici: p.ucesnici, napomena: null,
+  };
+  const posleRasporeda = () => {
+    setDijalog(null);
+    void qc.invalidateQueries({ queryKey: ['pregledi'] });
+  };
   const izdvojen = p.sekcije.flatMap((s) => s.uredjaji.map((u) => ({ s: s.sifra, u }))).find((x) => x.u.uredjajId === izdvojenId);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Button variant="ghost" onClick={() => navigate(-1)}><ArrowLeft size={14} aria-hidden /> Nazad</Button>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => void preuzmiFajl(`/pregledi/${p.id}/izvoz`, { format: 'pdf' }, `${p.broj}.pdf`).catch((e) => toast.error(porukaGreske(e, 'Izvoz nije uspeo.')))}>
+        <div className="flex flex-wrap gap-2" title={nezapocet ? 'Izveštaj postoji kad pregled počne.' : undefined}>
+          <Button variant="secondary" disabled={nezapocet} onClick={() => void preuzmiFajl(`/pregledi/${p.id}/izvoz`, { format: 'pdf' }, `${p.broj}.pdf`).catch((e) => toast.error(porukaGreske(e, 'Izvoz nije uspeo.')))}>
             <FileText size={14} aria-hidden /> PDF
           </Button>
-          <Button variant="secondary" onClick={() => void preuzmiFajl(`/pregledi/${p.id}/izvoz`, { format: 'docx' }, `${p.broj}.docx`).catch((e) => toast.error(porukaGreske(e, 'Izvoz nije uspeo.')))}>
+          <Button variant="secondary" disabled={nezapocet} onClick={() => void preuzmiFajl(`/pregledi/${p.id}/izvoz`, { format: 'docx' }, `${p.broj}.docx`).catch((e) => toast.error(porukaGreske(e, 'Izvoz nije uspeo.')))}>
             <FileText size={14} aria-hidden /> Word
           </Button>
         </div>
@@ -103,6 +117,10 @@ export function PregledDetaljPage() {
               <Button variant="secondary" onClick={() => setDijalog('zatrazi')}>Zatraži doradu</Button>
             )}
             {moj && (p.status === 'vracen_na_doradu' || p.status === 'u_radu') && <Button onClick={() => navigate(`/pregled/${p.id}/popuni`)}>Popuni pregled</Button>}
+            {raspored && <Button variant="secondary" onClick={() => setDijalog('raspored')}>Promeni u rasporedu</Button>}
+            {raspored && p.tip.startsWith('PZ') && (
+              <Button variant="secondary" onClick={() => setDijalog('ucesnik')}>{p.ucesnici.length ? 'Drugi inženjer' : 'Dodaj inženjera'}</Button>
+            )}
           </div>
           {zahtev && (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-sm">
@@ -182,6 +200,16 @@ export function PregledDetaljPage() {
         </CardBody>
       </Card>
 
+      {dijalog === 'raspored' && (
+        <Modal open title={`Promeni u rasporedu — ${p.broj}`} onClose={() => setDijalog(null)}>
+          <IzmenaForma pregled={zaRaspored} onDone={posleRasporeda} onBack={() => setDijalog(null)} />
+        </Modal>
+      )}
+      {dijalog === 'ucesnik' && (
+        <Modal open title={`Drugi inženjer — ${p.broj}`} onClose={() => setDijalog(null)}>
+          <UcesnikForma pregled={zaRaspored} onDone={posleRasporeda} onBack={() => setDijalog(null)} />
+        </Modal>
+      )}
       {dijalog === 'vrati' && <VratiDijalog p={p} onClose={() => setDijalog(null)} posalji={posalji} />}
       {dijalog === 'ponisti' && (
         <RazlogDijalog naslov="Poništi pregled" dugme="Poništi" opis="Pregled ostaje u arhivi kao „Poništen“, ne ulazi u analitiku, a broj se ne koristi ponovo."

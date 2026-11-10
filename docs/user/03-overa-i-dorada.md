@@ -12,7 +12,8 @@ Klik na broj otvara pregled.
 
 Gore su šablon i verzija, datumi, inženjer, početak i predaja, **aktivno vreme** i broj delova. Supervizor i Direktor vide i
 **upozorenja** (npr. sat telefona je odstupao, „Sve neoznačeno je ispravno“ upotrebljeno). Zatim **Problematične stavke** (sa
-napomenama, dodatnim poljima i slikama — klik na **Slika**), ceo pregled po sekcijama i **Istorija**. **PDF** i **Word** preuzimaju izveštaj.
+napomenama, dodatnim poljima i slikama — klik na **Slika**), ceo pregled po sekcijama i **Istorija**. **PDF** i **Word** preuzimaju izveštaj (dok pregled ne počne, ne mogu da se kliknu).
+Za planiran ili započet pregled Supervizor i Direktor ovde imaju i **Promeni u rasporedu** (inženjer, datum), a za PZ **Dodaj inženjera** — isto kao u Kalendaru.
 
 ## 3.3 Odluke (Supervizor, Direktor)
 
