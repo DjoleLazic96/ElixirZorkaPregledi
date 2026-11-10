@@ -38,7 +38,7 @@ public sealed record NacrtDto(SablonVerzijaDto Verzija, int? OsnovnaVerzija, IRe
 public sealed record ZakazanaDto(int Broj, DateOnly VaziOd);
 
 /// <summary>Događaj u istorijatu (R2.9).</summary>
-public sealed record SablonDogadjajDto(long Id, string Sablon, int? Verzija, string Vrsta, string Opis, string Korisnik, DateTime At);
+public sealed record SablonDogadjajDto(long Id, string Sablon, int? Verzija, string Vrsta, string Opis, string? KorisnikId, string Korisnik, DateTime At);
 
 /// <summary>Verzija u listi verzija šablona.</summary>
 public sealed record VerzijaKratkoDto(int Broj, string Status, DateOnly? VaziOd, DateTime? ObjavljenoAt, string? Objavio);
@@ -379,7 +379,7 @@ public sealed class IzmeneSablonaHandler(IAppDbContext db, ICurrentUser currentU
         var lista = await upit.OrderByDescending(x => x.D.At).ThenByDescending(x => x.D.Id).Take(1000).ToListAsync(ct);
         var k = await RasporedKontekst.UcitajAsync(db, ct);
         return lista.Where(x => (req.Od is null || AnalitikaDan(x.D.At) >= req.Od) && (req.Do is null || AnalitikaDan(x.D.At) <= req.Do))
-            .Select(x => new SablonDogadjajDto(x.D.Id, x.Tip, x.Verzija, x.D.Vrsta, x.D.Opis, x.D.KorisnikId is null ? "sistem" : k.Ime(x.D.KorisnikId), x.D.At)).ToList();
+            .Select(x => new SablonDogadjajDto(x.D.Id, x.Tip, x.Verzija, x.D.Vrsta, x.D.Opis, x.D.KorisnikId, x.D.KorisnikId is null ? "sistem" : k.Ime(x.D.KorisnikId), x.D.At)).ToList();
     }
 
     // ─── Pomoćno ──────────────────────────────────────────────────────────

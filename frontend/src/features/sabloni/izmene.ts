@@ -30,7 +30,7 @@ export interface NacrtDto {
 }
 
 export interface VerzijaKratkoDto { broj: number; status: string; vaziOd: string | null; objavljenoAt: string | null; objavio: string | null }
-export interface SablonDogadjajDto { id: number; sablon: string; verzija: number | null; vrsta: string; opis: string; korisnik: string; at: string }
+export interface SablonDogadjajDto { id: number; sablon: string; verzija: number | null; vrsta: string; opis: string; korisnikId: string | null; korisnik: string; at: string }
 export interface UputstvoDto { aktivnostId: number; aktivnost: string; tekst: string | null; slike: number[]; azurirao: string | null; azuriranoAt: string | null }
 
 export const VRSTE_PREDLOGA = [
@@ -126,13 +126,13 @@ export function useOdlukaPredloga() {
   });
 }
 
-export interface IstorijatFilteri { tip: string | null; vrsta: string | null; od: string; do: string }
+export interface IstorijatFilteri { tip: string | null; vrsta: string | null; korisnikId: string | null; od: string; do: string }
 
 export function useIstorijat(f: IstorijatFilteri) {
   return useQuery({
     queryKey: ['sabloni', 'istorijat', f],
     queryFn: async () =>
-      (await api.get<SablonDogadjajDto[]>('/sabloni/istorijat', { params: { tip: f.tip ?? undefined, vrsta: f.vrsta ?? undefined, od: f.od || undefined, do: f.do || undefined } })).data,
+      (await api.get<SablonDogadjajDto[]>('/sabloni/istorijat', { params: { tip: f.tip ?? undefined, vrsta: f.vrsta ?? undefined, korisnikId: f.korisnikId ?? undefined, od: f.od || undefined, do: f.do || undefined } })).data,
   });
 }
 

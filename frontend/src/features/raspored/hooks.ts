@@ -155,6 +155,16 @@ export function useZakaziPz() {
   });
 }
 
+/** Drugi inženjer na PZ-u sa svojim sekcijama (R3.14); prazan spisak sekcija ga uklanja. */
+export function usePostaviUcesnika() {
+  const inv = useInvalidiraj();
+  return useMutation({
+    mutationFn: async (v: { id: number; korisnikId: string; sekcije: string[] }) =>
+      (await api.post<PregledKalendarDto>(`/pregledi/${v.id}/ucesnici`, { korisnikId: v.korisnikId, sekcije: v.sekcije })).data,
+    onSuccess: inv,
+  });
+}
+
 export function useIzmeniDodelu() {
   const inv = useInvalidiraj();
   return useMutation({
