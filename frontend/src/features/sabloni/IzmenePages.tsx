@@ -367,14 +367,19 @@ export function PredloziTab() {
 
 /** „Istorijat šablona“ (R2.9): datum, šablon, verzija, opis, ko; filteri po šablonu, vrsti i periodu. */
 export function IstorijatTab() {
-  const [f, setF] = useState<IstorijatFilteri>({ tip: null, vrsta: null, od: '', do: '' });
+  const [f, setF] = useState<IstorijatFilteri>({ tip: null, vrsta: null, korisnikId: null, od: '', do: '' });
   const ist = useIstorijat(f);
+  // Spisak za filter „Korisnik“ (R2.9): svi koji se pojavljuju u istorijatu, iz nefiltriranog upita.
+  const svi = useIstorijat({ tip: null, vrsta: null, korisnikId: null, od: '', do: '' });
+  const korisnici = [...new Map((svi.data ?? []).filter((d) => d.korisnikId).map((d) => [d.korisnikId!, d.korisnik])).entries()]
+    .map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label, 'sr'));
   return (
     <Card>
       <CardBody className="space-y-3">
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           <Select aria-label="Šablon" value={f.tip} nullable placeholder="Svi šabloni" onChange={(v) => setF({ ...f, tip: v })} options={TIPOVI.map((t) => ({ value: t, label: t }))} />
           <Select aria-label="Vrsta događaja" value={f.vrsta} nullable placeholder="Sve vrste" onChange={(v) => setF({ ...f, vrsta: v })} options={VRSTE_DOGADJAJA} />
+          <Select aria-label="Korisnik" value={f.korisnikId} nullable placeholder="Svi korisnici" onChange={(v) => setF({ ...f, korisnikId: v })} options={korisnici} />
           <DatePicker aria-label="Od" value={f.od} placeholder="Od" onChange={(v) => setF({ ...f, od: v })} />
           <DatePicker aria-label="Do" value={f.do} placeholder="Do" onChange={(v) => setF({ ...f, do: v })} />
         </div>

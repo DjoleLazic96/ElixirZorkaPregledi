@@ -54,6 +54,34 @@ describe('PregledKartica', () => {
     expect(api.post).toHaveBeenCalledWith('/zahtevi-prebacivanja', { pregledId: 1, razlog: 'Lekar', predlozenaZamenaId: null });
   });
 
+  it('supervizor dodaje drugog inženjera na PZ sa njegovim sekcijama (R3.14)', async () => {
+    pristup = { ...pristup, user: { ...pristup.user, id: 'sup' }, roles: ['Supervizor'], prava: ['raspored.uredjivanje'] };
+    const sablon = { tip: 'PZ1', broj: 1, status: 'objavljena', vaziOd: null, sekcije: [{ sifra: '10', uredjaji: [] }, { sifra: '20', uredjaji: [] }, { sifra: '30', uredjaji: [] }] };
+    vi.mocked(api.get).mockImplementation(async (url: string) => odgovor(url.startsWith('/sabloni/') ? sablon : [{ id: 'bora', ime: 'Bora' }]));
+    vi.mocked(api.post).mockResolvedValue(odgovor({}));
+    renderSaProviderima(<PregledKartica pregled={{ ...P, tip: 'PZ1', broj: 'PZ1-2026-0001' }} onClose={() => {}} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Dodaj inženjera' }));
+    await userEvent.click(await screen.findByRole('combobox', { name: 'Drugi inženjer' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Bora' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Označi sve sekcije' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Sačuvaj' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Ostavite bar jednu sekciju');
+    expect(api.post).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByLabelText('Sekcija 10'));
+    await userEvent.click(screen.getByRole('button', { name: 'Sačuvaj' }));
+    expect(api.post).toHaveBeenCalledWith('/pregledi/1/ucesnici', { korisnikId: 'bora', sekcije: ['20', '30'] });
+    pristup = { user: { id: 'ana', userName: 'ana', fullName: 'Ana', email: null }, roles: ['Inzenjer'], prava: ['pregledi.popunjavanje'] };
+  });
+
+  it('DP nema „Dodaj inženjera“', () => {
+    pristup = { ...pristup, roles: ['Supervizor'], prava: ['raspored.uredjivanje'] };
+    renderSaProviderima(<PregledKartica pregled={P} onClose={() => {}} />);
+    expect(screen.queryByRole('button', { name: 'Dodaj inženjera' })).not.toBeInTheDocument();
+    pristup = { user: { id: 'ana', userName: 'ana', fullName: 'Ana', email: null }, roles: ['Inzenjer'], prava: ['pregledi.popunjavanje'] };
+  });
+
   it('tuđi pregled nema „Zatraži prebacivanje“', () => {
     renderSaProviderima(<PregledKartica pregled={{ ...P, dodeljenId: 'bora' }} onClose={() => {}} />);
     expect(screen.queryByRole('button', { name: 'Zatraži prebacivanje' })).not.toBeInTheDocument();

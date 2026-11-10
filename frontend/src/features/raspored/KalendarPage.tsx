@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '../../app/providers/ToastProvider';
 import { Button } from '../../components/ui/Button';
+import { Checkbox } from '../../components/ui/Checkbox';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { FormField } from '../../components/ui/FormField';
 import { Modal } from '../../components/ui/Modal';
@@ -17,8 +18,9 @@ import {
 } from '../../lib/datum';
 import { imaPravo } from '../../lib/permissions';
 import { useAuth } from '../auth/AuthProvider';
+import { useSablonVerzija } from '../sabloni/hooks';
 import {
-  useInzenjeri, useIzmeniDodelu, usePodnesiPrebacivanje, useRaspored, type PregledKalendarDto, type RasporedDto,
+  useInzenjeri, useIzmeniDodelu, usePostaviUcesnika, usePodnesiPrebacivanje, useRaspored, type PregledKalendarDto, type RasporedDto,
 } from './hooks';
 import { STATUS_LABELA, bojaPregleda, stavkeDana } from './kalendar';
 
@@ -153,7 +155,7 @@ function Dan({ dan, r, danas, uMesecu, onPregled, spisak }: DanProps) {
 export function PregledKartica({ pregled, onClose }: { pregled: PregledKalendarDto; onClose: () => void }) {
   const { me } = useAuth();
   const pristup = me ?? { roles: [], prava: [] };
-  const [mod, setMod] = useState<'kartica' | 'prebacivanje' | 'izmena'>('kartica');
+  const [mod, setMod] = useState<'kartica' | 'prebacivanje' | 'izmena' | 'ucesnik'>('kartica');
   const navigate = useNavigate();
   const moj = me?.user.id === pregled.dodeljenId || pregled.ucesnici.some((u) => u.korisnikId === me?.user.id);
   const planiran = pregled.status === 'planiran';
@@ -187,6 +189,9 @@ export function PregledKartica({ pregled, onClose }: { pregled: PregledKalendarD
             {imaPravo(pristup, 'raspored.uredjivanje') && (planiran || pregled.status === 'u_radu') && (
               <Button variant="secondary" onClick={() => setMod('izmena')}>Promeni u rasporedu</Button>
             )}
+            {imaPravo(pristup, 'raspored.uredjivanje') && pregled.tip.startsWith('PZ') && (planiran || pregled.status === 'u_radu') && (
+              <Button variant="secondary" onClick={() => setMod('ucesnik')}>{pregled.ucesnici.length ? 'Drugi inženjer' : 'Dodaj inženjera'}</Button>
+            )}
             {pregled.status !== 'planiran' && <Button variant="secondary" onClick={() => navigate(`/pregledi/${pregled.id}`)}>Otvori pregled</Button>}
             <Button variant="ghost" onClick={onClose}>Zatvori</Button>
           </div>
@@ -194,6 +199,7 @@ export function PregledKartica({ pregled, onClose }: { pregled: PregledKalendarD
       )}
       {mod === 'prebacivanje' && <PrebacivanjeForma pregled={pregled} onDone={onClose} onBack={() => setMod('kartica')} />}
       {mod === 'izmena' && <IzmenaForma pregled={pregled} onDone={onClose} onBack={() => setMod('kartica')} />}
+      {mod === 'ucesnik' && <UcesnikForma pregled={pregled} onDone={onClose} onBack={() => setMod('kartica')} />}
     </Modal>
   );
 }
@@ -272,6 +278,74 @@ function IzmenaForma({ pregled, onDone, onBack }: { pregled: PregledKalendarDto;
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onBack}>Nazad</Button>
         <Button type="submit" disabled={izmeni.isPending}>{izmeni.isPending ? 'Čuvanje…' : 'Sačuvaj'}</Button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * Drugi inženjer na PZ-u (R3.14): bira se inženjer i njegove sekcije („Označi sve sekcije“); ostale sekcije radi dodeljeni.
+ * Svako upisuje samo u svoje sekcije, a predati može bilo ko od njih kad su sve gotove (R3.15).
+ */
+export function UcesnikForma({ pregled, onDone, onBack }: { pregled: PregledKalendarDto; onDone: () => void; onBack: () => void }) {
+  const inzenjeri = useInzenjeri();
+  const sablon = useSablonVerzija(pregled.tip);
+  const postavi = usePostaviUcesnika();
+  const toast = useToast();
+  const postojeci = pregled.ucesnici[0];
+  const [inz, setInz] = useState<string | null>(postojeci?.korisnikId ?? null);
+  const [sekcije, setSekcije] = useState<string[]>(postojeci?.sekcije ?? []);
+  const [greska, setGreska] = useState<string | null>(null);
+  const sve = (sablon.data?.sekcije ?? []).map((s) => s.sifra);
+
+  function prekidac(s: string) {
+    setSekcije((x) => (x.includes(s) ? x.filter((y) => y !== s) : [...x, s]));
+  }
+
+  async function sacuvaj(korisnikId: string, izabrane: string[], poruka: string) {
+    try {
+      await postavi.mutateAsync({ id: pregled.id, korisnikId, sekcije: izabrane });
+      toast.success(poruka);
+      onDone();
+    } catch (err) {
+      setGreska(porukaGreske(err, 'Izmena nije sačuvana.'));
+    }
+  }
+
+  function potvrdi(e: FormEvent) {
+    e.preventDefault();
+    if (!inz) return setGreska('Izaberite inženjera.');
+    if (sekcije.length === 0) return setGreska('Označite bar jednu sekciju.');
+    if (sekcije.length === sve.length) return setGreska('Ostavite bar jednu sekciju inženjeru kome je PZ dodeljen.');
+    void sacuvaj(inz, sve.filter((s) => sekcije.includes(s)), postojeci ? 'Sekcije su izmenjene.' : 'Inženjer je dodat.');
+  }
+
+  return (
+    <form onSubmit={potvrdi} className="space-y-4" noValidate>
+      <p className="text-sm text-gray-600">{pregled.dodeljen} radi sekcije koje ovde ne označite. Svako upisuje samo u svoje sekcije.</p>
+      <FormField label="Drugi inženjer" htmlFor="uc-inz">
+        <Select id="uc-inz" value={inz} onChange={setInz} placeholder="Izaberite inženjera" disabled={!!postojeci}
+          options={(inzenjeri.data ?? []).filter((i) => i.id !== pregled.dodeljenId).map((i) => ({ value: i.id, label: i.ime }))} />
+      </FormField>
+      <fieldset className="space-y-2">
+        <legend className="mb-1 text-sm font-medium text-gray-800">Njegove sekcije</legend>
+        {sablon.isLoading ? <Ucitavanje /> : (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {sve.map((s) => <Checkbox key={s} label={`Sekcija ${s}`} checked={sekcije.includes(s)} onChange={() => prekidac(s)} />)}
+          </div>
+        )}
+        <Button type="button" size="sm" variant="ghost" onClick={() => setSekcije(sve)}>
+          Označi sve sekcije
+        </Button>
+      </fieldset>
+      {greska && <p role="alert" className="text-sm text-red-600">{greska}</p>}
+      <div className="flex flex-wrap justify-end gap-2">
+        {postojeci && (
+          <Button type="button" variant="danger" disabled={postavi.isPending}
+            onClick={() => void sacuvaj(postojeci.korisnikId, [], `${postojeci.ime} više ne radi ovaj PZ.`)}>Ukloni inženjera</Button>
+        )}
+        <Button type="button" variant="ghost" onClick={onBack}>Nazad</Button>
+        <Button type="submit" disabled={postavi.isPending}>{postavi.isPending ? 'Čuvanje…' : 'Sačuvaj'}</Button>
       </div>
     </form>
   );

@@ -5,7 +5,7 @@ import { Route, Routes } from 'react-router-dom';
 import { api } from '../../api/client';
 import type { SablonVerzijaDto } from '../../api/types';
 import { apiGreska, odgovor, renderSaProviderima } from '../../test/utils';
-import { NacrtPage, PredlogDijalog, PredloziTab } from './IzmenePages';
+import { IstorijatTab, NacrtPage, PredlogDijalog, PredloziTab } from './IzmenePages';
 import type { NacrtDto, PredlogDto } from './izmene';
 import { UputstvoDugme } from './UputstvoDijalog';
 
@@ -112,5 +112,19 @@ describe('Uputstvo', () => {
     expect(await screen.findByText('Uputstvo još nije uneto.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Unesi uputstvo' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Dodaj sliku (0/3)' })).toBeInTheDocument();
+  });
+});
+
+describe('Istorijat šablona', () => {
+  it('filtrira po korisniku iz onih koji se pojavljuju u istorijatu (R2.9)', async () => {
+    vi.mocked(api.get).mockReset();
+    vi.mocked(api.get).mockResolvedValue(odgovor([
+      { id: 2, sablon: 'DP1', verzija: 2, vrsta: 'objava', opis: 'Objavljena verzija 2.', korisnikId: 'd', korisnik: 'Direktor', at: '2026-11-10T10:00:00Z' },
+      { id: 1, sablon: 'DP1', verzija: 1, vrsta: 'prvi_uvoz', opis: 'Prvi uvoz', korisnikId: 'a', korisnik: 'Admin', at: '2026-11-04T10:00:00Z' },
+    ]));
+    renderSaProviderima(<IstorijatTab />);
+    await userEvent.click(await screen.findByRole('combobox', { name: 'Korisnik' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Direktor' }));
+    expect(vi.mocked(api.get)).toHaveBeenLastCalledWith('/sabloni/istorijat', { params: expect.objectContaining({ korisnikId: 'd' }) });
   });
 });

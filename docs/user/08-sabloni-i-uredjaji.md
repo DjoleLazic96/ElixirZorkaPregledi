@@ -61,4 +61,4 @@ piše „u verziji N“.
 ## 8.7 Istorijat šablona
 
 Kartica **Istorijat**: svi događaji sa šablonima (prvi uvoz, nacrt i izmene u njemu, predlozi i odluke, objave, početak važenja verzije),
-sa vremenom, šablonom, verzijom, opisom i ko je to uradio. Filteri: šablon, vrsta događaja, period.
+sa vremenom, šablonom, verzijom, opisom i ko je to uradio. Filteri: šablon, vrsta događaja, korisnik, period.

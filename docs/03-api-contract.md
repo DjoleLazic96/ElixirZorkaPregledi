@@ -170,7 +170,7 @@ Popunjavanje (`GET /pregledi/{id}/popunjavanje`, paket) uz svaki uređaj vraća 
 | PUT / DELETE | `/sabloni/{tip}/nacrt/stavke/{id}` | sabloni.nacrt | PUT `{ aktivnostId, poljaIds }` izmena (ključ ostaje) / izbaci |
 | POST | `/sabloni/{tip}/nacrt/stavke/{id}/pomeri` `{ gore }` | sabloni.nacrt | jedno mesto unutar sekcije |
 | POST | `/sabloni/{tip}/nacrt/objavi` `{ vaziOd }` | sabloni.objava | danas → važi odmah; kasnije → `zakazana`; 422 prošlost, bez izmena, već zakazana |
-| GET | `/sabloni/istorijat?tip&vrsta&korisnikId&od&do` | RequireKorisnik | `SablonDogadjajDto[]` (do 1000) |
+| GET | `/sabloni/istorijat?tip&vrsta&korisnikId&od&do` | RequireKorisnik | `SablonDogadjajDto[]` (do 1000; uz ime nosi i `korisnikId` za filter) |
 | GET / POST | `/predlozi-izmena?status&tip` | RequireKorisnik | lista / predlog `{ tip, vrsta, stavkaId, opis, razlog }` (razlog obavezan) |
 | POST | `/predlozi-izmena/{id}/odluka` `{ odobren, odgovor }` | sabloni.nacrt | 422 ako je već odlučeno |
 | GET / PUT | `/aktivnosti/{id}/uputstvo` | RequireKorisnik / sabloni.nacrt | `UputstvoDto` (tekst, slike, ko i kada) / `{ tekst }` |
