@@ -6,6 +6,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- Na stranici pregleda Supervizor i Direktor imaju „Promeni u rasporedu“, a za PZ i „Dodaj inženjera“ (kao u Kalendaru).
 - **Dva inženjera na PZ-u**: Supervizor ili Direktor u Kalendaru dodaje drugog inženjera i deli sekcije („Označi sve sekcije“).
 - Istorijat šablona ima i filter po korisniku.
 - Pregled se započinje najranije na planirani dan. Za PZ inženjer može da zatraži raniji početak (uz razlog); Supervizor ili Direktor odobrava, i PZ se pomera na danas.
@@ -54,6 +55,8 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Aktivno vreme u Word/PDF izveštaju se zaokružuje isto kao na ekranu.
 - Datum na Početnoj: naziv meseca malim slovom („9. novembar“).
 - Početna: ispod pozdrava stoji samo datum (uklonjena napomena prepisana iz mockup-a).
+- PDF i Word na stranici pregleda ne mogu da se kliknu dok pregled ne počne (izveštaj bi bio prazan).
+- Istorija pregleda pokazuje šta je promenjeno u rasporedu (inženjer, datum), raniji početak i sekcije drugog inženjera.
 - Bez interneta odgovori, slike i predaja se odmah čuvaju na telefonu (ranije su čekali povratak veze).
 - Slike snimljene bez interneta se više ne gube kad se pregled preda: telefon prvo pošalje slike, pa tek onda predaju. Slika koju server odbije ostaje sačuvana na telefonu, i posle odjave.
 - Jedna neispravna promena sa telefona više ne zaustavlja slanje svih ostalih: odbija se samo ta promena, uz razlog.
