@@ -21,15 +21,15 @@ public class JwtTokenServiceTests(CustomWebAppFactory factory)
     [Fact]
     public async Task Izdavanje_cuva_hash_a_ne_sirovi_token_i_access_nosi_rolu()
     {
-        var user = await factory.SeedUserAsync("jwt-" + Guid.NewGuid().ToString("N")[..8], "Jwt2026!!", Roles.Korisnik);
+        var user = await factory.SeedUserAsync("jwt-" + Guid.NewGuid().ToString("N")[..8], "Jwt2026!!", Roles.Inzenjer);
         await using var scope = factory.NoviScope();
         var svc = scope.ServiceProvider.GetRequiredService<IJwtTokenService>();
         var db  = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var pair = await svc.IssueTokenPairAsync(user, [Roles.Korisnik], "10.0.0.1");
+        var pair = await svc.IssueTokenPairAsync(user, [Roles.Inzenjer], "10.0.0.1");
 
         var jwt = new JwtSecurityTokenHandler().ReadJwtToken(pair.AccessToken);
-        jwt.Claims.Should().Contain(c => c.Type == "role" && c.Value == Roles.Korisnik);
+        jwt.Claims.Should().Contain(c => c.Type == "role" && c.Value == Roles.Inzenjer);
         jwt.Claims.Should().Contain(c => c.Type == "preferred_username" && c.Value == user.UserName);
 
         var red = await db.RefreshTokens.SingleAsync(r => r.UserId == user.Id);
@@ -42,12 +42,12 @@ public class JwtTokenServiceTests(CustomWebAppFactory factory)
     [Fact]
     public async Task Rotacija_revokuje_stari_i_izdaje_nov_a_ponovna_rotacija_starog_pada()
     {
-        var user = await factory.SeedUserAsync("rot-" + Guid.NewGuid().ToString("N")[..8], "Jwt2026!!", Roles.Korisnik);
+        var user = await factory.SeedUserAsync("rot-" + Guid.NewGuid().ToString("N")[..8], "Jwt2026!!", Roles.Inzenjer);
         await using var scope = factory.NoviScope();
         var svc = scope.ServiceProvider.GetRequiredService<IJwtTokenService>();
         var db  = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var pair = await svc.IssueTokenPairAsync(user, [Roles.Korisnik], null);
+        var pair = await svc.IssueTokenPairAsync(user, [Roles.Inzenjer], null);
         var rotated = await svc.RotateAsync(pair.RefreshToken, null);
 
         rotated.Should().NotBeNull();
@@ -64,13 +64,13 @@ public class JwtTokenServiceTests(CustomWebAppFactory factory)
     [Fact]
     public async Task RevokeAll_gasi_sve_vazece_a_DeleteInactive_ih_brise()
     {
-        var user = await factory.SeedUserAsync("rev-" + Guid.NewGuid().ToString("N")[..8], "Jwt2026!!", Roles.Korisnik);
+        var user = await factory.SeedUserAsync("rev-" + Guid.NewGuid().ToString("N")[..8], "Jwt2026!!", Roles.Inzenjer);
         await using var scope = factory.NoviScope();
         var svc = scope.ServiceProvider.GetRequiredService<IJwtTokenService>();
         var db  = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var a = await svc.IssueTokenPairAsync(user, [Roles.Korisnik], null);
-        var b = await svc.IssueTokenPairAsync(user, [Roles.Korisnik], null);
+        var a = await svc.IssueTokenPairAsync(user, [Roles.Inzenjer], null);
+        var b = await svc.IssueTokenPairAsync(user, [Roles.Inzenjer], null);
 
         await svc.RevokeAllAsync(user.Id);
 

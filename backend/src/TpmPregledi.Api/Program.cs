@@ -1,3 +1,4 @@
+using TpmPregledi.Api.Common;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -98,12 +99,15 @@ try
         });
 
     // ─── Autorizacija ─────────────────────────────────────────────────────
-    // Politika nosi ime NAJSLABIJE role koju pušta; Admin je implicitno u svakoj. Plain
-    // .RequireAuthorization() (bilo ko ulogovan) samo za /auth/me, /auth/logout, /auth/change-password.
+    // Poslovne rute se štite PRAVOM („Pravo:overa“…), ne rolom (odluka 2026-11-04): Admin štiklira
+    // prava po korisniku. RequireAdmin ostaje za sistemske ekrane skeleta (audit log, stanje servera);
+    // RequireKorisnik = bilo koja od četiri role (aktivan nalog sa rolom).
     builder.Services.AddAuthorization(opts =>
     {
         opts.AddPolicy("RequireAdmin",    p => p.RequireRole(Roles.Admin));
-        opts.AddPolicy("RequireKorisnik", p => p.RequireRole(Roles.Admin, Roles.Korisnik));
+        opts.AddPolicy("RequireKorisnik", p => p.RequireRole(Roles.All));
+        foreach (var pravo in Prava.Sva)
+            opts.AddPolicy(PravoPolitika.Za(pravo), p => p.RequireClaim(JwtTokenService.PravoClaim, pravo));
     });
 
     // ─── CORS ─────────────────────────────────────────────────────────────
@@ -166,7 +170,7 @@ try
         {
             doc.Info.Title       = $"{NazivAplikacije} — API";
             doc.Info.Version     = "v1";
-            doc.Info.Description = "Backend aplikacije TPM pregledi: autentifikacija, korisnici, audit log, stanje servera i primer šifarnika (kategorije).";
+            doc.Info.Description = "Backend aplikacije TPM pregledi: autentifikacija, korisnici, audit log, stanje servera, registar opreme i šabloni pregleda.";
             return Task.CompletedTask;
         });
     });
@@ -215,7 +219,16 @@ try
     app.MapVersionEndpoints();
     app.MapAuthEndpoints();
     app.MapKorisniciEndpoints();
-    app.MapKategorijeEndpoints();                 // PRIMER feature-a — kopiraj ili obriši
+    app.MapSekcijeEndpoints();
+    app.MapPodesavanjaEndpoints();
+    app.MapOpremaISabloniEndpoints();
+    app.MapRasporedEndpoints();
+    app.MapPopunjavanjeEndpoints();
+    app.MapPreglediEndpoints();
+    app.MapAkcijeEndpoints();
+    app.MapAnalitikaEndpoints();
+    app.MapObavestenjaEndpoints();
+    app.MapIzmeneSablonaEndpoints();
     app.MapAuditEndpoints();
     app.MapServerStanjeEndpoints();
 
@@ -266,7 +279,7 @@ static async Task MigrateAndSeedAsync(WebApplication app)
     await db.Database.MigrateAsync();
 
     logger.LogInformation("Seed (role + inicijalni admin)…");
-    await SeedData.RunAsync(users, roles, admin, logger);
+    await SeedData.RunAsync(users, roles, db, admin, logger);
 
     // Best-effort (IAuditDogadjaji guta greške) — audit nikad ne obara start.
     var version = sp.GetRequiredService<IAppVersion>();

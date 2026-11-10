@@ -4,6 +4,7 @@ import type {
   KorisnikDto,
   KorisnikInput,
   KorisnikIzmenaInput,
+  PostaviPravaInput,
   ResetLozinkaInput,
 } from '../../../api/types';
 
@@ -39,6 +40,17 @@ export function useIzmeniKorisnika() {
   return useMutation({
     mutationFn: async (args: { id: string; input: KorisnikIzmenaInput }) =>
       (await api.put<KorisnikDto>(`/korisnici/${args.id}`, args.input)).data,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [KEY] });
+    },
+  });
+}
+
+export function usePostaviPrava() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string; input: PostaviPravaInput }) =>
+      (await api.put<KorisnikDto>(`/korisnici/${args.id}/prava`, args.input)).data,
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: [KEY] });
     },

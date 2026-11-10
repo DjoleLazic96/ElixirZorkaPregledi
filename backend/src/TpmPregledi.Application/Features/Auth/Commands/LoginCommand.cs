@@ -1,6 +1,7 @@
 using TpmPregledi.Application.Common.Exceptions;
 using TpmPregledi.Application.Common.Interfaces;
 using TpmPregledi.Application.Features.Auth.Dtos;
+using TpmPregledi.Application.Features.Korisnici;
 using TpmPregledi.Domain.Identity;
 using FluentValidation;
 using MediatR;
@@ -11,7 +12,8 @@ namespace TpmPregledi.Application.Features.Auth.Commands;
 /// <summary>Prijava korisničkim imenom i lozinkom. Telo zahteva se vezuje direktno na komandu.</summary>
 /// <param name="UserName">Korisničko ime.</param>
 /// <param name="Password">Lozinka.</param>
-public sealed record LoginCommand(string UserName, string Password) : IRequest<LoginResult>;
+/// <param name="ZapamtiMe">„Zapamti me na ovom uređaju“ (R1.11).</param>
+public sealed record LoginCommand(string UserName, string Password, bool ZapamtiMe = false) : IRequest<LoginResult>;
 
 /// <summary>
 /// Rezultat prijave: <see cref="Response"/> ide u telo odgovora, a sirovi refresh token u
@@ -55,7 +57,8 @@ public sealed class LoginCommandHandler(
     IJwtTokenService jwt,
     ICurrentUser currentUser,
     IDateTimeProvider clock,
-    IAuditDogadjaji audit)
+    IAuditDogadjaji audit,
+    IAppDbContext db)
     : IRequestHandler<LoginCommand, LoginResult>
 {
     /// <inheritdoc />
@@ -84,7 +87,7 @@ public sealed class LoginCommandHandler(
             await jwt.DeleteInactiveAsync(user.Id, ct);
 
             var roles = (await userManager.GetRolesAsync(user)).ToList();
-            var pair  = await jwt.IssueTokenPairAsync(user, roles, currentUser.IpAddress, ct);
+            var pair  = await jwt.IssueTokenPairAsync(user, roles, currentUser.IpAddress, req.ZapamtiMe, ct);
 
             // Interceptor ovde upisuje UPDATE red za korisnika („jedna prijava = dva reda“).
             user.LastLoginAt = clock.UtcNow;
@@ -94,7 +97,8 @@ public sealed class LoginCommandHandler(
                 AccessToken: pair.AccessToken,
                 ExpiresAt:   pair.AccessTokenExpiresAt,
                 User:        new UserDto(user.Id, user.UserName ?? "", user.FullName, user.Email),
-                Roles:       roles);
+                Roles:       roles,
+                Prava:       await KorisnikPrava.ProcitajAsync(db, user.Id, ct));
 
             await audit.PrijavaUspehAsync(user.Id, user.UserName ?? req.UserName, currentUser.IpAddress, ct);
 

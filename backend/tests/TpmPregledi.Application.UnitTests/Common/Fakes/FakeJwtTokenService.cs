@@ -10,7 +10,7 @@ public sealed class FakeJwtTokenService : IJwtTokenService
     public List<string> RevokeAllZa { get; } = [];
     public List<string> DeleteInactiveZa { get; } = [];
 
-    public Task<TokenPair> IssueTokenPairAsync(ApplicationUser user, IReadOnlyList<string> roles, string? ipAddress, CancellationToken ct = default) =>
+    public Task<TokenPair> IssueTokenPairAsync(ApplicationUser user, IReadOnlyList<string> roles, string? ipAddress, bool zapamti = false, CancellationToken ct = default) =>
         Task.FromResult(new TokenPair("access", FakeClock.Podrazumevano.AddMinutes(15), "refresh", FakeClock.Podrazumevano.AddDays(7)));
 
     public Task<RotateResult?> RotateAsync(string refreshToken, string? ipAddress, CancellationToken ct = default) =>

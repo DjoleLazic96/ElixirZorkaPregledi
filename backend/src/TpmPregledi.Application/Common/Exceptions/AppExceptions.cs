@@ -9,7 +9,7 @@ public abstract class AppException(string message) : Exception(message);
 /// <summary>Resurs ne postoji ili nije aktivan gde se traži aktivan (404).</summary>
 public sealed class NotFoundException : AppException
 {
-    /// <summary>Gotova poruka za korisnika, npr. „Kategorija ne postoji.“</summary>
+    /// <summary>Gotova poruka za korisnika, npr. „Uređaj ne postoji.“</summary>
     public NotFoundException(string poruka) : base(poruka) { }
 
     /// <summary>Poruka iz imena entiteta i ključa, npr. „Korisnik sa ključem 'x' nije pronađen.“</summary>
@@ -44,7 +44,7 @@ public sealed class ForbiddenException(string message = "Pristup nije dozvoljen.
 
 /// <summary>
 /// Poslovno pravilo nije ispunjeno (422). Nosi gotove rečenice za prikaz korisniku
-/// (<c>greske[]</c>), npr. „Kategorija sa ovom šifrom već postoji.“
+/// (<c>greske[]</c>), npr. „Uređaj „Redler 20-CR-05“ već postoji u registru.“
 /// </summary>
 public sealed class BusinessRuleException : AppException
 {

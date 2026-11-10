@@ -13,8 +13,8 @@
 
 ## Kako radi 400 vs 422
 
-`POST /kategorije` sa praznom šifrom → 400 `{"errors":{"sifra":["Šifra je obavezna."]}}` (ključevi camelCase kao u JSON-u).
-`POST /kategorije` sa šifrom koja već postoji (aktivna) → 422 `{"greske":["Kategorija sa ovom šifrom već postoji."]}`.
+`POST /uredjaji` bez naziva → 400 `{"errors":{"input.Naziv":["Naziv uređaja je obavezan."]}}`.
+`POST /uredjaji` sa parom (naziv, oznaka) koji već postoji → 422 `{"greske":["Uređaj „Redler 20-CR-05“ već postoji u registru."]}`.
 Isto za korisnike: zauzeto korisničko ime → 422. 409 je rezervisan za konkurentnu izmenu (nema ga u skeletu).
 
 ## Rute
@@ -30,22 +30,36 @@ Isto za korisnike: zauzeto korisničko ime → 422. 409 je rezervisan za konkure
 ### `/auth`
 | Metod | Ruta | Politika | Svrha |
 |---|---|---|---|
-| POST | `/auth/login` | anonimno, `auth-login` 10/min | `{ userName, password }` → `LoginResponse` + Set-Cookie |
+| POST | `/auth/login` | anonimno, `auth-login` 10/min | `{ userName, password, zapamtiMe? }` (zapamtiMe = refresh 180 dana) → `LoginResponse` + Set-Cookie |
 | POST | `/auth/refresh` | cookie, `auth-refresh` 30/min | rotacija → `LoginResponse` |
 | POST | `/auth/logout` | Authenticated | revokacija + brisanje cookie-ja → 204 |
-| GET | `/auth/me` | Authenticated | `{ user, roles }` |
+| GET | `/auth/me` | Authenticated | `{ user, roles, prava }` (prava iz baze) |
 | POST | `/auth/change-password` | Authenticated | `{ currentPassword, newPassword }` → 204; 400 `errors.currentPassword` / `errors.newPassword` |
 
-### `/korisnici` (RequireAdmin)
+### `/korisnici` (pravo `korisnici`)
 | Metod | Ruta | Svrha |
 |---|---|---|
 | GET | `/korisnici?aktivan=` | niz `KorisnikDto` |
 | POST | `/korisnici` | `KorisnikInput` + `lozinka` → 201 |
-| PUT | `/korisnici/{id}` | `{ ime, email?, rola }` → 200 |
+| PUT | `/korisnici/{id}` | `{ ime, email?, rola }` → 200; promena role vraća podrazumevana prava nove role |
+| PUT | `/korisnici/{id}/prava` | `{ prava[] }` → 200 `KorisnikDto`; 400 nepoznato pravo; 422 „samo Inženjer popunjava“, „ne možete sebi oduzeti upravljanje korisnicima“; revokuje refresh tokene |
 | POST | `/korisnici/{id}/deaktiviraj` · `/aktiviraj` | 200 `KorisnikDto`; 422 guardovi |
 | POST | `/korisnici/{id}/reset-lozinka` | `{ novaLozinka }` → 204; 400 politika lozinke |
 
 Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivirati sopstveni nalog.", „Ne možete ukloniti rolu Administrator poslednjem aktivnom administratoru.", „Ne možete deaktivirati poslednjeg aktivnog administratora."
+
+`KorisnikDto` ima i `prava[]`. `LoginResponse` (login, refresh) ima `prava[]`; JWT nosi claim `pravo` (više vrednosti).
+
+### `/sekcije` (RequireKorisnik)
+| Metod | Ruta | Svrha |
+|---|---|---|
+| GET | `/sekcije` | `[{ id, sifra, naziv }]` po redosledu |
+
+### `/podesavanja` (pravo `podesavanja`)
+| Metod | Ruta | Svrha |
+|---|---|---|
+| GET | `/podesavanja` | `PodesavanjaDto` (vremena „HH:mm:ss“) |
+| PUT | `/podesavanja` | ceo `PodesavanjaDto` → 200; 400 van opsega (npr. granica pauze 1–240 min) |
 
 ### `/audit` (RequireAdmin)
 | Metod | Ruta | Svrha |
@@ -58,14 +72,124 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 |---|---|---|
 | GET | `/stanje-servera` | `{ aplikacija, baza, host }` — vidi blueprint 10 §1 |
 
-### `/kategorije` — PRIMER
+### Registar opreme, katalog, šabloni
+Čitanje: RequireKorisnik. Izmene registra i kataloga: `Pravo:sabloni.nacrt`. Uvoz i nova dodatna polja: RequireAdmin.
+
 | Metod | Ruta | Politika | Svrha |
 |---|---|---|---|
-| GET | `/kategorije?stranica&velicina&pretraga&sort=sifra\|naziv&smer&aktivan` | RequireKorisnik | `StranicaDto<KategorijaDto>` |
-| GET | `/kategorije/{id}` | RequireKorisnik | `KategorijaDto` / 404 |
-| POST | `/kategorije` | RequireAdmin | `KategorijaInput` → 201 + Location |
-| PUT | `/kategorije/{id}` | RequireAdmin | `KategorijaInput` → 200 |
-| POST | `/kategorije/{id}/deaktiviraj` · `/aktiviraj` | RequireAdmin | 200 |
+| GET | `/uredjaji?sekcijaId&status&pretraga&bezSablona` | RequireKorisnik | `UredjajDto[]` (sa `sabloni[]` — tipovi važećih verzija koje ga sadrže) |
+| GET | `/uredjaji/{id}` | RequireKorisnik | `UredjajDto` / 404 |
+| POST · PUT | `/uredjaji` · `/uredjaji/{id}` | sabloni.nacrt | `{ naziv, oznaka, sekcijaId, vrsta }`; 422 duplikat (naziv, oznaka) |
+| POST | `/uredjaji/{id}/van-upotrebe` · `/u-upotrebi` | sabloni.nacrt | status umesto brisanja |
+| GET | `/aktivnosti` | RequireKorisnik | `AktivnostDto[]` (sa `brojStavki`) |
+| POST · PUT | `/aktivnosti` · `/aktivnosti/{id}` | sabloni.nacrt | `{ naziv, odgovorIspravan, odgovorNeispravan }`; 422 promena para odgovora aktivnosti iz važećeg šablona |
+| GET | `/dodatna-polja` | RequireKorisnik | `DodatnoPoljeDto[]` |
+| POST | `/dodatna-polja` | RequireAdmin | `{ naziv, tip, jedinica, oznake, prikaz, obavezno }` |
+| GET | `/sabloni` | RequireKorisnik | šest šablona: `{ tip, vazecaVerzija, vaziOd, brojStavki, brojUredjaja }` |
+| GET | `/sabloni/{tip}` · `/sabloni/{tip}/verzije/{broj}` | RequireKorisnik | `SablonVerzijaDto`: sekcije → uređaji → stavke (aktivnost, odgovori, polja, `kljuc`) |
+| POST | `/sabloni/uvoz` | RequireAdmin | multipart `fajl` (.xlsx ≤ 5 MB, list „Stavke“) → `{ sabloni[], novihUredjaja, novihAktivnosti }`; 422 `greske[]` „Red N (…): …“ (sve ili ništa), 422 za već uvezen šablon |
+
+### Raspored, kalendar, odsustva (faza 03)
+| Metod | Ruta | Politika | Svrha |
+|---|---|---|---|
+| GET | `/raspored?od&do` | RequireKorisnik | `{ pregledi[], neradniDani[], odsustva[] }` — pregledi čiji planirani ili prvobitni dan pada u period |
+| GET | `/raspored/inzenjeri` | RequireKorisnik | inženjeri u rotaciji `{ id, ime }` |
+| POST | `/raspored/predlog` `{ od }` | raspored.uredjivanje | predlog DP-a do petka te nedelje (ne upisuje) |
+| POST | `/raspored/potvrdi` `{ stavke[{datum, tip, inzenjerId}] }` | raspored.uredjivanje | pravi preglede i brojeve; 422 dan nije za DP / DP već postoji / inženjer nije aktivan |
+| GET · POST | `/raspored/pz/sledeci` · `/raspored/pz` `{ datum, tip?, inzenjerId, napomena? }` | raspored.uredjivanje | sledeći PZ po redu; zakazivanje („Promeni PZ“ = drugi tip); 422 „Taj PZ je već zakazan za …“ |
+| POST | `/raspored/prenesi` | raspored.uredjivanje | ručni prenos današnjeg nezapočetog DP-a (inače pozadinski posao posle kraja radnog dana) |
+| PUT | `/pregledi/{id}/dodela` `{ inzenjerId?, datum? }` | raspored.uredjivanje | „Promeni u rasporedu“ |
+| POST | `/pregledi/{id}/ucesnici` `{ korisnikId, sekcije[] }` | raspored.uredjivanje | drugi inženjer na PZ-u (prazne sekcije = ukloni) |
+| GET · POST · DELETE | `/neradni-dani?godina` · `/neradni-dani` `{ od, do, naziv, vrsta }` · `/neradni-dani/{id}` | RequireKorisnik · neradni_dani | |
+| GET | `/odsustva?korisnikId&status` | RequireKorisnik | bez prava odobravanja samo svoja |
+| POST | `/odsustva` `{ korisnikId, od, do, vrsta, napomena, prebacivanja[] }` | odsustva.odobravanje | unos (odmah odobreno) sa prebacivanjem; 422 preklapanje, 422 započet pregled |
+| POST | `/odsustva/zahtev` `{ od, do, vrsta, napomena }` | pregledi.popunjavanje | zahtev za sebe |
+| POST | `/odsustva/{id}/odluka` `{ odobreno, razlog?, prebacivanja[] }` | odsustva.odobravanje | |
+| GET | `/odsustva/{korisnikId}/pregledi?od&do` | odsustva.odobravanje | planirani pregledi u periodu + predlog zamene |
+| GET · POST | `/zahtevi-prebacivanja?status` · `/zahtevi-prebacivanja` `{ pregledId, razlog, predlozenaZamenaId? }` | RequireKorisnik · pregledi.popunjavanje | svoj planiran pregled; 403 tuđi, 422 započet |
+| POST | `/zahtevi-prebacivanja/{id}/odluka` `{ odobreno, zamenaId }` | raspored.uredjivanje | kod PZ-a sa dva inženjera prebacuje se samo deo podnosioca |
+
+### Popunjavanje (faza 04, pravo `pregledi.popunjavanje`)
+| Metod | Ruta | Svrha |
+|---|---|---|
+| GET | `/moj-paket` | `{ pregledi[], generisanoAt }` — dodeljeni za danas + 7 dana i započeti; `ETag`, `If-None-Match` → 304 |
+| POST | `/pregledi/{id}/zapocni` | status `u_radu`, vreme početka, važeća verzija šablona; samo dodeljeni ili učesnik (403) |
+| GET | `/pregledi/{id}/popunjavanje` | sekcije (`moja`, `radi`) → uređaji (`vanFunkcije`, `prosliPutVanFunkcije`) → stavke (polja, odgovor, ID-jevi slika) |
+| POST | `/sinhronizacija` `{ uredjajKlijenta, klijentSada, operacije[{opId, vrsta, pregledId, klijentAt, podaci}] }` | `{ prihvacene[], odbijene[{opId, razlog}], serverSada }`; vrste `akcija` (`stavkaId`, `vrsta`, `hitnost`, `opis`), `akcija_odgovor` (`akcijaId`, `uradjeno`), `zapocni` (`verzijaId`; vreme početka = `klijentAt`, vezuje `uredjajKlijenta`), `odgovor` (`stavkaId`, `vrednost`, `napomena`, `polja`), `van_funkcije` (`uredjajId`, `vanFunkcije`), `sve_ispravno` (`sekcija`), `predaja`; ponovljen `opId` = već primenjeno |
+| POST | `/fotografije` multipart (`fajl`, `klijentId`, `pregledId`, `stavkaId`, `izvor`) | ≤ 3 MB (400 „Slika je prevelika.“), JPEG/PNG/WebP, najviše 5 po stavci (422) |
+| GET | `/fotografije/{id}` | slika (RequireKorisnik — svi vide sve preglede) |
+
+Odbijene operacije: „Pregled još nije potpun: nedostaje N odgovora i M obaveznih napomena.“, „PZ se predaje kad su sve sekcije gotove. Nedostaje: sekcija 70 (Ime).“, „Sekciju 20 radi Ime.“, „Predat pregled se menja samo kroz doradu.“, „Pregled je poništen.“
+
+### Arhiva, overa, dorada, izveštaji (faza 06)
+| Metod | Ruta | Politika | Svrha |
+|---|---|---|---|
+| GET | `/pregledi?od&do&tip&status&inzenjerId&pretraga&stranica&velicina` | RequireKorisnik | `StranicaDto<PregledRedDto>` (sa brojem neispravnih) |
+| GET | `/pregledi/{id}` | RequireKorisnik | detalj: zaglavlje, aktivno vreme i delovi, upozorenja, sekcije sa odgovorima/poljima/slikama, istorija, sporni unosi, zahtevi za doradu |
+| GET | `/pregledi/{id}/izvoz?format=pdf\|docx` | RequireKorisnik | izveštaj sa rezimeom problematičnih stavki |
+| GET | `/izvoz/pregledi.xlsx?…filteri` | RequireKorisnik | arhiva u Excel (filtrirano) |
+| POST | `/pregledi/{id}/overi` | overa | `ceka_overu` → `overen` |
+| POST | `/pregledi/{id}/vrati-na-doradu` `{ inzenjerId, razlog }` | overa | pre i posle overe; 422 „Pregled je overio Direktor; samo Direktor može da poništi tu overu.“ |
+| POST | `/pregledi/{id}/zahtev-za-doradu` `{ razlog }` | pregledi.popunjavanje (inženjer koji je radio) | |
+| POST | `/pregledi/{id}/zahtev-za-doradu/odluka` `{ odobreno }` | overa | posle overe: onaj ko je overio ili Direktor |
+| POST | `/pregledi/{id}/ponisti` `{ razlog }` | overa | u radu / čeka overu / overen / vraćen |
+| POST | `/pregledi/{id}/sporan-unos/{unosId}/odluka` `{ primeni }` | overa | sporan odgovor se upisuje u tekuću doradu ili odbacuje |
+
+### Akcije i neispravnosti (faza 07)
+| Metod | Ruta | Politika | Svrha |
+|---|---|---|---|
+| GET | `/akcije?status&hitnost&sekcijaId&uredjajId&sadaIspravna` | RequireKorisnik | `AkcijaDto[]` (rok, istekao rok, zaduženi, kvar na stavci) |
+| GET | `/akcije/{id}` | RequireKorisnik | akcija sa istorijom |
+| POST | `/akcije/{id}/zatvori` · `/otkazi` `{ razlog }` | akcije.zatvaranje | 422 ako nije otvorena |
+| PUT | `/akcije/{id}/zaduzen` `{ zaduzen }` | akcije.zatvaranje | osoba ili služba, ide u istoriju |
+| GET | `/kvarovi?otvoreno&sekcijaId&uredjajId&pretraga` | RequireKorisnik | `KvarDto[]` (trajanje, prijave, otvorene akcije) |
+| GET | `/kvarovi/{id}` | RequireKorisnik | kvar sa svim datumima prijave i akcijama na stavci |
+| GET | `/izvoz/akcije.xlsx` · `/izvoz/kvarovi.xlsx` | RequireKorisnik | Excel (filtrirano) |
+
+Popunjavanje (`GET /pregledi/{id}/popunjavanje`, paket) uz svaki uređaj vraća `otvoreneAkcije` za pop-up.
+
+### Uređaj, analitika, Dashboard, pretraga (faza 08)
+| Metod | Ruta | Politika | Svrha |
+|---|---|---|---|
+| GET | `/uredjaji/{id}/ekran?dana=90` | RequireKorisnik | `UredjajEkranDto`: status, poslednji pregled, šabloni, istorija po danu (`dana` 30–365), analitika, pregledi sa stanjem uređaja, dosije, akcije, kvarovi, `qrToken` |
+| GET | `/uredjaji/qr/{token}` | RequireKorisnik | `{ id }` uređaja sa QR nalepnice; 404 ako ne postoji |
+| GET | `/uredjaji/{id}/pregledi.xlsx` | RequireKorisnik | svi pregledi uređaja u Excel |
+| GET | `/analitika/opsta?od&do` | analitika | kvarovi po sekciji, uređaju, aktivnosti i mesecu, najčešći, prosečno trajanje, trajanje pregleda po tipu i inženjeru, „nije u funkciji“ (podrazumevano 90 dana) |
+| GET | `/analitika/ispunjenje?od&do` | analitika | ispunjenje plana: ukupno, po mesecu, po inženjeru (podrazumevano tekuća godina) |
+| GET | `/dashboard` | RequireKorisnik | `DashboardDto`; `moje` samo uz pravo popunjavanja, `cekaOdluku` samo Supervizoru i Direktoru |
+| GET | `/pretraga?q` | RequireKorisnik | `PretragaRezultatDto[]` (`vrsta`: uredjaj, pregled, akcija, kvar); prazno ispod 2 znaka |
+
+### Izmene šablona (faza 10)
+| Metod | Ruta | Politika | Svrha |
+|---|---|---|---|
+| GET | `/sabloni/{tip}/verzije` | RequireKorisnik | `VerzijaKratkoDto[]` (broj, status `objavljena`/`zakazana`/`zamenjena`/`nacrt`, važi od, ko je objavio) |
+| GET | `/sabloni/{tip}/nacrt` | sabloni.nacrt | `NacrtDto` (verzija, osnovna verzija, razlike, odobreni predlozi, zakazana) ili 204 |
+| POST / DELETE | `/sabloni/{tip}/nacrt` | sabloni.nacrt | otvori (kopija poslednje verzije; postojeći se vraća) / odbaci |
+| POST | `/sabloni/{tip}/nacrt/stavke` `{ sekcijaId, uredjajId, aktivnostId, poljaIds }` | sabloni.nacrt | dodaj; 422 van upotrebe ili duplikat |
+| PUT / DELETE | `/sabloni/{tip}/nacrt/stavke/{id}` | sabloni.nacrt | PUT `{ aktivnostId, poljaIds }` izmena (ključ ostaje) / izbaci |
+| POST | `/sabloni/{tip}/nacrt/stavke/{id}/pomeri` `{ gore }` | sabloni.nacrt | jedno mesto unutar sekcije |
+| POST | `/sabloni/{tip}/nacrt/objavi` `{ vaziOd }` | sabloni.objava | danas → važi odmah; kasnije → `zakazana`; 422 prošlost, bez izmena, već zakazana |
+| GET | `/sabloni/istorijat?tip&vrsta&korisnikId&od&do` | RequireKorisnik | `SablonDogadjajDto[]` (do 1000) |
+| GET / POST | `/predlozi-izmena?status&tip` | RequireKorisnik | lista / predlog `{ tip, vrsta, stavkaId, opis, razlog }` (razlog obavezan) |
+| POST | `/predlozi-izmena/{id}/odluka` `{ odobren, odgovor }` | sabloni.nacrt | 422 ako je već odlučeno |
+| GET / PUT | `/aktivnosti/{id}/uputstvo` | RequireKorisnik / sabloni.nacrt | `UputstvoDto` (tekst, slike, ko i kada) / `{ tekst }` |
+| POST | `/aktivnosti/{id}/uputstvo/slike` (multipart `fajl`) | sabloni.nacrt | najviše 3, JPG/PNG/WebP ≤ 3 MB |
+| GET / DELETE | `/aktivnosti/{id}/uputstvo/slike/{fajlId}` | RequireKorisnik / sabloni.nacrt | slika / ukloni |
+
+Paket za popunjavanje uz stavku nosi `aktivnostId`, `uputstvo` (tekst) i `uputstvoSlika` (broj slika). `AktivnostDto` ima `imaUputstvo`.
+
+### Obaveštenja (faza 09)
+| Metod | Ruta | Politika | Svrha |
+|---|---|---|---|
+| GET | `/obavestenja` | RequireKorisnik | `ZvonoDto`: `neprocitanih`, `cekaOdluku` (Supervizor/Direktor, po pravima), poslednjih 50 |
+| POST | `/obavestenja/procitano` `{ ids? }` | RequireKorisnik | označi pročitano (bez `ids` — sva); vraća zvono |
+| POST | `/obavestenja/probno` | RequireKorisnik | probno obaveštenje sebi (204) |
+| GET | `/push/kljuc` | RequireKorisnik | `{ kljuc }` — javni VAPID ključ |
+| POST | `/push/pretplata` `{ endpoint, p256dh, auth }` | RequireKorisnik | prijava uređaja (isti endpoint prelazi na trenutnog korisnika); 204 |
+| DELETE | `/push/pretplata` `{ endpoint }` | RequireKorisnik | odjava uređaja; 204 |
+| GET / PUT | `/podesavanja/primaoci` | podesavanja | `PrimaociDto` (vrste, primaoci, aktivni korisnici); PUT `{ vrsta: [korisnikId] }` čuva navedene vrste; 400 nepoznata vrsta, 422 nepoznat korisnik |
+
+Push poruka: `{ title, body, url, tag }`. Pozadinski posao (`ObavestenjaPosao`): isporuka svakih 15 s, zakazane provere jednom u minutu.
 
 ### `/_diag` (samo Development)
 Rute kojima integracioni testovi dokazuju politike: `/_diag/korisnik` (RequireKorisnik), `/_diag/admin-only` (RequireAdmin).
@@ -75,23 +199,21 @@ Rute kojima integracioni testovi dokazuju politike: `/_diag/korisnik` (RequireKo
 ```jsonc
 // LoginResponse
 { "accessToken": "eyJ…", "expiresAt": "2026-10-12T09:45:00Z",
-  "user": { "id": "…", "userName": "admin", "fullName": "Inicijalni Admin", "email": "admin@tpm-pregledi.elixirgroup.rs" }, "roles": ["Admin"] }
+  "user": { "id": "…", "userName": "admin", "fullName": "Inicijalni Admin", "email": "admin@tpm-pregledi.elixirgroup.rs" }, "roles": ["Admin"], "prava": ["analitika", "sabloni.nacrt", "neradni_dani", "korisnici", "podesavanja"] }
 
 // KorisnikDto
-{ "id": "…", "korisnickoIme": "mpetrovic", "ime": "Marko Petrović", "email": null, "rola": "Korisnik", "aktivan": true, "poslednjaPrijava": "2026-10-12T07:12:00Z" }
+{ "id": "…", "korisnickoIme": "mpetrovic", "ime": "Marko Petrović", "email": null, "rola": "Inzenjer", "prava": ["pregledi.popunjavanje", "analitika"], "aktivan": true, "poslednjaPrijava": "2026-10-12T07:12:00Z" }
 // KorisnikInput (POST)
-{ "korisnickoIme": "mpetrovic", "ime": "Marko Petrović", "email": null, "lozinka": "Tajna2026!", "rola": "Korisnik" }
+{ "korisnickoIme": "mpetrovic", "ime": "Marko Petrović", "email": null, "lozinka": "Tajna2026!", "rola": "Inzenjer" }
 
-// KategorijaDto
-{ "id": 1, "sifra": "MOT", "naziv": "Motori", "opis": null, "aktivan": true, "createdAt": "…", "updatedAt": null }
-// KategorijaInput
-{ "sifra": "MOT", "naziv": "Motori", "opis": null }
+// UredjajDto
+{ "id": 7, "naziv": "Merna vaga Sautelma", "oznaka": "10-C-07C", "sekcijaId": 1, "sekcija": "10", "vrsta": "Merna vaga", "status": "aktivan", "sabloni": ["DP1", "DP2"] }
 
 // StranicaDto<T>
 { "stavke": [ … ], "ukupno": 123, "stranica": 1, "velicina": 50 }
 
 // AuditRedDto
-{ "id": 1, "vreme": "…", "korisnik": "admin", "akcija": "UPDATE", "entitet": "Kategorija", "entitetLabela": "Kategorija",
+{ "id": 1, "vreme": "…", "korisnik": "admin", "akcija": "UPDATE", "entitet": "Uredjaj", "entitetLabela": "Uređaj",
   "entitetId": "1", "ip": "10.20.30.40", "stareVrednosti": "{…}", "noveVrednosti": "{…}" }
 
 // ServerStanjeDto — blueprint 10 §1
@@ -101,4 +223,4 @@ Rute kojima integracioni testovi dokazuju politike: `/_diag/korisnik` (RequireKo
 
 ## Model pristupa (sažetak)
 
-Anonimno: health, version, login, refresh. Svaki ulogovani: me, logout, change-password. `Korisnik`: čita kategorije. `Admin`: sve.
+Anonimno: health, version, login, refresh. Svaki ulogovani: me, logout, change-password. Svaka od četiri role: čita sekcije, registar, katalog i šablone. Ostalo po pravu (`docs/04`).

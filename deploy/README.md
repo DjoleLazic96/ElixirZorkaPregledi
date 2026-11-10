@@ -3,6 +3,7 @@
 > Operativno uputstvo za produkciju. Standard: Elixir blueprint 17. Pristup serveru i zahtevi ka IT-u: `docs/deploy/`.
 
 ## Sadržaj
+0. Puštanje u rad (lista)
 1. Okruženje
 2. Arhitektura
 3. Doprema image-a
@@ -12,6 +13,22 @@
 7. Restore
 8. Logovi
 9. Rollback
+
+## 0. Puštanje u rad (lista)
+
+Prvi put, redom; svaka stavka se štiklira u `TODO.md` sa datumom:
+
+1. IT zahtevi #1–#9 iz `docs/deploy/sysadmin-tasks.md` (domen i HTTPS, folder i nalog, `proxy-net`, Passbolt, backup van hosta,
+   izlaz ka push i Graph servisima; Graph nalog za mejl može i kasnije — do tada mejl ide samo u log).
+2. Verzija: `VERSION` i `CHANGELOG.md` (`[Neobjavljeno]` → `[X.Y.Z] — datum`), tag `vX.Y.Z`, `export-images.sh`.
+3. Prvi deploy (§4), promena lozinke admina, „O aplikaciji“ pokazuje verziju.
+4. **Šabloni → Uvezi šablone** sa `docs/sabloni/sabloni-za-uvoz.xlsx` (867 stavki, šest šablona).
+5. Administracija → nalozi za Inženjere, Supervizore i Direktora (prava po roli su podrazumevana); **Podešavanja** — vremena
+   upozorenja, kraj radnog dana, rok za overu, pragovi, **primaoci obaveštenja**; **Neradni dani** za godinu.
+6. Raspored: Supervizor → **Predloži raspored** za prvu nedelju → **Potvrdi**; zakazati prvi PZ.
+7. Provera na telefonu po `docs/deploy/provera-telefona.md` (instalacija, push, rad bez interneta, QR).
+8. Backup (§6) i **restore test** (§7) pre go-live; posle toga dnevni backup (cron ili IT).
+9. Korisnicima uputstvo `docs/user/` (PDF ili link) i kratka obuka: popunjavanje na telefonu, overa, akcije.
 
 ## 1. Okruženje
 
@@ -75,7 +92,7 @@ Obriši tar na hostu i lokalno i lokalni popunjeni `.env`. Upiši u `TODO.md`.
 ## 6. Backup
 
 ```bash
-deploy/scripts/backup.sh          # data/backups/tpm-pregledi-YYYY-MM-DD-HHMM.pgcustom.gz (+ dp-keys), retencija 14 dana
+deploy/scripts/backup.sh          # data/backups/tpm-pregledi-YYYY-MM-DD-HHMM.pgcustom.gz (+ dp-keys, fajlovi), retencija 14 dana
 # cron (ako IT dozvoli): 0 2 * * * /opt/apps/tpm-pregledi/deploy/scripts/backup.sh >> /opt/apps/tpm-pregledi/data/backups/backup.log 2>&1
 ```
 Kopija van hosta je IT-jev zadatak. „Stanje servera" prikazuje poslednji backup.
@@ -88,6 +105,7 @@ gunzip -c data/backups/tpm-pregledi-<datum>.pgcustom.gz | docker compose exec -T
 docker compose start backend
 ```
 Ako aplikacija šifruje podatke Data Protection-om: vrati i `data/data-protection-keys` iz `dp-keys-*.tgz` pre starta.
+Fotografije i VAPID ključevi: raspakuj `fajlovi-*.tgz` u `data/` (`tar xzf ... -C data`). Bez starih VAPID ključeva telefoni moraju ponovo da uključe obaveštenja.
 Restore test se radi pre go-live i kvartalno.
 
 ## 8. Logovi

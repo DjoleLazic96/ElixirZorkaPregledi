@@ -1,13 +1,15 @@
 using TpmPregledi.Application.Features.Korisnici.Commands;
 using TpmPregledi.Application.Features.Korisnici.Dtos;
 using TpmPregledi.Application.Features.Korisnici.Queries;
+using TpmPregledi.Api.Common;
+using TpmPregledi.Domain.Identity;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace TpmPregledi.Api.Endpoints;
 
 /// <summary>
-/// Upravljanje korisnicima (<c>/api/v1/korisnici</c>, Admin). Korisnici se nikad ne brišu —
+/// Upravljanje korisnicima i pravima (<c>/api/v1/korisnici</c>, pravo <c>korisnici</c>). Korisnici se nikad ne brišu —
 /// nema DELETE rute, samo <c>deaktiviraj</c>/<c>aktiviraj</c>. Lozinka ide isključivo u telo zahteva.
 /// </summary>
 public static class KorisniciEndpoints
@@ -17,7 +19,7 @@ public static class KorisniciEndpoints
     {
         var group = app.MapGroup("/api/v1/korisnici")
             .WithTags("Korisnici")
-            .RequireAuthorization("RequireAdmin");
+            .RequireAuthorization(PravoPolitika.Za(Prava.Korisnici));
 
         group.MapGet("",
             async ([FromQuery] bool? aktivan, IMediator m) =>
@@ -37,6 +39,11 @@ public static class KorisniciEndpoints
             async (string id, [FromBody] IzmeniKorisnikaInput input, IMediator m) =>
                 Results.Ok(await m.Send(new IzmeniKorisnikaCommand(id, input.Ime, input.Email, input.Rola))))
             .WithSummary("Izmeni ime, e-mail i rolu korisnika");
+
+        group.MapPut("/{id}/prava",
+            async (string id, [FromBody] PostaviPravaInput input, IMediator m) =>
+                Results.Ok(await m.Send(new PostaviPravaCommand(id, input.Prava))))
+            .WithSummary("Zameni štiklirana prava korisnika (revokuje sesije)");
 
         group.MapPost("/{id}/deaktiviraj",
             async (string id, IMediator m) =>

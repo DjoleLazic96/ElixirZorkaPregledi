@@ -71,6 +71,15 @@ public static class DependencyInjection
 
         // ─── JWT izdavanje/rotacija ─────────────────────────────────────────
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IBrojacService, BrojacService>();
+        services.AddSingleton<TpmPregledi.Application.Features.Sabloni.ISablonUvozCitac, Sabloni.SablonUvozCitac>();
+        services.AddHostedService<Poslovi.PrenosPropustenogDpPosao>();
+        services.AddHostedService<Poslovi.ObavestenjaPosao>();
+        services.AddSingleton<TpmPregledi.Application.Features.Obavestenja.IPushSlanje, Obavestenja.WebPushSlanje>();
+        services.AddHttpClient("graph");
+        services.AddSingleton<TpmPregledi.Application.Features.Obavestenja.IMejlSlanje, Obavestenja.GraphMejlSlanje>();
+        services.AddScoped<TpmPregledi.Application.Features.Popunjavanje.IFajlSkladiste, Fajlovi.FajlSkladiste>();
+        services.AddSingleton<TpmPregledi.Application.Features.Pregledi.IIzvestajPregleda, Izvestaji.IzvestajPregleda>();
 
         // ─── Trenutni korisnik ──────────────────────────────────────────────
         services.AddHttpContextAccessor();

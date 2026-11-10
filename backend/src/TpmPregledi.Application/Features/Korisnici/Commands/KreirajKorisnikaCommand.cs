@@ -60,9 +60,10 @@ public sealed class KreirajKorisnikaValidator : AbstractValidator<KreirajKorisni
     }
 }
 
-/// <summary>Kreira nalog kroz Identity i dodeljuje rolu; zauzeto korisničko ime → 409.</summary>
+/// <summary>Kreira nalog kroz Identity, dodeljuje rolu i podrazumevana prava te role; zauzeto korisničko ime → 422.</summary>
 public sealed class KreirajKorisnikaHandler(
     UserManager<ApplicationUser> userManager,
+    IAppDbContext db,
     IDateTimeProvider clock)
     : IRequestHandler<KreirajKorisnikaCommand, KorisnikDto>
 {
@@ -110,6 +111,10 @@ public sealed class KreirajKorisnikaHandler(
             throw IdentityGreske.KaoValidacija(roleResult, "rola");
         }
 
-        return KorisnikDto.Od(user, req.Rola);
+        var prava = Prava.Podrazumevana(req.Rola);
+        await KorisnikPrava.ZameniAsync(db, user.Id, prava, ct);
+        await db.SaveChangesAsync(ct);
+
+        return KorisnikDto.Od(user, req.Rola, prava);
     }
 }

@@ -80,3 +80,16 @@ describe('lib/datum', () => {
     expect(doLokalno.getMilliseconds()).toBe(999);
   });
 });
+
+describe('lib/datum — kalendar', () => {
+  it('dodajDane, ponedeljak, kratak dan, vikend', async () => {
+    const { dodajDane, ponedeljakNedelje, kratakDan, jeVikend, dodajMesece, mesecGodina } = await import('./datum');
+    expect(dodajDane('2026-11-30', 1)).toBe('2026-12-01');
+    expect(ponedeljakNedelje('2026-11-15')).toBe('2026-11-09');
+    expect(ponedeljakNedelje('2026-11-09')).toBe('2026-11-09');
+    expect(kratakDan('2026-11-12')).toBe('čet');
+    expect(jeVikend('2026-11-14')).toBe(true);
+    expect(dodajMesece('2026-12-15', 1)).toBe('2027-01-01');
+    expect(mesecGodina('2026-11-04')).toBe('novembar 2026');
+  });
+});

@@ -116,8 +116,8 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
           className={cn(
-            'flex h-10 w-full items-center gap-2 rounded-md border bg-white px-3 text-sm transition-colors',
-            'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500',
+            'flex h-11 w-full items-center gap-2 rounded-lg border bg-white px-3 text-sm transition-colors md:h-10',
+            'border-gray-200 hover:border-gray-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500',
             'disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500',
             clearable && izabran && 'pr-8',
             !izabran && 'text-gray-400',
@@ -132,7 +132,7 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
             type="button"
             onClick={() => onChange('')}
             aria-label="Obriši datum"
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700 md:right-2 md:h-auto md:w-auto md:p-0.5"
           >
             <X size={14} />
           </button>
@@ -143,7 +143,7 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
           open={open && !disabled}
           onRequestClose={() => setOpen(false)}
           widthMode="auto"
-          className="w-80 rounded-md border border-gray-200 bg-white p-3 shadow-lg"
+          className="w-80 rounded-[10px] border border-gray-200 bg-white p-3 shadow-lg"
         >
           <div className="mb-2 flex items-center justify-between">
             <button

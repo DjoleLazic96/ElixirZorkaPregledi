@@ -1,3 +1,4 @@
+using TpmPregledi.Application.Common.Interfaces;
 using TpmPregledi.Application.Features.Korisnici.Dtos;
 using TpmPregledi.Domain.Identity;
 using MediatR;
@@ -14,7 +15,7 @@ namespace TpmPregledi.Application.Features.Korisnici.Queries;
 public sealed record GetKorisniciQuery(bool? Aktivan = null) : IRequest<IReadOnlyList<KorisnikDto>>;
 
 /// <summary>Čita korisnike i njihovu (jednu) rolu.</summary>
-public sealed class GetKorisniciHandler(UserManager<ApplicationUser> userManager)
+public sealed class GetKorisniciHandler(UserManager<ApplicationUser> userManager, IAppDbContext db)
     : IRequestHandler<GetKorisniciQuery, IReadOnlyList<KorisnikDto>>
 {
     /// <inheritdoc />
@@ -27,9 +28,10 @@ public sealed class GetKorisniciHandler(UserManager<ApplicationUser> userManager
         var users = await upit.OrderBy(u => u.UserName).ToListAsync(ct);
 
         // Identity nema bulk čitanje rola; populacija je mala, pa je N+1 prihvatljivo.
+        var prava = await KorisnikPrava.ProcitajSveAsync(db, ct);
         var result = new List<KorisnikDto>(users.Count);
         foreach (var u in users)
-            result.Add(KorisnikDto.Od(u, await KorisnikHelpers.RolaAsync(userManager, u)));
+            result.Add(KorisnikDto.Od(u, await KorisnikHelpers.RolaAsync(userManager, u), prava.GetValueOrDefault(u.Id, [])));
 
         return result;
     }

@@ -9,8 +9,10 @@ import { ROLA_LABELE, type Rola } from '../../../lib/permissions';
 
 /** Opisi rola za radio kartice — jedino mesto gde se prava objašnjavaju korisniku. */
 const ROLE: ReadonlyArray<{ value: Rola; opis: string }> = [
-  { value: 'Admin', opis: 'Pun pristup: svi podaci, korisnici, audit log i stanje servera.' },
-  { value: 'Korisnik', opis: 'Rad sa podacima aplikacije, bez administracije.' },
+  { value: 'Inzenjer', opis: 'Radi preglede na telefonu; vidi arhivu, uređaje i analitiku.' },
+  { value: 'Supervizor', opis: 'Raspored, overa, dorada, odsustva i akcije.' },
+  { value: 'Direktor', opis: 'Sve što i Supervizor, plus šabloni i objava verzija.' },
+  { value: 'Admin', opis: 'Korisnici, prava, podešavanja, audit log i stanje servera.' },
 ];
 
 export interface KorisnikFormResult {
@@ -52,7 +54,7 @@ export function KorisnikForm({ open, korisnik, saving, error, onSubmit, onClose 
   const [ime, setIme] = useState(korisnik?.ime ?? '');
   const [email, setEmail] = useState(korisnik?.email ?? '');
   const [lozinka, setLozinka] = useState('');
-  const [rola, setRola] = useState<Rola>(korisnik?.rola ?? 'Korisnik');
+  const [rola, setRola] = useState<Rola>(korisnik?.rola ?? 'Inzenjer');
   const [greske, setGreske] = useState<Greske>({});
 
   function submit(e: FormEvent) {

@@ -37,7 +37,7 @@ describe('LoginPage', () => {
     await userEvent.type(screen.getByLabelText('Lozinka'), 'Admin123!');
     await userEvent.click(screen.getByRole('button', { name: 'Prijavi se' }));
 
-    expect(loginMock).toHaveBeenCalledWith('admin', 'Admin123!');
+    expect(loginMock).toHaveBeenCalledWith('admin', 'Admin123!', false);
     expect(navigateMock).toHaveBeenCalledWith('/', { replace: true });
   });
 

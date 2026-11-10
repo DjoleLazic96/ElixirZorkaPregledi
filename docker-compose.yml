@@ -87,7 +87,17 @@ services:
       Admin__InitialUsername:  ${ADMIN_INITIAL_USERNAME:?ADMIN_INITIAL_USERNAME je obavezan}
       Admin__InitialEmail:     ${ADMIN_INITIAL_EMAIL:?ADMIN_INITIAL_EMAIL je obavezan}
       Admin__InitialPassword:  ${ADMIN_INITIAL_PASSWORD:?ADMIN_INITIAL_PASSWORD je obavezan}
+      # Fotografije i VAPID ključevi (Web Push) su na volumenu /app/data — ne smeju da nestanu sa kontejnerom.
+      Fajlovi__Putanja:        /app/data/fotografije
+      Push__Putanja:           /app/data/vapid.json
+      App__JavnaAdresa:        https://${APP_DOMAIN:?}
+      # Mejl kroz Microsoft Graph; prazno = mejl se samo upisuje u log (zvono i push rade).
+      Graph__TenantId:         ${GRAPH_TENANT_ID:-}
+      Graph__ClientId:         ${GRAPH_CLIENT_ID:-}
+      Graph__ClientSecret:     ${GRAPH_CLIENT_SECRET:-}
+      Graph__Posiljalac:       ${GRAPH_POSILJALAC:-}
     volumes:
+      - ./data/fajlovi:/app/data
       - ./data/logs/api:/app/logs
       - ./data/data-protection-keys:/app/data-protection-keys
       - ./data/backups:/app/backups:ro      # samo da „Stanje servera" vidi poslednji backup

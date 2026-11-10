@@ -3,30 +3,31 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/cn';
 
 /**
- * Varijante za <Button> — primary (akcent), secondary (siva), ghost (transparent),
- * danger (crvena). Velicine: sm | md.
+ * Dugme po mockup-u (`.btn`): primary — puna zelena; secondary — belo sa zelenim okvirom i tekstom; ghost — bez podloge, sivi okvir;
+ * danger — crvena. Sva dugmad su iste visine (40 px, na telefonu 44 px) i istog zaobljenja (8 px), da dugmad u istom redu i na svim
+ * ekranima budu jednaka; `sm` je samo uže i sitnijeg teksta (za dugmad u redovima liste i tabele).
  */
 const buttonVariants = cva(
   // bazne klase za sve varijante
-  'inline-flex items-center justify-center gap-2 rounded-md font-medium ' +
+  'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border font-semibold ' +
     'transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ' +
     'disabled:opacity-50 disabled:cursor-not-allowed',
   {
     variants: {
       variant: {
         primary:
-          'bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-500',
+          'border-primary-500 bg-primary-500 text-white hover:border-primary-600 hover:bg-primary-600 focus:ring-primary-500',
         secondary:
-          'bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-400 ' +
-          'border border-gray-200',
+          'border-primary-500 bg-white text-primary-500 hover:bg-primary-50 focus:ring-primary-500',
         ghost:
-          'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-400',
+          'border-gray-200 bg-transparent font-medium text-gray-800 hover:bg-gray-100 focus:ring-gray-400',
         danger:
-          'bg-red-500 text-white hover:bg-red-600 focus:ring-red-500',
+          'border-red-500 bg-red-500 text-white hover:border-red-800 hover:bg-red-800 focus:ring-red-500',
       },
       size: {
-        sm: 'h-8 px-3 text-xs',
-        md: 'h-10 px-4 text-sm',
+        // Na telefonu dugme je najmanje 44 × 44 px (spec §8.1 t. 6); od md širine kompaktno kao u blueprintu.
+        sm: 'h-11 min-w-11 px-3 text-[13px] md:h-10 md:min-w-10',
+        md: 'h-11 px-4 text-sm md:h-10',
       },
     },
     defaultVariants: { variant: 'primary', size: 'md' },

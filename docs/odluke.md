@@ -9,6 +9,17 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-05 — Izgled po mockup-u (odobreno)
+
+**Kontekst:** blueprint 14 propisuje UI kit (bela bočna traka, neutralne sive); korisnici su videli i odobrili mockup `docs/mockup/index.html`.
+**Odluka:** izgled prati mockup: zelena bočna traka sa ikonicama, ElixirZorka logo i zelena linija ispod zaglavlja, tople neutralne boje
+(`--ink #3d3935`, `--line #dcdad7`, `--bg #f4f5f3`), kartice 10 px, dugmad 8 px iste visine (40 px, na telefonu 44 px), oznake statusa
+kao pilule u boji po značenju (Planiran sivo, U radu žuto, Čeka overu zeleno, Overeno plavo, dorada crveno; hitnost crveno/narandžasto/plavo/sivo),
+stavke lista sa „›“, sadržaj centriran. Tokeni u `frontend/src/styles/global.css`, komponente u `components/ui/`.
+**Posledice:** odstupanje od blueprint 14 (boje i bočna traka); komponente ostaju iste po API-ju, menja se samo izgled.
+**Alternative odbijene:** blueprint izgled — korisnici očekuju ono što su videli na mockup-u.
+**Odlučio:** vlasnik projekta, 2026-11-05.
+
 ## 2026-10-28 — PDF izveštaji: QuestPDF
 
 **Kontekst:** izveštaj pregleda i liste se izvoze u PDF.
@@ -17,53 +28,53 @@
 **Alternative odbijene:** PDF konverzijom iz Word-a — složenije, a nije potrebno.
 **Odlučio:** naručilac, 2026-10-28.
 
-## 2026-10-27 — PREDLOG: dodatne biblioteke
+## 2026-11-04 — dodatne biblioteke (odobreno; predlog od 2026-10-27)
 
 **Kontekst:** blueprint 02: biblioteka van liste = zapisana odluka.
 **Odluka:** backend `DocumentFormat.OpenXml` (Word izvoz), `WebPush` (Web Push/VAPID); frontend `vite-plugin-pwa` (service worker), `dexie` (IndexedDB), `qrcode` (QR nalepnice). `ClosedXML` i `recharts` su već u blueprintu.
 **Posledice:** zavisnosti u `Directory.Packages.props` i `package.json`; pokrivene `npm audit` / `dotnet list package --vulnerable`.
 **Alternative odbijene:** ručni service worker i IndexedDB bez biblioteke — više koda i grešaka za istu stvar.
-**Odlučio:** čeka vlasnika projekta + vlasnika blueprinta.
+**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); odobreno za implementaciju 2026-11-04 (faza 05).
 
-## 2026-10-27 — PREDLOG: „Zapamti me" i duža sesija na telefonu
+## 2026-11-04 — „Zapamti me" i duža sesija na telefonu (odobreno; predlog od 2026-10-27)
 
 **Kontekst:** inženjer mora da radi bez interneta i ne sme da bude izlogovan usred pregleda; blueprint 07: refresh token 7 dana.
 **Odluka:** uz „Zapamti me na ovom uređaju" refresh token važi 90 dana sa rotacijom (klizno); bez toga cookie traje do zatvaranja pregledača. Token se i dalje drži u memoriji, ne u `localStorage` (12 §38).
 **Posledice:** odstupanje od blueprinta 07 i 12 §9 (rok); promena lozinke, deaktivacija i promena role i dalje revokuju sve tokene.
 **Alternative odbijene:** 7 dana — inženjer posle odmora ne bi mogao da počne pregled bez signala.
-**Odlučio:** čeka vlasnika projekta + vlasnika blueprinta.
+**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); odobreno za implementaciju 2026-11-04 (faza 05).
 
-## 2026-10-27 — PREDLOG: rad bez interneta (PWA, IndexedDB, sinhronizacija)
+## 2026-11-04 — rad bez interneta (PWA, IndexedDB, sinhronizacija) (odobreno; predlog od 2026-10-27)
 
 **Kontekst:** pregledi se rade u pogonu bez pouzdanog signala; blueprint 14 §7 ne predviđa PWA.
 **Odluka:** aplikacija je PWA; telefon drži paket dodeljenih pregleda u IndexedDB i šalje idempotentne operacije (`POST /sinhronizacija`, `opId`). Podaci pregleda na telefonu nisu tokeni.
 **Posledice:** odstupanje od blueprinta 14 §7 (PWA); detalji u spec-u §5.1.
 **Alternative odbijene:** samo online — pregled bi stajao bez signala; native Android — druga kodna baza.
-**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); čeka vlasnika blueprinta.
+**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); odobreno za implementaciju 2026-11-04 (faza 05).
 
-## 2026-10-27 — PREDLOG: mobilni prikaz
+## 2026-11-04 — Mobilni prikaz (odobreno; predlog od 2026-10-27)
 
 **Kontekst:** blueprint 14 §7 podržava širinu od 1280 px; inženjeri rade na Android telefonima.
 **Odluka:** responzivan prikaz: telefon (donji meni, kartice umesto tabela), tablet, laptop i veći (kao blueprint).
 **Posledice:** odstupanje od blueprinta 14 §7; komponente moraju da rade od 375 px.
 **Alternative odbijene:** posebna mobilna aplikacija.
-**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); čeka vlasnika blueprinta.
+**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); odobreno za implementaciju 2026-11-04 (faza 04).
 
-## 2026-10-27 — PREDLOG: otpremanje fotografija
+## 2026-11-04 — Otpremanje fotografija (odobreno; predlog od 2026-10-27)
 
 **Kontekst:** blueprint 12 §28 dozvoljava upload samo `.xlsx` do 5 MB.
 **Odluka:** fotografije (JPEG, smanjene na telefonu na 1–2 MB, limit 3 MB po fajlu, najviše 5 po stavci) na volumenu `data/fotografije`; uvoz šablona `.xlsx` ostaje kao u blueprintu.
-**Posledice:** odstupanje od blueprinta 12 §28; nginx `client_max_body_size 4m`; provera MIME i sadržaja; bekap volumena.
+**Posledice:** odstupanje od blueprinta 12 §28; nginx `client_max_body_size 6m` (dopuna 2026-11-09: 4m nije dovoljno za uvoz `.xlsx` do 5 MB sa multipart zaglavljima); provera MIME i sadržaja; bekap volumena.
 **Alternative odbijene:** slike u bazi — rast baze i bekapa.
-**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); čeka vlasnika blueprinta.
+**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); odobreno za implementaciju 2026-11-04 (faza 04).
 
-## 2026-10-27 — PREDLOG: push obaveštenja i zakazane provere
+## 2026-11-04 — push obaveštenja i zakazane provere (odobreno; predlog od 2026-10-27)
 
 **Kontekst:** blueprint nema push; pozadinski poslovi su dozvoljeni samo kao `BackgroundService` (bez Hangfire/Quartz).
 **Odluka:** Web Push (VAPID) uz mejl kroz Microsoft Graph; zakazane provere (13:00, propušten DP, rok overe, rok akcije, ponovljeni kvar, dugo van funkcije, predlog rasporeda) kao `BackgroundService`, idempotentno.
 **Posledice:** odstupanje od blueprinta (push); VAPID ključevi u `.env`.
 **Alternative odbijene:** samo mejl — inženjer na terenu ne čita mejl.
-**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); čeka vlasnika blueprinta.
+**Odlučio:** vlasnik projekta (zahtev, 2026-10-20); odobreno za implementaciju 2026-11-04 (faza 09).
 
 ## 2026-11-04 — Četiri role i prava štikliranjem (odobreno; predlog od 2026-10-27)
 

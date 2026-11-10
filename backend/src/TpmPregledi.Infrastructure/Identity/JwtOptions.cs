@@ -31,4 +31,7 @@ public sealed class JwtOptions
     /// <summary>Trajanje refresh tokena u danima (standard: 7).</summary>
     [Range(1, 365)]
     public int RefreshTokenDays { get; init; } = 7;
+
+    /// <summary>Trajanje refresh tokena uz „Zapamti me na ovom uređaju“ (odluka 2026-11-04) — službeni telefon ostaje prijavljen.</summary>
+    public int RefreshTokenDaysZapamti { get; init; } = 180;
 }

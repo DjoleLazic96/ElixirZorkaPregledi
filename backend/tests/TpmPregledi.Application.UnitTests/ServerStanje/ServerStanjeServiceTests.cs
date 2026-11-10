@@ -103,7 +103,7 @@ public class ServerStanjeServiceTests
         try
         {
             // Prefiks iz same konstante, da test preživi preimenovanje projekta (preimenuj.ps1 menja slug).
-            var prefiks = ServerStanjeService.BackupPattern.Split('-')[0];
+            var prefiks = ServerStanjeService.BackupPattern[..ServerStanjeService.BackupPattern.IndexOf('*')].TrimEnd('-');
             var stariji = Path.Combine(folder, $"{prefiks}-2026-10-01.pgcustom.gz");
             var noviji  = Path.Combine(folder, $"{prefiks.ToUpperInvariant()}-2026-10-02.pgcustom.gz");   // case-insensitive
             File.WriteAllText(stariji, "x");

@@ -135,3 +135,50 @@ export function pocetakDanaUtc(ymd: string): string {
 export function krajDanaUtc(ymd: string): string {
   return new Date(`${ymd}T23:59:59.999`).toISOString();
 }
+
+// ─── Kalendar i raspored (dani kao `YYYY-MM-DD`) ──────────────────────────
+
+/** `YYYY-MM-DD` pomeren za `n` dana. */
+export function dodajDane(ymd: string, n: number): string {
+  const d = parsirajYmd(ymd) ?? new Date();
+  d.setDate(d.getDate() + n);
+  return formatirajYmd(d);
+}
+
+/** Ponedeljak nedelje u kojoj je dan. */
+export function ponedeljakNedelje(ymd: string): string {
+  const d = parsirajYmd(ymd) ?? new Date();
+  return dodajDane(formatirajYmd(d), -((d.getDay() + 6) % 7));
+}
+
+const KRATKI_DANI = ['ned', 'pon', 'uto', 'sre', 'čet', 'pet', 'sub'];
+const MESECI = ['januar', 'februar', 'mart', 'april', 'maj', 'jun', 'jul', 'avgust', 'septembar', 'oktobar', 'novembar', 'decembar'];
+
+/** Kratak naziv dana: „pon“, „uto“… */
+export function kratakDan(ymd: string): string {
+  return KRATKI_DANI[(parsirajYmd(ymd) ?? new Date()).getDay()];
+}
+
+/** Da li je dan subota ili nedelja. */
+export function jeVikend(ymd: string): boolean {
+  const g = (parsirajYmd(ymd) ?? new Date()).getDay();
+  return g === 0 || g === 6;
+}
+
+/** Prvi dan meseca u kom je dan. */
+export function prviUMesecu(ymd: string): string {
+  return `${ymd.slice(0, 7)}-01`;
+}
+
+/** Prvi dan sledećeg (n = 1) ili prethodnog (n = -1) meseca. */
+export function dodajMesece(ymd: string, n: number): string {
+  const d = parsirajYmd(prviUMesecu(ymd)) ?? new Date();
+  d.setMonth(d.getMonth() + n);
+  return formatirajYmd(d);
+}
+
+/** „novembar 2026“. */
+export function mesecGodina(ymd: string): string {
+  const d = parsirajYmd(ymd) ?? new Date();
+  return `${MESECI[d.getMonth()]} ${d.getFullYear()}`;
+}

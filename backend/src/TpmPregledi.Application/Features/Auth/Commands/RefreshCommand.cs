@@ -1,6 +1,7 @@
 using TpmPregledi.Application.Common.Exceptions;
 using TpmPregledi.Application.Common.Interfaces;
 using TpmPregledi.Application.Features.Auth.Dtos;
+using TpmPregledi.Application.Features.Korisnici;
 using TpmPregledi.Domain.Identity;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
@@ -18,7 +19,8 @@ public sealed record RefreshCommand(string RefreshToken) : IRequest<LoginResult>
 public sealed class RefreshCommandHandler(
     IJwtTokenService jwt,
     UserManager<ApplicationUser> userManager,
-    ICurrentUser currentUser)
+    ICurrentUser currentUser,
+    IAppDbContext db)
     : IRequestHandler<RefreshCommand, LoginResult>
 {
     /// <inheritdoc />
@@ -39,7 +41,8 @@ public sealed class RefreshCommandHandler(
             AccessToken: pair.AccessToken,
             ExpiresAt:   pair.AccessTokenExpiresAt,
             User:        new UserDto(user.Id, user.UserName ?? "", user.FullName, user.Email),
-            Roles:       roles);
+            Roles:       roles,
+            Prava:       await KorisnikPrava.ProcitajAsync(db, user.Id, ct));
 
         return new LoginResult(response, pair.RefreshToken, pair.RefreshTokenExpiresAt);
     }

@@ -1,6 +1,7 @@
 using TpmPregledi.Application.Common.Exceptions;
 using TpmPregledi.Application.Common.Interfaces;
 using TpmPregledi.Application.Features.Auth.Dtos;
+using TpmPregledi.Application.Features.Korisnici;
 using TpmPregledi.Domain.Identity;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
@@ -17,7 +18,8 @@ public sealed record GetCurrentUserQuery : IRequest<CurrentUserResponse>;
 /// <summary>Podaci o trenutnom korisniku za UI.</summary>
 /// <param name="User">Osnovni podaci.</param>
 /// <param name="Roles">Role (uvek tačno jedna; ugovor ostaje niz).</param>
-public sealed record CurrentUserResponse(UserDto User, IReadOnlyList<string> Roles);
+/// <param name="Prava">Štiklirana prava (iz baze — mogu biti novija od onih u JWT-u).</param>
+public sealed record CurrentUserResponse(UserDto User, IReadOnlyList<string> Roles, IReadOnlyList<string> Prava);
 
 /// <summary>Čita korisnika iz baze po ID-u iz JWT-a (podaci mogu da se promene posle izdavanja tokena).</summary>
 public sealed class GetCurrentUserHandler(
@@ -41,6 +43,7 @@ public sealed class GetCurrentUserHandler(
 
         return new CurrentUserResponse(
             new UserDto(user.Id, user.UserName ?? "", user.FullName, user.Email),
-            roles);
+            roles,
+            await KorisnikPrava.ProcitajAsync(db, user.Id, ct));
     }
 }

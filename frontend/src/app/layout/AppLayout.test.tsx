@@ -12,7 +12,7 @@ vi.mock('../../api/client', () => ({ api: { get: vi.fn(), post: vi.fn() } }));
 const logoutMock = vi.fn().mockResolvedValue(undefined);
 vi.mock('../../features/auth/AuthProvider', () => ({
   useAuth: () => ({
-    me: { user: { id: 'a1', userName: 'admin', fullName: 'Ana Anić', email: null }, roles: ['Admin'] },
+    me: { user: { id: 'a1', userName: 'admin', fullName: 'Ana Anić', email: null }, roles: ['Admin'], prava: ['korisnici', 'podesavanja'] },
     initializing: false,
     sesijaIstekla: false,
     login: vi.fn(),
@@ -42,12 +42,12 @@ describe('AppLayout — header i korisnički meni', () => {
     expect(screen.getByText('SADRŽAJ')).toBeInTheDocument();
   });
 
-  it('meni nudi „O aplikaciji", „Promena lozinke" i „Odjavi se"; odjava poziva logout', async () => {
+  it('meni nudi „O aplikaciji", „Obaveštenja na telefonu", „Promena lozinke" i „Odjavi se"; odjava poziva logout', async () => {
     renderLayout();
     await userEvent.click(screen.getByRole('button', { name: 'Ana Anić' }));
     const meni = screen.getByRole('menu');
     expect(meni).toBeInTheDocument();
-    ['O aplikaciji', 'Promena lozinke', 'Odjavi se'].forEach((l) =>
+    ['O aplikaciji', 'Obaveštenja na telefonu', 'Promena lozinke', 'Odjavi se'].forEach((l) =>
       expect(screen.getByRole('menuitem', { name: l })).toBeInTheDocument(),
     );
     await userEvent.click(screen.getByRole('menuitem', { name: 'Odjavi se' }));
@@ -56,8 +56,10 @@ describe('AppLayout — header i korisnički meni', () => {
   });
 
   it('„O aplikaciji" otvara dijalog sa verzijom', async () => {
-    vi.mocked(api.get).mockResolvedValue(
-      odgovor({ verzija: VERZIJA, gitSha: 'dev', buildUtc: null, okruzenje: 'Development' }),
+    vi.mocked(api.get).mockImplementation(async (url: string) =>
+      url === '/obavestenja'
+        ? odgovor({ neprocitanih: 0, cekaOdluku: 0, stavke: [] })
+        : odgovor({ verzija: VERZIJA, gitSha: 'dev', buildUtc: null, okruzenje: 'Development' }),
     );
     renderLayout();
     await userEvent.click(screen.getByRole('button', { name: 'Ana Anić' }));

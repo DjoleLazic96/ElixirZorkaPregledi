@@ -14,7 +14,7 @@
 
 ## 5.1 Gde se nalazi
 
-Levi meni → **Administracija** → kartica **Korisnici**. Tabela: **Korisničko ime**, **Ime**, **E-mail**, **Rola**, **Poslednja prijava**, **Status**.
+Levi meni → **Administracija** → kartica **Korisnici**. Tabela: **Korisničko ime**, **Ime**, **E-mail**, **Rola**, **Prava** (broj štikliranih), **Status**, **Poslednja prijava**.
 Uključite **Prikaži i neaktivne** da vidite deaktivirane naloge.
 
 ## 5.2 Otvaranje naloga
@@ -26,7 +26,16 @@ Uključite **Prikaži i neaktivne** da vidite deaktivirane naloge.
 
 ## 5.3 Izmena naloga i role
 
-Kliknite **Izmeni** u redu korisnika; menjate **Ime i prezime**, **E-mail** i **Rolu**; **Sačuvaj**. Promena role odjavljuje korisnika sa svih uređaja.
+Kliknite **Izmeni** u redu korisnika; menjate **Ime i prezime**, **E-mail** i **Rolu**; **Sačuvaj**. Promena role odjavljuje korisnika sa svih uređaja
+i vraća mu podrazumevana prava nove role.
+
+### Prava
+
+Kliknite **Prava** u redu korisnika. Štiklirajte šta korisnik sme (npr. **Overa, dorada i poništavanje pregleda**, **Raspored i PZ**,
+**Podešavanja**) i kliknite **Sačuvaj prava**. **Vrati podrazumevana** vraća skup koji ta rola dobija pri otvaranju naloga.
+Nova prava važe posle sledeće prijave korisnika, najkasnije za 15 minuta.
+
+**Popunjavanje pregleda** može da ima samo Inženjer — za ostale role je polje zaključano.
 
 ## 5.4 Deaktivacija i aktivacija
 
@@ -42,6 +51,15 @@ Kliknite **Resetuj lozinku** u redu korisnika, unesite **Nova lozinka**, kliknit
 
 - Ne možete sebi promeniti rolu ni deaktivirati sopstveni nalog.
 - Ne možete poslednjem aktivnom administratoru skinuti rolu Administrator ni ga deaktivirati — uvek mora postojati bar jedan.
+- Ne možete sebi oduzeti pravo **Korisnici i prava** (inače više ne biste mogli da upravljate nalozima).
+- **Popunjavanje pregleda** se ne može dodeliti Supervizoru, Direktoru ni Administratoru.
+
+## 5.8 Podešavanja
+
+**Administracija** → kartica **Podešavanja** (pravo „Podešavanja“). Ovde se menjaju vremena upozorenja „DP/PZ nije započet“, kraj
+radnog dana (posle njega se nezapočet DP prenosi na sledeći radni dan), da li se DP radi na dan PZ-a, granica pauze, dozvoljeno
+odstupanje sata telefona, rok za overu i pragovi za ponovljeni kvar i „dugo van funkcije“. Kliknite **Sačuvaj podešavanja**;
+poruka: „Podešavanja su sačuvana.“ Svaka izmena se beleži u audit logu.
 
 ## 5.7 Najčešći problemi
 

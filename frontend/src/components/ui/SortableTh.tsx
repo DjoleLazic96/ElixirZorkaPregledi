@@ -39,7 +39,7 @@ export function SortableTh<K extends string>({
         type="button"
         onClick={() => onSort(column, nextDirection)}
         className={cn(
-          '-mx-1 inline-flex items-center gap-1 rounded px-1 text-xs uppercase tracking-wide transition-colors',
+          '-mx-1 inline-flex items-center gap-1 rounded px-1 text-[13px] transition-colors',
           'hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
           active ? 'font-semibold text-gray-900' : 'text-gray-500',
         )}

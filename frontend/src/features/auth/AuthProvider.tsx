@@ -13,6 +13,7 @@ import type { AxiosError } from 'axios';
 import { setAccessToken, setOnSessionExpired, setOnTokenRefreshed } from '../../api/client';
 import type { CurrentUserResponse } from '../../api/types';
 import { getMe, login as apiLogin, logout as apiLogout, refresh as apiRefresh } from './auth-api';
+import { postaviKorisnika } from '../../offline/sinhronizacija';
 
 /**
  * Koliko pre isteka access tokena pokrećemo tihu obnovu sesije.
@@ -27,7 +28,7 @@ const REFRESH_LEAD_MS = 60_000;
 interface AuthState {
   /** `null` = još nije poznato, `undefined` = nije ulogovan, objekat = ulogovan. */
   me: CurrentUserResponse | null | undefined;
-  login: (userName: string, password: string) => Promise<void>;
+  login: (userName: string, password: string, zapamtiMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   /** `true` dok proveravamo postojeću sesiju pri pokretanju. */
   initializing: boolean;
@@ -59,6 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTokenExpiresAt(null); // gasi tajmer obnove
     setMe(undefined);
     setSesijaIstekla(istekla);
+    // Posle isteka sesije telefon ne šalje red dok se neko ne prijavi — i tada samo njegov.
+    void postaviKorisnika(null);
   }, []);
 
   const logout = useCallback(async () => {
@@ -112,7 +115,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const r = await apiRefresh();
         setAccessToken(r.accessToken);
         setTokenExpiresAt(r.expiresAt);
-        setMe(await getMe());
+        const ja = await getMe();
+        await postaviKorisnika(ja.user.id).catch(() => {});
+        setMe(ja);
       } catch {
         setAccessToken(null);
         setMe(undefined);
@@ -122,11 +127,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  const login = useCallback(async (userName: string, password: string) => {
-    const r = await apiLogin(userName, password);
+  const login = useCallback(async (userName: string, password: string, zapamtiMe = false) => {
+    const r = await apiLogin(userName, password, zapamtiMe);
     setAccessToken(r.accessToken);
     setTokenExpiresAt(r.expiresAt);
-    setMe({ user: r.user, roles: r.roles });
+    await postaviKorisnika(r.user.id).catch(() => {});
+    setMe({ user: r.user, roles: r.roles, prava: r.prava });
     setSesijaIstekla(false);
   }, []);
 

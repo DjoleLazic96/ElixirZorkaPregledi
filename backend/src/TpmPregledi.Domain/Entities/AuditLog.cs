@@ -32,7 +32,7 @@ public class AuditLog
     /// </summary>
     public string Action { get; set; } = string.Empty;
 
-    /// <summary>CLR ime entiteta (npr. <c>Kategorija</c>) ili sintetičko <c>Auth</c> / <c>Sistem</c>.</summary>
+    /// <summary>CLR ime entiteta (npr. <c>Uredjaj</c>) ili sintetičko <c>Auth</c> / <c>Sistem</c>.</summary>
     public string Entity { get; set; } = string.Empty;
 
     /// <summary>PK izmenjenog entiteta kao string (složeni ključevi spojeni sa <c>|</c>).</summary>

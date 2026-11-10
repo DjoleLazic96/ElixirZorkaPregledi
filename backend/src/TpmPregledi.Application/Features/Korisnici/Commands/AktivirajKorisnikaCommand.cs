@@ -1,5 +1,6 @@
 using TpmPregledi.Application.Common;
 using TpmPregledi.Application.Common.Exceptions;
+using TpmPregledi.Application.Common.Interfaces;
 using TpmPregledi.Application.Features.Korisnici.Dtos;
 using TpmPregledi.Domain.Identity;
 using MediatR;
@@ -12,7 +13,7 @@ namespace TpmPregledi.Application.Features.Korisnici.Commands;
 public sealed record AktivirajKorisnikaCommand(string Id) : IRequest<KorisnikDto>;
 
 /// <summary>Nema guardova — aktivacija ne može da zaključa sistem.</summary>
-public sealed class AktivirajKorisnikaHandler(UserManager<ApplicationUser> userManager)
+public sealed class AktivirajKorisnikaHandler(UserManager<ApplicationUser> userManager, IAppDbContext db)
     : IRequestHandler<AktivirajKorisnikaCommand, KorisnikDto>
 {
     /// <inheritdoc />
@@ -24,7 +25,7 @@ public sealed class AktivirajKorisnikaHandler(UserManager<ApplicationUser> userM
         var rola = await KorisnikHelpers.RolaAsync(userManager, user);
 
         if (user.IsActive)
-            return KorisnikDto.Od(user, rola);
+            return KorisnikDto.Od(user, rola, await KorisnikPrava.ProcitajAsync(db, user.Id, ct));
 
         user.IsActive = true;
 
@@ -32,6 +33,6 @@ public sealed class AktivirajKorisnikaHandler(UserManager<ApplicationUser> userM
         if (!result.Succeeded)
             throw IdentityGreske.KaoValidacija(result, "korisnik");
 
-        return KorisnikDto.Od(user, rola);
+        return KorisnikDto.Od(user, rola, await KorisnikPrava.ProcitajAsync(db, user.Id, ct));
     }
 }

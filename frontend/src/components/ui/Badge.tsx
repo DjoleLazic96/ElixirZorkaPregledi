@@ -2,15 +2,24 @@ import type { HTMLAttributes } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/cn';
 
+/**
+ * Oznaka po mockup-u (`.badge`): pilula u boji po značenju — siva (neutralno), zelena (u redu / čeka overu), žuta (u toku / čeka),
+ * plava (overeno / informacija), crvena (problem / hitno), narandžasta (upozorenje / 7 dana). `primary` i `amber` su stari nazivi
+ * za zelenu i žutu.
+ */
 const badgeVariants = cva(
-  'inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium',
+  'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap',
   {
     variants: {
       tone: {
         gray:    'bg-gray-100 text-gray-700',
-        primary: 'bg-primary-100 text-primary-700',
-        amber:   'bg-amber-100 text-amber-800',
-        red:     'bg-red-100 text-red-700',
+        primary: 'bg-green-50 text-green-700',
+        green:   'bg-green-50 text-green-700',
+        amber:   'bg-amber-50 text-amber-800',
+        yellow:  'bg-amber-50 text-amber-800',
+        blue:    'bg-blue-50 text-blue-700',
+        red:     'bg-red-50 text-red-700',
+        orange:  'bg-orange-50 text-orange-700',
       },
     },
     defaultVariants: { tone: 'gray' },

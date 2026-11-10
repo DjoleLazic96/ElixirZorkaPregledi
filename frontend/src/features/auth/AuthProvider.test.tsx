@@ -34,6 +34,7 @@ function loginResponse(inMs: number): LoginResponse {
     expiresAt: new Date(Date.now() + inMs).toISOString(),
     user: { id: 'u1', userName: 'admin', fullName: 'Administrator', email: null },
     roles: ['Admin'],
+  prava: ['analitika', 'sabloni.nacrt', 'neradni_dani', 'korisnici', 'podesavanja'],
   };
 }
 

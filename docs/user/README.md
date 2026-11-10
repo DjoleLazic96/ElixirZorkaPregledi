@@ -9,12 +9,15 @@ Aplikacija služi za TPM preglede opreme: dnevne (DP1, DP2) i u planskom zastoju
 na telefonu, i bez interneta, a podaci se sami pošalju kad se veza vrati. Supervizor i Direktor raspoređuju preglede,
 overavaju ih i prate kvarove, potrebne akcije i stanje opreme. Pristup imaju zaposleni sa ličnim nalogom.
 
-*Uputstvo se dopunjuje tokom razvoja; poglavlja ispod opisuju trenutno stanje skeleta.*
 
-## Dve vrste korisnika
+## Četiri role
 
-- **Korisnik** — radi u aplikaciji i čita šifarnike.
-- **Administrator** — sve što i korisnik, plus: uređuje šifarnike, upravlja nalozima, gleda audit log i stanje servera.
+- **Inženjer** — popunjava preglede na telefonu (i bez interneta), traži prebacivanje, odsustvo i doradu, predlaže izmene šablona.
+- **Supervizor** — pravi raspored, overava preglede, odlučuje o doradi, prebacivanju i odsustvima, zatvara akcije.
+- **Direktor** — sve što i Supervizor, plus menja i objavljuje šablone i unosi neradne dane.
+- **Administrator** — nalozi i prava, podešavanja i primaoci obaveštenja, uvoz šablona, audit log i stanje servera.
+
+Svi vide sve preglede, akcije, kvarove, uređaje i analitiku. Tačna prava se štikliraju po korisniku: [1. Prijava i role](01-prijava-i-role.md).
 
 ## Kako se prijaviti
 
@@ -26,20 +29,30 @@ Nalog Vam otvara administrator. Detalji: [1. Prijava i role](01-prijava-i-role.m
 | Dokument | Za koga | Šta pokriva |
 |---|---|---|
 | [1. Prijava i role](01-prijava-i-role.md) | svi | prijava, odjava, promena lozinke, šta koja rola vidi, „O aplikaciji" |
-| [2. Kategorije](02-kategorije.md) | svi (izmene: administrator) | *primer šifarnika iz skeleta — zameniti domenskim uputstvom* |
-| [5. Upravljanje korisnicima](05-upravljanje-korisnicima.md) | administrator | nalozi, role, deaktivacija, reset lozinke |
-| [6. Audit log i stanje servera](06-audit-log-i-stanje-servera.md) | administrator | ko je šta promenio; zdravlje servera |
-| [7. Šta je novo](07-sta-je-novo.md) | svi | izmene po verzijama |
+| [2. Popunjavanje pregleda](02-popunjavanje-pregleda.md) | inženjeri | početak, odgovori, napomene, slike, „nije u funkciji“, predaja |
+| [3. Arhiva, overa i dorada](03-overa-i-dorada.md) | svi (odluke: Supervizor, Direktor) | arhiva, detalj, overa, dorada, poništavanje, PDF/Word/Excel |
+| [4. Raspored, kalendar i odsustva](04-raspored-i-odsustva.md) | svi (izmene: Supervizor, Direktor) | kalendar, predlog i potvrda rasporeda, PZ, prenos, prebacivanje, odsustva, neradni dani |
+| [5. Potrebne akcije i neispravnosti](05-akcije-i-kvarovi.md) | svi (zatvaranje: Supervizor, Direktor) | akcija na pregledu, pop-up, lista akcija, kvarovi |
+| [9. Početna, ekran uređaja, analitika i pretraga](09-uredjaj-i-analitika.md) | svi | Početna, „Moje aktivnosti“, „Čeka moju odluku“, istorija uređaja, QR, analitika, pretraga |
+| [10. Obaveštenja](10-obavestenja.md) | svi (primaoci: administrator) | zvono, obaveštenja na telefonu, ko šta dobija, primaoci |
+| [8. Šabloni i uređaji](08-sabloni-i-uredjaji.md) | svi (izmene: Direktor, Administrator) | šabloni pregleda, registar opreme, katalog, uputstva, uvoz, nacrt i objava verzije, predlozi izmena, istorijat |
+| [11. Upravljanje korisnicima](05-upravljanje-korisnicima.md) | administrator | nalozi, role, deaktivacija, reset lozinke |
+| [12. Audit log i stanje servera](06-audit-log-i-stanje-servera.md) | administrator | ko je šta promenio; zdravlje servera |
+| [13. Šta je novo](07-sta-je-novo.md) | svi | izmene po verzijama |
 
 ## Ko šta radi
 
-| Radnja | Korisnik | Administrator |
-|---|---|---|
-| Prijava, promena sopstvene lozinke | ✔ | ✔ |
-| Pregled kategorija | ✔ | ✔ |
-| Dodavanje i izmena kategorija | — | ✔ |
-| Upravljanje nalozima | — | ✔ |
-| Audit log, Stanje servera | — | ✔ |
+| Radnja | Inženjer | Supervizor | Direktor | Administrator |
+|---|---|---|---|---|
+| Pregled svega (pregledi, akcije, kvarovi, uređaji, analitika) | ✔ | ✔ | ✔ | ✔ |
+| Popunjavanje pregleda, zahtev za odsustvo i prebacivanje | ✔ | — | — | — |
+| Raspored, odluke o odsustvu i prebacivanju | — | ✔ | ✔ | — |
+| Overa, vraćanje na doradu, poništavanje | — | ✔ | ✔ | — |
+| Zatvaranje i otkazivanje akcija | — | ✔ | ✔ | — |
+| Nacrt šablona, uređaji, katalog, uputstva, odluka o predlogu | — | — | ✔ | ✔ |
+| Objava nove verzije šablona | — | — | ✔ | — |
+| Neradni dani | — | — | ✔ | ✔ |
+| Nalozi, prava, podešavanja, uvoz šablona, audit log | — | — | — | ✔ |
 
 ## Napomena o pismu
 

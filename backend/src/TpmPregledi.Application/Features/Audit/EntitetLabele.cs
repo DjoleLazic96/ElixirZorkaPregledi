@@ -12,7 +12,12 @@ public static class EntitetLabele
     private static readonly IReadOnlyDictionary<string, string> Mapa = new Dictionary<string, string>
     {
         ["ApplicationUser"] = "Korisnik",
-        ["Kategorija"]      = "Kategorija",   // PRIMER feature-a — kopiraj ili obriši
+        ["Uredjaj"]         = "Uređaj",
+        ["Aktivnost"]       = "Aktivnost",
+        ["DodatnoPolje"]    = "Dodatno polje",
+        ["SablonVerzija"]   = "Verzija šablona",
+        ["KorisnikPravo"]   = "Pravo korisnika",
+        ["Podesavanje"]     = "Podešavanje",
         ["Auth"]            = "Prijava",
         ["Sistem"]          = "Sistem",
     };

@@ -342,9 +342,9 @@ export function Select<T extends string | number>({
         aria-activedescendant={open && highlight >= 0 ? optionId(highlight) : undefined}
         aria-label={accessibleName}
         className={cn(
-          'flex h-10 items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-3 text-sm',
+          'flex h-11 items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm md:h-10',
           'transition-colors hover:border-gray-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500',
-          'disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 disabled:hover:border-gray-300',
+          'disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 disabled:hover:border-gray-200',
           className ?? 'w-full'
         )}
       >

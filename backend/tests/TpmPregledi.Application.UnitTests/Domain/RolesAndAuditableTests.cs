@@ -10,16 +10,16 @@ namespace TpmPregledi.Application.UnitTests.Domain;
 public class RolesAndAuditableTests
 {
     [Fact]
-    public void Roles_definise_tacno_Admin_i_Korisnik()
+    public void Roles_definise_tacno_cetiri_role()
     {
-        Roles.Admin.Should().Be("Admin");
-        Roles.Korisnik.Should().Be("Korisnik");
-        Roles.All.Should().Equal("Admin", "Korisnik");
+        Roles.All.Should().Equal("Inzenjer", "Supervizor", "Direktor", "Admin");
     }
 
     [Theory]
     [InlineData(typeof(ApplicationUser))]
-    [InlineData(typeof(Kategorija))]
+    [InlineData(typeof(Uredjaj))]
+    [InlineData(typeof(Aktivnost))]
+    [InlineData(typeof(SablonVerzija))]
     public void Entitet_je_Auditable(Type t)
         => t.GetCustomAttribute<AuditableAttribute>().Should().NotBeNull($"{t.Name} ide u audit_log");
 
@@ -43,7 +43,7 @@ public class RolesAndAuditableTests
     public void SoftDeletableEntity_je_podrazumevano_aktivan()
     {
         typeof(SoftDeletableEntity).Should().BeDerivedFrom<AuditableEntity>();
-        new Kategorija().Aktivan.Should().BeTrue();
+        new ProbniSifarnik().Aktivan.Should().BeTrue();
     }
 
     [Fact]
@@ -64,3 +64,6 @@ public class RolesAndAuditableTests
         t.JeVazeci(now).Should().BeFalse("revokovan");
     }
 }
+
+/// <summary>Konkretna klasa samo za proveru podrazumevane vrednosti apstraktne baze.</summary>
+internal sealed class ProbniSifarnik : SoftDeletableEntity;

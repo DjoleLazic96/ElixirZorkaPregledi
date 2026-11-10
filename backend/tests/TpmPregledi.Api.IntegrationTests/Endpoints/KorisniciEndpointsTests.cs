@@ -21,7 +21,7 @@ public class KorisniciEndpointsTests(CustomWebAppFactory factory)
 
     private static string Ime(string prefix = "kor") => $"{prefix}-{Guid.NewGuid():N}"[..20];
 
-    private static KreirajKorisnikaInput Novi(string ime, string rola = Roles.Korisnik, string lozinka = Lozinka) =>
+    private static KreirajKorisnikaInput Novi(string ime, string rola = Roles.Inzenjer, string lozinka = Lozinka) =>
         new(ime, "Test Korisnik", $"{ime}@test.local", lozinka, rola);
 
     private static async Task<KorisnikDto> KreirajAsync(HttpClient admin, KreirajKorisnikaInput input)
@@ -51,7 +51,7 @@ public class KorisniciEndpointsTests(CustomWebAppFactory factory)
         var dto = await res.Content.ReadFromJsonAsync<KorisnikDto>();
         res.Headers.Location!.ToString().Should().Be($"/api/v1/korisnici/{dto!.Id}");
         dto.KorisnickoIme.Should().Be(ime);
-        dto.Rola.Should().Be(Roles.Korisnik);
+        dto.Rola.Should().Be(Roles.Inzenjer);
         dto.Email.Should().Be($"{ime}@test.local");
         dto.Aktivan.Should().BeTrue();
         dto.PoslednjaPrijava.Should().BeNull();
@@ -108,10 +108,10 @@ public class KorisniciEndpointsTests(CustomWebAppFactory factory)
 
         var login = await LoginAsync(factory.CreateClientWithCookies(), ime, Lozinka);
         login.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await login.Content.ReadFromJsonAsync<LoginResponse>())!.Roles.Should().Equal(Roles.Korisnik);
+        (await login.Content.ReadFromJsonAsync<LoginResponse>())!.Roles.Should().Equal(Roles.Inzenjer);
 
         var korisnik = await factory.AuthenticatedClientAsync(ime, Lozinka);
-        (await korisnik.GetAsync("/api/v1/kategorije")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await korisnik.GetAsync("/api/v1/sabloni")).StatusCode.Should().Be(HttpStatusCode.OK);
         (await korisnik.GetAsync("/api/v1/korisnici")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
@@ -186,7 +186,7 @@ public class KorisniciEndpointsTests(CustomWebAppFactory factory)
     public async Task Put_nepostojeceg_vraca_404()
     {
         var admin = await factory.AdminClientAsync();
-        var res = await admin.PutAsJsonAsync($"/api/v1/korisnici/{Guid.NewGuid()}", new IzmeniKorisnikaInput("Neko", null, Roles.Korisnik));
+        var res = await admin.PutAsJsonAsync($"/api/v1/korisnici/{Guid.NewGuid()}", new IzmeniKorisnikaInput("Neko", null, Roles.Inzenjer));
         res.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
@@ -205,7 +205,7 @@ public class KorisniciEndpointsTests(CustomWebAppFactory factory)
         var admin = await factory.AdminClientAsync();
         var ja = await SeedAdminDtoAsync(admin);
 
-        var res = await admin.PutAsJsonAsync($"/api/v1/korisnici/{ja.Id}", new IzmeniKorisnikaInput(ja.Ime, ja.Email, Roles.Korisnik));
+        var res = await admin.PutAsJsonAsync($"/api/v1/korisnici/{ja.Id}", new IzmeniKorisnikaInput(ja.Ime, ja.Email, Roles.Inzenjer));
 
         (await Greska422Async(res)).Should().Be("Ne možete promeniti sopstvenu rolu.");
     }
@@ -227,6 +227,10 @@ public class KorisniciEndpointsTests(CustomWebAppFactory factory)
         // Jedini način da aktivan Admin pokuša da ukloni DRUGOG poslednjeg admina je da sam već bude
         // deaktiviran, a JWT mu još važi (do 15 min). Guardovi moraju da drže i tada.
         var admin = await factory.AdminClientAsync();
+        // Baza je zajednička za sve testove; admini koje su drugi testovi napravili bi seed admina učinili ne-poslednjim.
+        foreach (var ostali in (await admin.GetFromJsonAsync<List<KorisnikDto>>("/api/v1/korisnici"))!
+                     .Where(k => k.Aktivan && k.Rola == Roles.Admin && k.KorisnickoIme != CustomWebAppFactory.AdminUserName))
+            (await admin.PostAsync($"/api/v1/korisnici/{ostali.Id}/deaktiviraj", null)).EnsureSuccessStatusCode();
         var drugi = await KreirajAsync(admin, Novi(Ime("adm2"), rola: Roles.Admin));
         var drugiClient = await factory.AuthenticatedClientAsync(drugi.KorisnickoIme, Lozinka);   // token izdat dok je aktivan
         (await admin.PostAsync($"/api/v1/korisnici/{drugi.Id}/deaktiviraj", null)).EnsureSuccessStatusCode();
@@ -235,7 +239,7 @@ public class KorisniciEndpointsTests(CustomWebAppFactory factory)
         var deakt = await drugiClient.PostAsync($"/api/v1/korisnici/{seedAdmin.Id}/deaktiviraj", null);
         (await Greska422Async(deakt)).Should().Be("Ne možete deaktivirati poslednjeg aktivnog administratora.");
 
-        var degrad = await drugiClient.PutAsJsonAsync($"/api/v1/korisnici/{seedAdmin.Id}", new IzmeniKorisnikaInput(seedAdmin.Ime, seedAdmin.Email, Roles.Korisnik));
+        var degrad = await drugiClient.PutAsJsonAsync($"/api/v1/korisnici/{seedAdmin.Id}", new IzmeniKorisnikaInput(seedAdmin.Ime, seedAdmin.Email, Roles.Inzenjer));
         (await Greska422Async(degrad)).Should().Be("Ne možete skinuti rolu Admin poslednjem aktivnom administratoru.");
 
         (await SeedAdminDtoAsync(admin)).Aktivan.Should().BeTrue("seed admin je netaknut");

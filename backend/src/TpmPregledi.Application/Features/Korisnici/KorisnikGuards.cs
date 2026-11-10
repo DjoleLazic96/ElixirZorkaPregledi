@@ -1,4 +1,5 @@
 using TpmPregledi.Application.Common.Exceptions;
+using TpmPregledi.Domain.Identity;
 
 namespace TpmPregledi.Application.Features.Korisnici;
 
@@ -20,6 +21,33 @@ namespace TpmPregledi.Application.Features.Korisnici;
 /// </remarks>
 public static class KorisnikGuards
 {
+    /// <summary>Poruka: popunjavanje pregleda samo za Inženjera (R1.8).</summary>
+    public const string PorukaPopunjavanjeSamoInzenjer =
+        "Pravo „Popunjavanje pregleda“ može da ima samo Inženjer.";
+
+    /// <summary>Poruka: Admin ne sme sebi da oduzme upravljanje korisnicima (zaključao bi se).</summary>
+    public const string PorukaSamooduzimanjeKorisnika =
+        "Ne možete sebi oduzeti pravo upravljanja korisnicima.";
+
+    /// <summary>Pravo popunjavanja pregleda ima samo Inženjer (R1.8).</summary>
+    /// <param name="rola">Rola korisnika.</param>
+    /// <param name="prava">Nova prava.</param>
+    public static void PopunjavanjeSamoInzenjer(string rola, IEnumerable<string> prava)
+    {
+        if (rola != Roles.Inzenjer && prava.Contains(Prava.PreglediPopunjavanje))
+            throw new BusinessRuleException(PorukaPopunjavanjeSamoInzenjer);
+    }
+
+    /// <summary>Korisnik ne može sebi da oduzme pravo <c>korisnici</c>.</summary>
+    /// <param name="ciljaniKorisnikId">Korisnik čija se prava menjaju.</param>
+    /// <param name="akterId">Ko menja.</param>
+    /// <param name="prava">Nova prava.</param>
+    public static void ZabraniSamooduzimanjeKorisnika(string ciljaniKorisnikId, string? akterId, IEnumerable<string> prava)
+    {
+        if (ciljaniKorisnikId == akterId && !prava.Contains(Prava.Korisnici))
+            throw new BusinessRuleException(PorukaSamooduzimanjeKorisnika);
+    }
+
     /// <summary>Poruka guarda 1.</summary>
     public const string PorukaPromenaSopstveneRole =
         "Ne možete promeniti sopstvenu rolu.";

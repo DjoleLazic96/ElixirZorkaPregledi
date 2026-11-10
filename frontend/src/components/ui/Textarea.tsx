@@ -13,11 +13,11 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       ref={ref}
       rows={rows}
       className={cn(
-        'block w-full rounded-md border bg-white px-3 py-2 text-sm',
+        'block w-full rounded-lg border bg-white px-3 py-2 text-sm',
         'placeholder:text-gray-400 focus:outline-none focus:ring-2',
         hasError
           ? 'border-red-500 focus:ring-red-500'
-          : 'border-gray-300 focus:border-primary-500 focus:ring-primary-500',
+          : 'border-gray-200 focus:border-primary-500 focus:ring-primary-500/30',
         'disabled:bg-gray-50 disabled:text-gray-500',
         className,
       )}

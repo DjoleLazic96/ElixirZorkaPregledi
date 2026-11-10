@@ -16,7 +16,7 @@ namespace TpmPregledi.Infrastructure.Identity;
 /// Izdavanje, rotacija i opoziv tokena.
 /// </summary>
 /// <remarks>
-/// <para><b>Access token</b>: JWT HS256 sa <c>sub</c>, <c>jti</c>, <c>preferred_username</c> i <c>role</c> claim-ovima.</para>
+/// <para><b>Access token</b>: JWT HS256 sa <c>sub</c>, <c>jti</c>, <c>preferred_username</c>, <c>role</c> i <c>pravo</c> claim-ovima.</para>
 /// <para><b>Refresh token</b>: 32 slučajna bajta (base64url), ne JWT. U bazi je samo SHA-256 heš
 /// (<see cref="RefreshTokenHasher"/>) — svaki lookup hešira vrednost iz cookie-ja.</para>
 /// <para><b>Rotacija</b>: stari token dobija <c>RevokedAt</c>, novi se upisuje — u istom
@@ -31,15 +31,19 @@ public sealed class JwtTokenService(
 {
     private readonly JwtOptions _opts = options.Value;
 
+    /// <summary>Ime claim-a za prava (kratko, ne mapira se pri validaciji).</summary>
+    public const string PravoClaim = "pravo";
+
     /// <inheritdoc />
     public async Task<TokenPair> IssueTokenPairAsync(
         ApplicationUser user,
         IReadOnlyList<string> roles,
         string? ipAddress,
+        bool zapamti = false,
         CancellationToken ct = default)
     {
-        var (access, accessExp) = CreateAccessToken(user, roles);
-        var (raw, entity) = NoviRefreshToken(user.Id, ipAddress);
+        var (access, accessExp) = CreateAccessToken(user, roles, await PravaAsync(user.Id, ct));
+        var (raw, entity) = NoviRefreshToken(user.Id, ipAddress, zapamti);
 
         db.RefreshTokens.Add(entity);
         await db.SaveChangesAsync(ct);
@@ -65,12 +69,12 @@ public sealed class JwtTokenService(
         // Rotacija: revoke starog + insert novog idu u ISTOM SaveChanges-u (atomarno).
         // Ako se ovo ikad refaktoriše, ne razbijati u dva poziva.
         existing.RevokedAt = now;
-        var (raw, fresh) = NoviRefreshToken(existing.User.Id, ipAddress);
+        var (raw, fresh) = NoviRefreshToken(existing.User.Id, ipAddress, existing.Dugotrajan);
         db.RefreshTokens.Add(fresh);
         await db.SaveChangesAsync(ct);
 
         var roles = (await userManager.GetRolesAsync(existing.User)).ToList();
-        var (access, accessExp) = CreateAccessToken(existing.User, roles);
+        var (access, accessExp) = CreateAccessToken(existing.User, roles, await PravaAsync(existing.User.Id, ct));
 
         return new RotateResult(new TokenPair(access, accessExp, raw, fresh.ExpiresAt), existing.User);
     }
@@ -109,7 +113,12 @@ public sealed class JwtTokenService(
 
     // ─── Pomoćne ───────────────────────────────────────────────────────────
 
-    private (string Token, DateTime ExpiresAt) CreateAccessToken(ApplicationUser user, IReadOnlyList<string> roles)
+    /// <summary>Prava iz baze u trenutku izdavanja; promena prava revokuje refresh, pa sledeći token nosi nova.</summary>
+    private Task<List<string>> PravaAsync(string userId, CancellationToken ct) =>
+        db.KorisnikPrava.AsNoTracking().Where(p => p.KorisnikId == userId).Select(p => p.Pravo).ToListAsync(ct);
+
+    private (string Token, DateTime ExpiresAt) CreateAccessToken(
+        ApplicationUser user, IReadOnlyList<string> roles, IReadOnlyList<string> prava)
     {
         var now     = clock.UtcNow;
         var expires = now.AddMinutes(_opts.AccessTokenMinutes);
@@ -124,6 +133,7 @@ public sealed class JwtTokenService(
         // (ostao bi dugački URI u tokenu). JwtBearer ga pri validaciji vraća u ClaimTypes.Role, pa
         // RequireRole radi, a token na žici odgovara ugovoru (sub, jti, preferred_username, role).
         claims.AddRange(roles.Select(r => new Claim("role", r)));
+        claims.AddRange(prava.Select(p => new Claim(PravoClaim, p)));
 
         var signing = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_opts.Secret)),
@@ -141,7 +151,7 @@ public sealed class JwtTokenService(
     }
 
     /// <summary>Generiše sirovi token i entitet sa njegovim hešom; sirovi token ide samo klijentu.</summary>
-    private (string Raw, RefreshToken Entity) NoviRefreshToken(string userId, string? ipAddress)
+    private (string Raw, RefreshToken Entity) NoviRefreshToken(string userId, string? ipAddress, bool dugotrajan)
     {
         var raw = GenerateSecureToken();
         var entity = new RefreshToken
@@ -149,7 +159,8 @@ public sealed class JwtTokenService(
             TokenHash   = RefreshTokenHasher.Hash(raw),
             UserId      = userId,
             CreatedAt   = clock.UtcNow,
-            ExpiresAt   = clock.UtcNow.AddDays(_opts.RefreshTokenDays),
+            ExpiresAt   = clock.UtcNow.AddDays(dugotrajan ? _opts.RefreshTokenDaysZapamti : _opts.RefreshTokenDays),
+            Dugotrajan  = dugotrajan,
             CreatedByIp = ipAddress,
         };
         return (raw, entity);

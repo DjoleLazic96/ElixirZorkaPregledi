@@ -33,7 +33,7 @@ cd frontend; npm run lint; npm test
 bash deploy/scripts/export-images.sh                      # build image-a u tar (treba Docker)
 ```
 
-- Dev nalozi: `admin` / `DevTpmPregledi2026!` (Admin). Dev DB: `tpm-pregledi` / `tpm-pregledi` / `tpm-pregledi-dev-only` na `localhost:55434`.
+- Dev nalozi: `admin` / `DevTpmPregledi2026!` (Admin); probni `provera.inzenjer`, `provera.supervizor`, `provera.direktor` / `DevProvera2026!` (`python scripts/dev-probni-nalozi.py`, samo lokalna baza). Dev DB: baza `tpm_pregledi`, korisnik `tpm_pregledi`, lozinka `tpm-pregledi-dev-only` na `localhost:55434`.
 - Scalar UI: `http://localhost:8080/swagger` (samo Development).
 - Nova migracija: `cd backend; dotnet ef migrations add <Opis> --project src/TpmPregledi.Infrastructure --startup-project src/TpmPregledi.Api --output-dir Persistence/Migrations` (`dotnet tool restore` prvi put).
 
@@ -44,7 +44,7 @@ bash deploy/scripts/export-images.sh                      # build image-a u tar 
 3. Docs (`docs/0x`, `docs/user`, `CHANGELOG [Neobjavljeno]`) se menjaju **u istom PR-u** sa kodom.
 4. Validacija oblika → validator (400); poslovno pravilo → `BusinessRuleException` (422, `greske[]`).
 5. Vreme kroz `IDateTimeProvider`; datumi `DateOnly`; frontend datumi/brojevi samo kroz `lib/datum.ts`, `lib/broj.ts`.
-6. Novi feature = kopija obrasca `Kategorije` (backend `Features/Kategorije`, frontend `features/kategorije`), ne izmišljanje novog.
+6. Novi feature = kopija obrasca `Uredjaji` (backend `Features/Uredjaji/Uredjaji.cs`, frontend `features/sabloni/UredjajiPage.tsx` + `hooks.ts`), ne izmišljanje novog.
 7. Forme su prezentacione; roditelj drži mutacije i toastove; `npm run lint` mora biti 0.
 8. Ne push-uj u `main`, ne deploy-uj, ne diraj produkciju ni tajne — to radi čovek.
 9. Testovi po blueprint dokumentu 16: pravilo koje se krši, 401/403 po ruti, guard rute na frontu.

@@ -55,6 +55,7 @@ public sealed class IzmeniKorisnikaValidator : AbstractValidator<IzmeniKorisnika
 public sealed class IzmeniKorisnikaHandler(
     UserManager<ApplicationUser> userManager,
     ICurrentUser currentUser,
+    IAppDbContext db,
     IJwtTokenService jwt)
     : IRequestHandler<IzmeniKorisnikaCommand, KorisnikDto>
 {
@@ -103,9 +104,13 @@ public sealed class IzmeniKorisnikaHandler(
                     throw IdentityGreske.KaoValidacija(removeResult, "rola");
             }
 
+            // Nova rola = podrazumevana prava nove role; Admin ih posle može dalje štiklirati.
+            await KorisnikPrava.ZameniAsync(db, user.Id, Prava.Podrazumevana(req.Rola), ct);
+            await db.SaveChangesAsync(ct);
+
             await jwt.RevokeAllAsync(user.Id, ct);
         }
 
-        return KorisnikDto.Od(user, req.Rola);
+        return KorisnikDto.Od(user, req.Rola, await KorisnikPrava.ProcitajAsync(db, user.Id, ct));
     }
 }

@@ -30,9 +30,9 @@ public class GetAuditLogQueryTests
     public async Task Sortira_najnovije_prvo()
     {
         await using var ctx = await SaRedovima(
-            Red("CREATE", "Kategorija", "a", T0.AddHours(1)),
-            Red("UPDATE", "Kategorija", "b", T0.AddHours(3)),
-            Red("DELETE", "Kategorija", "c", T0.AddHours(2)));
+            Red("CREATE", "Uredjaj", "a", T0.AddHours(1)),
+            Red("UPDATE", "Uredjaj", "b", T0.AddHours(3)),
+            Red("DELETE", "Uredjaj", "c", T0.AddHours(2)));
 
         var res = await new GetAuditLogHandler(ctx).Handle(new GetAuditLogQuery(), default);
 
@@ -44,8 +44,8 @@ public class GetAuditLogQueryTests
     public async Task Isto_vreme_se_razbija_po_Id_opadajuce()
     {
         await using var ctx = await SaRedovima(
-            Red("CREATE", "Kategorija", "prvi", T0),
-            Red("CREATE", "Kategorija", "drugi", T0));
+            Red("CREATE", "Uredjaj", "prvi", T0),
+            Red("CREATE", "Uredjaj", "drugi", T0));
 
         var res = await new GetAuditLogHandler(ctx).Handle(new GetAuditLogQuery(), default);
 
@@ -69,12 +69,12 @@ public class GetAuditLogQueryTests
     public async Task Filter_entitet_i_akcija_su_tacno_poklapanje()
     {
         await using var ctx = await SaRedovima(
-            Red("CREATE", "Kategorija", "a", T0.AddHours(1)),
-            Red("UPDATE", "Kategorija", "b", T0.AddHours(2)),
+            Red("CREATE", "Uredjaj", "a", T0.AddHours(1)),
+            Red("UPDATE", "Uredjaj", "b", T0.AddHours(2)),
             Red("LOGIN",  "Auth",       "c", T0.AddHours(3)));
         var sut = new GetAuditLogHandler(ctx);
 
-        (await sut.Handle(new GetAuditLogQuery(Entitet: "Kategorija"), default)).Ukupno.Should().Be(2);
+        (await sut.Handle(new GetAuditLogQuery(Entitet: "Uredjaj"), default)).Ukupno.Should().Be(2);
         (await sut.Handle(new GetAuditLogQuery(Akcija: "LOGIN"), default)).Stavke.Single().Entitet.Should().Be("Auth");
     }
 
@@ -82,10 +82,10 @@ public class GetAuditLogQueryTests
     public async Task Filter_od_do_je_inkluzivan_i_normalizuje_Unspecified_na_UTC()
     {
         await using var ctx = await SaRedovima(
-            Red("CREATE", "Kategorija", "a", T0),
-            Red("CREATE", "Kategorija", "b", T0.AddDays(1)),
-            Red("CREATE", "Kategorija", "c", T0.AddDays(2)),
-            Red("CREATE", "Kategorija", "d", T0.AddDays(3)));
+            Red("CREATE", "Uredjaj", "a", T0),
+            Red("CREATE", "Uredjaj", "b", T0.AddDays(1)),
+            Red("CREATE", "Uredjaj", "c", T0.AddDays(2)),
+            Red("CREATE", "Uredjaj", "d", T0.AddDays(3)));
 
         // Zone-less query string ("?od=2026-07-21T00:00:00") stiže kao Kind=Unspecified.
         var od  = new DateTime(2026, 7, 21, 0, 0, 0, DateTimeKind.Unspecified);
@@ -99,7 +99,7 @@ public class GetAuditLogQueryTests
     [Fact]
     public async Task Paginacija_vraca_stranicu_ukupno_i_normalizovanu_velicinu()
     {
-        var rows = Enumerable.Range(0, 25).Select(i => Red("CREATE", "Kategorija", $"k{i:D2}", T0.AddMinutes(i))).ToArray();
+        var rows = Enumerable.Range(0, 25).Select(i => Red("CREATE", "Uredjaj", $"k{i:D2}", T0.AddMinutes(i))).ToArray();
         await using var ctx = await SaRedovima(rows);
         var sut = new GetAuditLogHandler(ctx);
 
@@ -120,15 +120,15 @@ public class GetAuditLogQueryTests
     public async Task Mapira_srpske_labele_i_sirovi_json()
     {
         await using var ctx = await SaRedovima(
-            new AuditLog { Action = "UPDATE", Entity = "Kategorija", UserName = "a", CreatedAt = T0.AddHours(2),
+            new AuditLog { Action = "UPDATE", Entity = "Uredjaj", UserName = "a", CreatedAt = T0.AddHours(2),
                            OldValues = "{\"Naziv\":\"stari\"}", NewValues = "{\"Naziv\":\"novi\"}" },
             Red("LOGIN", "Auth",   "b", T0.AddHours(1)),
             Red("START", "Sistem", "system", T0));
 
         var res = await new GetAuditLogHandler(ctx).Handle(new GetAuditLogQuery(), default);
 
-        var kat = res.Stavke.Single(s => s.Entitet == "Kategorija");
-        kat.EntitetLabela.Should().Be("Kategorija");
+        var kat = res.Stavke.Single(s => s.Entitet == "Uredjaj");
+        kat.EntitetLabela.Should().Be("Uređaj");
         kat.StareVrednosti.Should().Be("{\"Naziv\":\"stari\"}");
         kat.NoveVrednosti.Should().Be("{\"Naziv\":\"novi\"}");
         res.Stavke.Single(s => s.Entitet == "Auth").EntitetLabela.Should().Be("Prijava");
@@ -139,12 +139,12 @@ public class GetAuditLogQueryTests
     public void EntitetLabele_pokriva_sve_auditable_entitete_i_fallback()
     {
         EntitetLabele.Za("ApplicationUser").Should().Be("Korisnik");
-        EntitetLabele.Za("Kategorija").Should().Be("Kategorija");
+        EntitetLabele.Za("Uredjaj").Should().Be("Uređaj");
         EntitetLabele.Za("Auth").Should().Be("Prijava");
         EntitetLabele.Za("Sistem").Should().Be("Sistem");
         EntitetLabele.Za("NestoNepoznato").Should().Be("NestoNepoznato");
 
         EntitetLabele.Sve().Should().Contain(e => e.Entitet == "ApplicationUser" && e.Labela == "Korisnik")
-            .And.HaveCount(4);
+            .And.HaveCount(9);
     }
 }

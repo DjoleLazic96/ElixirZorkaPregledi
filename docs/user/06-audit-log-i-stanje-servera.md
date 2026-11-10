@@ -17,7 +17,7 @@ Levi meni → **Audit log**. Svaki red je jedan događaj: **Vreme**, **Korisnik*
 
 | Akcija | Značenje |
 |---|---|
-| Kreiranje | nov zapis (npr. nova kategorija, nov korisnik) |
+| Kreiranje | nov zapis (npr. nov uređaj, nov korisnik) |
 | Izmena | promena postojećeg zapisa (i deaktivacija/aktivacija) |
 | Brisanje | fizičko brisanje (retko) |
 | Prijava | uspešna prijava korisnika |
@@ -39,7 +39,7 @@ Kliknite na red. Za **Izmena** vidite samo promenjena polja: stara vrednost prec
 
 ## 6.4 Tipični scenariji
 
-- **Ko je promenio kategoriju?** Entitet = Kategorija, pronađite red sa odgovarajućim **ID**, kliknite.
+- **Ko je promenio uređaj?** Entitet = Uređaj, pronađite red sa odgovarajućim **ID**, kliknite.
 - **Da li je neko pokušavao da uđe na tuđi nalog?** Akcija = Neuspešna prijava; pogledajte **Korisnik** i **IP**.
 - **Kad je poslednji put aplikacija ažurirana?** Akcija = Pokretanje; kliknite na red — vidi se verzija.
 
