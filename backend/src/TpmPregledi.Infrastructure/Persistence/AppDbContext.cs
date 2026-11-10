@@ -377,6 +377,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             e.ToTable("zahtev_prebacivanja");
             e.HasKey(x => x.Id);
+            e.Property(x => x.Vrsta).IsRequired().HasMaxLength(20).HasDefaultValue(VrsteZahteva.Prebacivanje);
             e.Property(x => x.PodneoId).IsRequired().HasMaxLength(64);
             e.Property(x => x.PredlozenaZamenaId).HasMaxLength(64);
             e.Property(x => x.ZamenaId).HasMaxLength(64);

@@ -215,6 +215,38 @@ public class RasporedTests
     }
 
     [Fact]
+    public async Task Raniji_pocetak_trazi_se_samo_za_PZ_a_odobrenje_pomera_PZ_na_danas()
+    {
+        var (h, ana, bora, _) = await HarnessAsync();
+        await using var __ = h;
+        h.Db.KorisnikPrava.Add(new KorisnikPravo { KorisnikId = bora, Pravo = Prava.RasporedUredjivanje });
+        await h.Db.SaveChangesAsync();
+        var danas = new FakeClock(new DateTime(2026, 11, 10, 9, 0, 0, DateTimeKind.Utc));   // utorak
+        var dp = (await Sut(h).Handle(new PotvrdiRasporedCommand([new StavkaRasporeda(Pon.AddDays(3), "DP1", ana)]), default)).Single();
+        var pz = await Sut(h).Handle(new ZakaziPzCommand(Pon.AddDays(4), "PZ1", ana, null), default);
+        var moj = new ZahteviPrebacivanjaHandler(h.Db, new FakeCurrentUser { UserId = ana }, danas);
+
+        (await FluentActions.Awaiting(() => moj.Handle(new PodnesiZahtevRanijegPocetkaCommand(dp.Id, "Zastoj ranije"), default))
+            .Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal(ZahteviPrebacivanjaHandler.PorukaRanijiSamoPz);
+        await FluentActions.Awaiting(() => new ZahteviPrebacivanjaHandler(h.Db, new FakeCurrentUser { UserId = bora }, danas)
+            .Handle(new PodnesiZahtevRanijegPocetkaCommand(pz.Id, "x"), default)).Should().ThrowAsync<ForbiddenException>();
+
+        var z = await moj.Handle(new PodnesiZahtevRanijegPocetkaCommand(pz.Id, "Zastoj počinje danas"), default);
+        z.Vrsta.Should().Be(VrsteZahteva.RanijiPocetak);
+        (await h.Db.Obavestenja.SingleAsync(o => o.KorisnikId == bora && o.Naslov.StartsWith("Zahtev za raniji"))).Tekst.Should().Contain("Zastoj počinje danas");
+        await FluentActions.Awaiting(() => moj.Handle(new PodnesiZahtevRanijegPocetkaCommand(pz.Id, "opet"), default))
+            .Should().ThrowAsync<BusinessRuleException>();
+
+        var odluka = await new ZahteviPrebacivanjaHandler(h.Db, new FakeCurrentUser { UserId = bora }, danas)
+            .Handle(new OdluciOPrebacivanjuCommand(z.Id, true, null), default);
+        odluka.Status.Should().Be("odobreno");
+        var p = await h.Db.Pregledi.AsNoTracking().SingleAsync(x => x.Id == pz.Id);
+        (p.PlaniraniDatum, p.PrvobitniDatum, p.DodeljenId).Should().Be((Pon.AddDays(1), Pon.AddDays(1), ana));
+        (await h.Db.PregledDogadjaji.CountAsync(x => x.PregledId == pz.Id && x.Vrsta == "raniji_pocetak")).Should().Be(1);
+        (await h.Db.Obavestenja.SingleAsync(o => o.KorisnikId == ana && o.Naslov == "Raniji početak odobren")).Link.Should().Be($"/pregled/{pz.Id}/popuni");
+    }
+
+    [Fact]
     public void Podesavanja_imaju_DP_na_dan_PZ_iskljuceno_podrazumevano()
         => PodesavanjaDto.Podrazumevana.DpNaDanPz.Should().BeFalse();
 }

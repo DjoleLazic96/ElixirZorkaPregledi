@@ -103,7 +103,7 @@ public class AnalitikaTests
         var p = new Pregled { Broj = broj, Tip = "DP1", PlaniraniDatum = planirani, PrvobitniDatum = prvobitni, DodeljenId = o.Ana };
         o.H.Db.Pregledi.Add(p);
         await o.H.Db.SaveChangesAsync();
-        var sut = new PopunjavanjeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana }, new FakeClock(), o.Brojac);
+        var sut = new PopunjavanjeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana }, new FakeClock(FakeClock.PosleRasporeda), o.Brojac);
         var jo = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         var sve = new[] { ("zapocni", (object)new { }) }.Concat(ops).Append(("predaja", new { }));
         var r = await sut.Handle(new SinhronizacijaCommand(null, null, sve.Select(x => new OperacijaInput(Guid.NewGuid(), x.Item1, p.Id,

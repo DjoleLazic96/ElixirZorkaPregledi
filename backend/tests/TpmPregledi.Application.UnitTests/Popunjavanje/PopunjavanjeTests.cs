@@ -62,7 +62,7 @@ public class PopunjavanjeTests
         ];
     }
 
-    private static PopunjavanjeHandler Sut(Okruzenje o, string korisnik) => new(o.H.Db, new FakeCurrentUser { UserId = korisnik }, new FakeClock(), new FakeBrojac());
+    private static PopunjavanjeHandler Sut(Okruzenje o, string korisnik) => new(o.H.Db, new FakeCurrentUser { UserId = korisnik }, new FakeClock(FakeClock.PosleRasporeda), new FakeBrojac());
 
     private static OperacijaInput Op(Okruzenje o, string vrsta, object podaci, int minut, Guid? id = null) =>
         new(id ?? Guid.NewGuid(), vrsta, o.PregledId, T0.AddMinutes(minut), JsonSerializer.SerializeToElement(podaci, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
@@ -168,6 +168,20 @@ public class PopunjavanjeTests
     }
 
     [Fact]
+    public async Task Pregled_se_ne_zapocinje_pre_planiranog_dana_ni_sa_ekrana_ni_sa_telefona()
+    {
+        var o = await PripremiAsync();
+        await using var _ = o.H;
+        var dan_ranije = new PopunjavanjeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana }, new FakeClock(new DateTime(2026, 11, 8, 12, 0, 0, DateTimeKind.Utc)), new FakeBrojac());
+
+        (await FluentActions.Awaiting(() => dan_ranije.Handle(new ZapocniPregledCommand(o.PregledId), default))
+            .Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal("Pregled može da se započne od 09.11.2026.");
+        var r = await dan_ranije.Handle(new SinhronizacijaCommand(null, null, [Op(o, "zapocni", new { }, 0)]), default);
+        r.Odbijene.Single().Razlog.Should().Be("Pregled može da se započne od 09.11.2026.");
+        (await o.H.Db.Pregledi.AsNoTracking().SingleAsync()).Status.Should().Be(StatusPregleda.Planiran);
+    }
+
+    [Fact]
     public async Task PZ_sa_dva_inzenjera_svako_upisuje_samo_u_svoje_sekcije()
     {
         var o = await PripremiAsync();
@@ -237,7 +251,7 @@ public class RadBezInternetaTests
     {
         var (h, ana, _, id) = await PripremiAsync();
         await using var _ = h;
-        var sut = new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana }, new FakeClock(), new FakeBrojac());
+        var sut = new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana }, new FakeClock(FakeClock.PosleRasporeda), new FakeBrojac());
 
         var paket = await sut.Handle(new GetMojPaketQuery(), default);
         var p = paket.Pregledi.Single();
@@ -265,7 +279,7 @@ public class RadBezInternetaTests
         p.DodeljenId = bora;
         await h.Db.SaveChangesAsync();
 
-        var r = await new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana }, new FakeClock(), new FakeBrojac())
+        var r = await new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana }, new FakeClock(FakeClock.PosleRasporeda), new FakeBrojac())
             .Handle(new SinhronizacijaCommand("telefon-1", null, [Op(id, "zapocni", new { }, 0)]), default);
 
         r.Odbijene.Should().ContainSingle();

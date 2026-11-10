@@ -107,13 +107,14 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 | POST | `/odsustva/{id}/odluka` `{ odobreno, razlog?, prebacivanja[] }` | odsustva.odobravanje | |
 | GET | `/odsustva/{korisnikId}/pregledi?od&do` | odsustva.odobravanje | planirani pregledi u periodu + predlog zamene |
 | GET · POST | `/zahtevi-prebacivanja?status` · `/zahtevi-prebacivanja` `{ pregledId, razlog, predlozenaZamenaId? }` | RequireKorisnik · pregledi.popunjavanje | svoj planiran pregled; 403 tuđi, 422 započet |
-| POST | `/zahtevi-prebacivanja/{id}/odluka` `{ odobreno, zamenaId }` | raspored.uredjivanje | kod PZ-a sa dva inženjera prebacuje se samo deo podnosioca |
+| POST | `/zahtevi-prebacivanja/raniji-pocetak` `{ pregledId, razlog }` | pregledi.popunjavanje | samo svoj planiran PZ posle današnjeg dana; 422 za DP (R3.21) |
+| POST | `/zahtevi-prebacivanja/{id}/odluka` `{ odobreno, zamenaId }` | raspored.uredjivanje | kod PZ-a sa dva inženjera prebacuje se samo deo podnosioca; `raniji_pocetak` bez zamene — odobren PZ prelazi na danas |
 
 ### Popunjavanje (faza 04, pravo `pregledi.popunjavanje`)
 | Metod | Ruta | Svrha |
 |---|---|---|
 | GET | `/moj-paket` | `{ pregledi[], generisanoAt }` — dodeljeni za danas + 7 dana i započeti; `ETag`, `If-None-Match` → 304 |
-| POST | `/pregledi/{id}/zapocni` | status `u_radu`, vreme početka, važeća verzija šablona; samo dodeljeni ili učesnik (403) |
+| POST | `/pregledi/{id}/zapocni` | status `u_radu`, vreme početka, važeća verzija šablona; samo dodeljeni ili učesnik (403); najranije na planirani dan — ranije 422 „Pregled može da se započne od …“ (važi i za `zapocni` u sinhronizaciji, R3.21) |
 | GET | `/pregledi/{id}/popunjavanje` | sekcije (`moja`, `radi`) → uređaji (`vanFunkcije`, `prosliPutVanFunkcije`) → stavke (polja, odgovor, ID-jevi slika) |
 | POST | `/sinhronizacija` `{ uredjajKlijenta, klijentSada, operacije[{opId, vrsta, pregledId, klijentAt, podaci}] }` | `{ prihvacene[], odbijene[{opId, razlog}], serverSada }`; vrste `akcija` (`stavkaId`, `vrsta`, `hitnost`, `opis`), `akcija_odgovor` (`akcijaId`, `uradjeno`), `zapocni` (`verzijaId`; vreme početka = `klijentAt`, vezuje `uredjajKlijenta`), `odgovor` (`stavkaId`, `vrednost`, `napomena`, `polja`), `van_funkcije` (`uredjajId`, `vanFunkcije`), `sve_ispravno` (`sekcija`), `predaja`; ponovljen `opId` = već primenjeno |
 | POST | `/fotografije` multipart (`fajl`, `klijentId`, `pregledId`, `stavkaId`, `izvor`) | ≤ 3 MB (400 „Slika je prevelika.“), JPEG/PNG/WebP, najviše 5 po stavci (422) |

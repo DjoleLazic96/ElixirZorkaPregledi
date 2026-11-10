@@ -8,6 +8,11 @@ Na telefonu je meni na dnu ekrana (**Kalendar**, **Moja odsustva**, **Šabloni**
 pregled → **Popuni pregled** → **Započni pregled**. Datum i vreme početka upisuju se sami i ne mogu da se menjaju.
 Ako ste pregled već počeli, aplikacija pita **Nastavi gde si stao** (skok na prvu nepopunjenu stavku) ili **Kreni od početka**.
 
+Pregled se započinje najranije na dan za koji je planiran; ranije piše **Može da se započne od …**.
+- **DP** se radi samo na svoj dan. Ako tog dana niste tu, zatražite prebacivanje (poglavlje 4.5).
+- **PZ**: ako zastoj počinje ranije, kliknite **Zatraži raniji početak** i upišite razlog. Kad Supervizor ili Direktor odobri,
+  PZ se pomera na danas, dobijate obaveštenje i možete odmah da počnete.
+
 ## 2.2 Odgovori
 
 Gore su sekcije (npr. **10 3/55** = popunjeno 3 od 55). Uz svaku aktivnost su dva dugmeta (npr. **Okreće** / **Ne okreće**).

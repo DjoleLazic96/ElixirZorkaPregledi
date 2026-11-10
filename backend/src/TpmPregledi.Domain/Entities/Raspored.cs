@@ -203,12 +203,15 @@ public class PregledDogadjaj
     public DateTime At { get; set; }
 }
 
-/// <summary>Zahtev inženjera da se pregled prebaci na drugog (R3.11, R3.12).</summary>
+/// <summary>Zahtev inženjera: prebacivanje pregleda na drugog (R3.11, R3.12) ili raniji početak PZ-a (odluka 2026-11-10).</summary>
 [Auditable]
 public class ZahtevPrebacivanja
 {
     /// <summary>PK.</summary>
     public int Id { get; set; }
+
+    /// <summary><see cref="VrsteZahteva.Prebacivanje"/> ili <see cref="VrsteZahteva.RanijiPocetak"/>.</summary>
+    public string Vrsta { get; set; } = VrsteZahteva.Prebacivanje;
 
     /// <summary>Pregled.</summary>
     public int PregledId { get; set; }
@@ -236,4 +239,14 @@ public class ZahtevPrebacivanja
 
     /// <summary>Kada je odlučeno (UTC).</summary>
     public DateTime? OdlucenoAt { get; set; }
+}
+
+/// <summary>Vrste zahteva inženjera nad planiranim pregledom.</summary>
+public static class VrsteZahteva
+{
+    /// <summary>Pregled prelazi na drugog inženjera.</summary>
+    public const string Prebacivanje = "prebacivanje";
+
+    /// <summary>PZ se pomera na raniji dan (danas), da bi inženjer mogao da ga započne.</summary>
+    public const string RanijiPocetak = "raniji_pocetak";
 }

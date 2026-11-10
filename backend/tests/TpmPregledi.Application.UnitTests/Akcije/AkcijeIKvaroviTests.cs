@@ -46,13 +46,13 @@ public class AkcijeIKvaroviTests
 
     private static async Task<SinhronizacijaRezultat> PosaljiAsync(Okr o, int pregledId, params (string Vrsta, object Podaci)[] ops)
     {
-        var sut = new PopunjavanjeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana }, new FakeClock(), o.Brojac);
+        var sut = new PopunjavanjeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana }, new FakeClock(FakeClock.PosleRasporeda), o.Brojac);
         var jo = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         return await sut.Handle(new SinhronizacijaCommand(null, null,
             ops.Select(x => new OperacijaInput(Guid.NewGuid(), x.Vrsta, pregledId, new DateTime(2026, 11, 9, 8, 0, 0, DateTimeKind.Utc), JsonSerializer.SerializeToElement(x.Podaci, jo))).ToList()), default);
     }
 
-    private static AkcijeIKvaroviHandler Ekran(Okr o) => new(o.H.Db, new FakeCurrentUser { UserId = o.Ana, Roles = [Roles.Supervizor] }, new FakeClock());
+    private static AkcijeIKvaroviHandler Ekran(Okr o) => new(o.H.Db, new FakeCurrentUser { UserId = o.Ana, Roles = [Roles.Supervizor] }, new FakeClock(FakeClock.PosleRasporeda.AddHours(1)));
 
     [Fact]
     public void Rok_iz_hitnosti()
@@ -87,7 +87,7 @@ public class AkcijeIKvaroviTests
         // Sledeći pregled: uređaj nosi otvorenu akciju za pop-up.
         var p2 = await NoviPregledAsync(o, "DP1-2026-0002", new DateOnly(2026, 11, 11));
         await PosaljiAsync(o, p2, ("zapocni", new { }));
-        var dto = await new PopunjavanjeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana }, new FakeClock(), o.Brojac).Handle(new GetPopunjavanjeQuery(p2), default);
+        var dto = await new PopunjavanjeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana }, new FakeClock(FakeClock.PosleRasporeda), o.Brojac).Handle(new GetPopunjavanjeQuery(p2), default);
         dto.Sekcije[0].Uredjaji[0].OtvoreneAkcije.Single().Broj.Should().Be("A-2026-0001");
 
         r = await PosaljiAsync(o, p2,

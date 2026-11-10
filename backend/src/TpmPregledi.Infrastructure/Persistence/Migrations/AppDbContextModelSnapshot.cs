@@ -1974,6 +1974,14 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("status");
 
+                    b.Property<string>("Vrsta")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("prebacivanje")
+                        .HasColumnName("vrsta");
+
                     b.Property<string>("ZamenaId")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
