@@ -29,3 +29,18 @@ export function stavkeDana(r: RasporedDto | undefined, dan: string) {
   const odsutni = (r?.odsustva ?? []).filter((o) => o.od <= dan && o.do >= dan);
   return { pregledi, preneti, neradni, odsutni };
 }
+
+/** Ivica pregleda u kalendaru: crvena kad je inženjer odsutan (zamerka 3), žuta isprekidana dok zahtev čeka odluku (zamerka 10). */
+export function ivicaPregleda(p: Pick<PregledKalendarDto, 'inzenjerOdsutan' | 'zahtevNaCekanju'>): string {
+  if (p.inzenjerOdsutan) return 'border-2 border-red-500';
+  if (p.zahtevNaCekanju) return 'border-2 border-dashed border-amber-500';
+  return '';
+}
+
+/** Kratak tekst oznake ispod pregleda. */
+export function oznakaPregleda(p: Pick<PregledKalendarDto, 'inzenjerOdsutan' | 'zahtevNaCekanju'>): { tekst: string; boja: string } | null {
+  if (p.inzenjerOdsutan) return { tekst: 'inženjer odsutan', boja: 'text-red-700' };
+  if (p.zahtevNaCekanju === 'raniji_pocetak') return { tekst: 'čeka raniji početak', boja: 'text-amber-800' };
+  if (p.zahtevNaCekanju) return { tekst: 'čeka prebacivanje', boja: 'text-amber-800' };
+  return null;
+}

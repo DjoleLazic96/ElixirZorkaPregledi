@@ -24,7 +24,7 @@ import {
   type OdsustvoDto, type PredlogStavka, type PregledKalendarDto, type ZahtevPrebacivanjaDto,
 } from './hooks';
 import { PregledKartica } from './KalendarPage';
-import { bojaPregleda, stavkeDana } from './kalendar';
+import { bojaPregleda, ivicaPregleda, oznakaPregleda, stavkeDana } from './kalendar';
 
 /**
  * „Raspored“ (Supervizor, Direktor): nedelja, predlog i potvrda DP-a (R3.10), zakazivanje PZ-a (R3.7, R3.8),
@@ -89,9 +89,10 @@ export function RasporedPage() {
                     <div className="mt-1 space-y-1">
                       {s.pregledi.map((p) => (
                         <button key={p.id} type="button" onClick={() => setIzabran(p)}
-                          className={cn('block min-h-10 w-full rounded border px-2 py-1 text-left text-xs', bojaPregleda(p, danas))}>
+                          className={cn('block min-h-11 w-full rounded border px-2 py-1 text-left text-xs md:min-h-10', bojaPregleda(p, danas), ivicaPregleda(p))}>
                           <span className="block whitespace-nowrap font-semibold">{p.broj}</span>
                           <span className="block truncate">{p.dodeljen}</span>
+                          {oznakaPregleda(p) && <span className={cn('block truncate', oznakaPregleda(p)!.boja)}>{oznakaPregleda(p)!.tekst}</span>}
                         </button>
                       ))}
                       {s.preneti.map((p) => (
@@ -368,7 +369,6 @@ function IzmenaOdsustva({ odsustvo, onClose }: { odsustvo: OdsustvoDto; onClose:
         <FormField label="Od" htmlFor="izo-od"><DatePicker id="izo-od" value={od} onChange={setOd} clearable={false} /></FormField>
         <FormField label="Do" htmlFor="izo-do"><DatePicker id="izo-do" value={doDatuma} onChange={setDo} min={od} clearable={false} /></FormField>
       </div>
-      <p className="mt-3 text-xs text-gray-500">Prebačeni pregledi ostaju zamenama; vratite ih u rasporedu ako treba.</p>
       {greska && <p role="alert" className="mt-3 text-sm text-red-600">{greska}</p>}
       <div className="flex justify-end gap-2 pt-4">
         <Button variant="ghost" onClick={onClose}>Odustani</Button>
@@ -398,7 +398,6 @@ function OtkazOdsustva({ odsustvo, onClose }: { odsustvo: OdsustvoDto; onClose: 
       <p className="text-sm text-gray-700">
         {odsustvo.ime}, {formatirajDatum(odsustvo.od)} – {formatirajDatum(odsustvo.do)}. Inženjer dobija obaveštenje, a odsustvo ostaje zapisano kao otkazano.
       </p>
-      <p className="mt-2 text-xs text-gray-500">Prebačeni pregledi ostaju zamenama; vratite ih u rasporedu ako treba.</p>
       {greska && <p role="alert" className="mt-3 text-sm text-red-600">{greska}</p>}
       <div className="flex justify-end gap-2 pt-4">
         <Button variant="ghost" onClick={onClose}>Odustani</Button>

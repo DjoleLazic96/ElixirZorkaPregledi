@@ -93,7 +93,7 @@ export interface IspunjenjeRedDto {
 
 export interface IspunjenjeDto { od: string; do: string; ukupno: IspunjenjeRedDto; poMesecu: IspunjenjeRedDto[]; poInzenjeru: IspunjenjeRedDto[] }
 
-export interface PregledKratkoDto { id: number; broj: string; tip: string; datum: string; status: string; inzenjer: string; overio: string | null; moj: boolean }
+export interface PregledKratkoDto { id: number; broj: string; tip: string; datum: string; status: string; inzenjer: string; overio: string | null; moj: boolean; inzenjerOdsutan?: boolean; zahtevNaCekanju?: string | null }
 export interface OdlukaDto { vrsta: string; opis: string; link: string; od: string | null; rokIstekao: boolean }
 export interface VanFunkcijeDto { uredjajId: number; uredjaj: string; od: string; dana: number }
 

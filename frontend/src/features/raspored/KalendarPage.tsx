@@ -1,5 +1,5 @@
 import { Fragment, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '../../app/providers/ToastProvider';
 import { Button } from '../../components/ui/Button';
@@ -22,7 +22,7 @@ import { useSablonVerzija } from '../sabloni/hooks';
 import {
   useInzenjeri, useIzmeniDodelu, usePostaviUcesnika, usePodnesiPrebacivanje, useRaspored, type PregledKalendarDto, type RasporedDto,
 } from './hooks';
-import { STATUS_LABELA, bojaPregleda, stavkeDana } from './kalendar';
+import { STATUS_LABELA, bojaPregleda, ivicaPregleda, oznakaPregleda, stavkeDana } from './kalendar';
 
 /**
  * Kalendar (R3.22, R3.23). Računar: mesec; telefon: spisak po danima. Klik na pregled otvara karticu sa brojem,
@@ -30,12 +30,21 @@ import { STATUS_LABELA, bojaPregleda, stavkeDana } from './kalendar';
  * „Promeni u rasporedu“. Urađeni pregledi se otvaraju na svom ekranu od faze 06.
  */
 export function KalendarPage() {
-  const [mesec, setMesec] = useState(prviUMesecu(danasYmd()));
+  // „Zatraži prebacivanje“ sa Početne: ?pregled=ID&datum=YYYY-MM-DD otvara mesec tog pregleda i njegovu karticu (zamerka 10).
+  const [params, setParams] = useSearchParams();
+  const trazeni = Number(params.get('pregled')) || null;
+  const [mesec, setMesec] = useState(prviUMesecu(params.get('datum') ?? danasYmd()));
   const od = ponedeljakNedelje(mesec);
   const doDatuma = dodajDane(ponedeljakNedelje(dodajDane(dodajMesece(mesec, 1), -1)), 6);
   const r = useRaspored(od, doDatuma);
   const [izabran, setIzabran] = useState<PregledKalendarDto | null>(null);
   const danas = danasYmd();
+  // Pregled iz adrese se prikazuje dok korisnik ne zatvori karticu; zatim se adresa čisti.
+  const prikazan = izabran ?? (trazeni ? r.data?.pregledi.find((x) => x.id === trazeni) ?? null : null);
+  const zatvori = () => {
+    setIzabran(null);
+    if (trazeni) setParams({}, { replace: true });
+  };
   const dani: string[] = [];
   for (let d = od; d <= doDatuma; d = dodajDane(d, 1)) dani.push(d);
 
@@ -84,7 +93,7 @@ export function KalendarPage() {
           </ul>
         </>
       )}
-      {izabran && <PregledKartica pregled={izabran} onClose={() => setIzabran(null)} />}
+      {prikazan && <PregledKartica pregled={prikazan} onClose={zatvori} />}
     </div>
   );
 }
@@ -134,10 +143,11 @@ function Dan({ dan, r, danas, uMesecu, onPregled, spisak }: DanProps) {
             key={p.id}
             type="button"
             onClick={() => onPregled(p)}
-            className={cn('mt-[3px] block min-h-11 w-full rounded-[5px] border px-[5px] py-0.5 text-left text-[11px] font-semibold md:min-h-0', bojaPregleda(p, danas))}
+            className={cn('mt-[3px] block min-h-11 w-full rounded-[5px] border px-[5px] py-0.5 text-left text-[11px] font-semibold md:min-h-0', bojaPregleda(p, danas), ivicaPregleda(p))}
           >
             <span className="block whitespace-nowrap font-semibold">{p.broj}</span>
             <span className="block truncate">{p.dodeljen}</span>
+            {oznakaPregleda(p) && <span className={cn('block truncate font-normal', oznakaPregleda(p)!.boja)}>{oznakaPregleda(p)!.tekst}</span>}
           </button>
         ))}
         {s.preneti.map((p) => (
@@ -176,16 +186,16 @@ export function PregledKartica({ pregled, onClose }: { pregled: PregledKalendarD
               </Fragment>
             ))}
             <dt className="text-gray-500">Status</dt>
-            <dd>{STATUS_LABELA[pregled.status]}</dd>
+            <dd>{STATUS_LABELA[pregled.status]}{oznakaPregleda(pregled) && <span className={cn('ml-2 font-semibold', oznakaPregleda(pregled)!.boja)}>· {oznakaPregleda(pregled)!.tekst}</span>}</dd>
             {pregled.napomena && (<><dt className="text-gray-500">Napomena</dt><dd className="break-words">{pregled.napomena}</dd></>)}
           </dl>
           <div className="flex flex-wrap justify-end gap-2 pt-2">
             {moj && (planiran || pregled.status === 'u_radu' || pregled.status === 'vracen_na_doradu') && imaPravo(pristup, 'pregledi.popunjavanje') && (
               <Button onClick={() => navigate(`/pregled/${pregled.id}/popuni`)}>Popuni pregled</Button>
             )}
-            {moj && planiran && imaPravo(pristup, 'pregledi.popunjavanje') && (
-              <Button variant="secondary" onClick={() => setMod('prebacivanje')}>Zatraži prebacivanje</Button>
-            )}
+            {moj && planiran && imaPravo(pristup, 'pregledi.popunjavanje') && (pregled.zahtevNaCekanju
+              ? <span className="self-center text-sm font-semibold text-amber-800">Zahtev poslat — čeka odluku</span>
+              : <Button variant="secondary" onClick={() => setMod('prebacivanje')}>Zatraži prebacivanje</Button>)}
             {imaPravo(pristup, 'raspored.uredjivanje') && (planiran || pregled.status === 'u_radu') && (
               <Button variant="secondary" onClick={() => setMod('izmena')}>Promeni u rasporedu</Button>
             )}

@@ -52,6 +52,8 @@ export interface PregledDetaljDto {
   zahteviDorade: { id: number; podneo: string; razlog: string; status: string; kreiranoAt: string }[];
   /** Drugi inženjer na PZ-u sa svojim sekcijama (R3.14). */
   ucesnici: { korisnikId: string; ime: string; sekcije: string[] }[];
+  /** Pregled u radu je vezan za uređaj na kome je započet (R10.5); Supervizor ga može otključati (zamerka 8). */
+  vezanZaUredjaj?: boolean;
 }
 
 export interface PreglediFilteri {

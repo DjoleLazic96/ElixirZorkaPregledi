@@ -15,7 +15,7 @@ function ZasticenaSlika({ url }: { url: string }) {
   const [src, setSrc] = useState<string | null>(null);
   const [ucitaj, setUcitaj] = useState(false);
   if (!ucitaj)
-    return <button type="button" className="h-11 rounded border border-gray-300 px-2 text-xs text-primary-700" onClick={() => {
+    return <button type="button" className="h-11 min-w-11 rounded border border-gray-300 px-2 text-xs text-primary-700" onClick={() => {
       setUcitaj(true);
       void import('../api/client').then(({ api }) => api.get<Blob>(url, { responseType: 'blob' })).then((r) => setSrc(URL.createObjectURL(r.data)));
     }}>Slika</button>;

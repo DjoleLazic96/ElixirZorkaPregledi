@@ -18,7 +18,9 @@ Pregled se započinje najranije na dan za koji je planiran; ranije piše **Može
 Gore su sekcije (npr. **10 3/55** = popunjeno 3 od 55). Uz svaku aktivnost su dva dugmeta (npr. **Okreće** / **Ne okreće**).
 - Uz neispravan odgovor napomena je obavezna (polje je crveno dok je prazno); uz ispravan je moguća (**Napomena**).
 - Kod nekih aktivnosti uz neispravan odgovor pojavi se dodatno polje (broj rolni koje ne okreću, temperatura ležaja, broj komada); nije obavezno.
-- **Fotografiši** ili **Iz galerije** dodaje sliku (najviše 5 po stavci); aplikacija je sama smanjuje.
+- **Fotografiši** ili **Iz galerije** dodaje sliku (najviše 5 po stavci); aplikacija je sama smanjuje. Dodate slike se vide kao sličice
+  ispod stavke: dodir otvara sliku, a **Obriši sliku** je briše (dok pregled nije predat, i bez interneta).
+- Na dnu sekcije su dugmad za prethodnu i sledeću sekciju; kad je sekcija gotova, dugme za sledeću je zeleno.
 - **Nije u funkciji** važi za ceo uređaj i samo za ovaj pregled; njegove aktivnosti se ne popunjavaju. Ako je uređaj prošli put bio
   van funkcije, piše „Prošli put: nije u funkciji“ uz dugme **I dalje nije u funkciji**.
 - **✓ Sve neoznačeno u sekciji je ispravno** označi preostale stavke sekcije kao ispravne; svaka upotreba se beleži.
@@ -38,6 +40,10 @@ slanje: N promena, M slika**, a predat pregled ima status **Predato – čeka sl
 Na ekranu pregleda piše **Poslednja sinhronizacija: HH:MM**. Odjava je moguća tek kad se sve pošalje.
 Započet pregled se nastavlja samo na telefonu na kom je započet.
 Slike pregleda se šalju pre predaje. Ako server sliku ipak ne primi, razlog piše na ekranu pregleda, a slika ostaje na telefonu.
+
+Ako server odbije promene (npr. pregled je započet na drugom uređaju), na ekranu pregleda piše crveno **Neke promene nisu sačuvane
+na serveru** sa razlogom, a pregled se vraća na stanje sa servera. Pregled se radi na uređaju na kome je započet; ako je telefon
+zamenjen, Supervizor ga na stranici pregleda otključa (**Otključaj za drugi uređaj**), pa se odbijeno unese ponovo.
 Kad isti telefon koristi više inženjera, šalju se samo promene prijavljenog; neposlato urađeno prethodnog inženjera čeka
 na telefonu dok se on ponovo ne prijavi.
 

@@ -215,6 +215,14 @@ public class PopunjavanjeTests
         var sesta = () => slike.Handle(new SacuvajFotografijuCommand(ista, o.PregledId, o.Stavke[0], "galerija", [1], "image/jpeg"), default);
         (await sesta.Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal("Najviše 5 slika po stavci.");
         (await o.H.Db.Fotografije.CountAsync()).Should().Be(5);
+
+        // Zamerka 5: brisanje slike operacijom (radi i bez interneta); ponovljeno slanje je prihvaćeno.
+        var prva = await o.H.Db.Fotografije.Select(f => f.Id).FirstAsync();
+        var r = await Sut(o, o.Ana).Handle(new SinhronizacijaCommand(null, null, [Op(o, "obrisi_sliku", new { fotografijaId = prva, stavkaId = o.Stavke[0] }, 5)]), default);
+        r.Odbijene.Should().BeEmpty();
+        (await o.H.Db.Fotografije.CountAsync()).Should().Be(4);
+        (await Sut(o, o.Ana).Handle(new SinhronizacijaCommand(null, null, [Op(o, "obrisi_sliku", new { fotografijaId = prva, stavkaId = o.Stavke[0] }, 6)]), default))
+            .Odbijene.Should().BeEmpty();
     }
 }
 
@@ -268,6 +276,16 @@ public class RadBezInternetaTests
         var drugi = await sut.Handle(new SinhronizacijaCommand("telefon-2", null,
             [Op(id, "odgovor", new { stavkaId = p.Sekcije[0].Uredjaji[0].Stavke[0].StavkaId, vrednost = 0 }, 1)]), default);
         drugi.Odbijene.Single().Razlog.Should().Be(PopunjavanjeHandler.PorukaDrugiTelefon);
+
+        // Zamerka 8: Supervizor otključava, pa drugi uređaj preuzima pregled.
+        var sup = await h.SeedUserAsync("sup", "Supervizor2026!", Roles.Supervizor);
+        var detalj = await new TpmPregledi.Application.Features.Pregledi.PreglediHandler(h.Db, new FakeCurrentUser { UserId = sup.Id, Roles = [Roles.Supervizor] }, new FakeClock())
+            .Handle(new TpmPregledi.Application.Features.Pregledi.OtkljucajUredjajCommand(id), default);
+        detalj.VezanZaUredjaj.Should().BeFalse();
+        detalj.Istorija.Select(x => x.Opis).Should().Contain("Otključan za drugi uređaj");
+        var posle = await sut.Handle(new SinhronizacijaCommand("telefon-2", null,
+            [Op(id, "odgovor", new { stavkaId = p.Sekcije[0].Uredjaji[0].Stavke[0].StavkaId, vrednost = 0 }, 2)]), default);
+        posle.Odbijene.Should().BeEmpty();
     }
 
     [Fact]

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { UputstvoDugme } from '../sabloni/UputstvoDijalog';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -18,11 +18,13 @@ import { Ucitavanje } from '../../components/ui/Spinner';
 import { FormField } from '../../components/ui/FormField';
 import { Textarea } from '../../components/ui/Textarea';
 import { porukaGreske } from '../../lib/apiError';
+import { brojSlika } from '../../lib/broj';
 import { cn } from '../../lib/cn';
 import { danasYmd, formatirajDatum, formatirajVreme } from '../../lib/datum';
-import { useZatraziRanijiPocetak } from '../raspored/hooks';
+import { useZahteviPrebacivanja, useZatraziRanijiPocetak } from '../raspored/hooks';
 import { nedostaje } from '../../offline/lokalno';
-import { useStanjeSinhronizacije } from '../../offline/sinhronizacija';
+import { lokalnaSlika, obrisiSliku, useStanjeSinhronizacije, zatvoriOdbijene } from '../../offline/sinhronizacija';
+import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthProvider';
 import { smanjiSliku } from '../../lib/slika';
 import {
@@ -96,7 +98,12 @@ export function PopunjavanjePage() {
     );
 
   if (p.status === 'predato_ceka')
-    return <PageHeader title={p.broj} description="Predato – čeka slanje. Pregled se šalje sam čim se veza vrati i do tada se ne menja." />;
+    return (
+      <div className="space-y-3">
+        <PageHeader title={p.broj} description="Predato – čeka slanje. Pregled se šalje sam čim se veza vrati i do tada se ne menja." />
+        <OdbijenePromene pregledId={p.id} razlozi={pregled.odbijene.map((o) => o.razlog)} />
+      </div>
+    );
   if (p.status !== 'u_radu' && p.status !== 'vracen_na_doradu')
     return <PageHeader title={p.broj} description="Pregled je predat; menja se samo kroz doradu." />;
 
@@ -134,11 +141,7 @@ export function PopunjavanjePage() {
       </div>
 
       <StanjeSlanja />
-      {pregled.odbijene.length > 0 && (
-        <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-          Server nije prihvatio neke promene: {[...new Set(pregled.odbijene.map((o) => o.razlog))].join(' ')}
-        </div>
-      )}
+      <OdbijenePromene pregledId={p.id} razlozi={pregled.odbijene.map((o) => o.razlog)} />
 
       {nastavak === 'pitaj' && ukupno.gotovo > 0 && ukupno.gotovo < ukupno.ukupno && (
         <Card>
@@ -181,6 +184,11 @@ export function PopunjavanjePage() {
           {sek.uredjaji.map((u) => (
             <UredjajKartica key={u.uredjajId} pregledId={p.id} uredjaj={u} moja={sek.moja} posalji={posalji} />
           ))}
+          <NavigacijaSekcija p={p} aktivna={sek.sifra} idi={(sifra) => {
+            setSekcija(sifra);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+          }} />
         </div>
       )}
 
@@ -190,6 +198,44 @@ export function PopunjavanjePage() {
           Predaj pregled ({ukupno.gotovo}/{ukupno.ukupno})
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Prethodna / sledeća sekcija na dnu sekcije (zamerka 7): na telefonu inženjer ne mora da skroluje do pilula na vrhu.
+ * Kad je sekcija gotova, „Sledeća“ je istaknuta.
+ */
+export function NavigacijaSekcija({ p, aktivna, idi }: { p: PopunjavanjeDto; aktivna: string; idi: (sifra: string) => void }) {
+  const i = p.sekcije.findIndex((x) => x.sifra === aktivna);
+  const preth = p.sekcije[i - 1];
+  const sled = p.sekcije[i + 1];
+  if (!preth && !sled) return null;
+  const n = napredak(p, aktivna);
+  const gotova = n.ukupno > 0 && n.gotovo === n.ukupno;
+  return (
+    <div className="grid grid-cols-2 gap-2 pt-1">
+      {preth ? <Button variant="ghost" onClick={() => idi(preth.sifra)}>← Sekcija {preth.sifra}</Button> : <span />}
+      {sled ? <Button variant={gotova ? 'primary' : 'secondary'} onClick={() => idi(sled.sifra)}>Sekcija {sled.sifra} →</Button> : <span />}
+    </div>
+  );
+}
+
+/** Promene koje server nije prihvatio (zamerka 8): razlog je uvek vidljiv; lokalna kopija je već vraćena na stanje sa servera. */
+function OdbijenePromene({ pregledId, razlozi }: { pregledId: number; razlozi: string[] }) {
+  if (razlozi.length === 0) return null;
+  const drugiUredjaj = razlozi.some((r) => r.includes('drugom telefonu'));
+  return (
+    <div role="alert" className="space-y-2 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+      <p className="font-semibold">Neke promene nisu sačuvane na serveru.</p>
+      <ul className="list-disc space-y-0.5 pl-5">{[...new Set(razlozi)].map((r) => <li key={r}>{r}</li>)}</ul>
+      <p>
+        Pregled je vraćen na stanje sa servera.{' '}
+        {drugiUredjaj
+          ? 'Nastavite na uređaju na kome je pregled započet, ili zamolite Supervizora da ga otključa za ovaj uređaj, pa ponovo unesite odbijeno.'
+          : 'Ispravite ono što je navedeno i pokušajte ponovo.'}
+      </p>
+      <div className="flex justify-end"><Button size="sm" variant="secondary" onClick={() => void zatvoriOdbijene(pregledId)}>U redu</Button></div>
     </div>
   );
 }
@@ -332,7 +378,11 @@ export function StavkaRed({ pregledId, stavka, moja, posalji }: { pregledId: num
           </Alatka>
           <Alatka onClick={() => setAkcijaOtvorena(true)}><Wrench size={14} aria-hidden /> Akcija</Alatka>
           <Alatka ima={stavka.fotografije.length > 0} onClick={() => kamera.current?.click()} disabled={otpremi.isPending}>
-            <Camera size={14} aria-hidden /> Fotografiši{stavka.fotografije.length > 0 && ` (${stavka.fotografije.length})`}
+            <Camera size={14} aria-hidden />
+            <span className="flex flex-col leading-tight">
+              <span>Fotografiši</span>
+              {stavka.fotografije.length > 0 && <span className="text-[11px] font-normal">{brojSlika(stavka.fotografije.length)}</span>}
+            </span>
           </Alatka>
           <Alatka onClick={() => galerija.current?.click()} disabled={otpremi.isPending}><ImagePlus size={14} aria-hidden /> Galerija</Alatka>
           <input ref={kamera} type="file" accept="image/*" capture="environment" className="hidden" aria-label="Fotografiši"
@@ -341,8 +391,65 @@ export function StavkaRed({ pregledId, stavka, moja, posalji }: { pregledId: num
             onChange={(e) => { void slika(e.target.files?.[0], 'galerija'); e.target.value = ''; }} />
         </div>
       )}
+      {stavka.fotografije.length > 0 && <SlikeStavke pregledId={pregledId} stavkaId={stavka.stavkaId} ids={stavka.fotografije} moja={moja} />}
       {akcijaOtvorena && <NovaAkcija stavka={stavka} posalji={posalji} onClose={() => setAkcijaOtvorena(false)} />}
     </li>
+  );
+}
+
+/**
+ * Sličice dodatih slika (zamerka 5). Dodir otvara sliku, a iz nje se briše (uz potvrdu) dok pregled nije predat.
+ * Neposlata slika se čita sa telefona, poslata sa servera.
+ */
+function SlikeStavke({ pregledId, stavkaId, ids, moja }: { pregledId: number; stavkaId: number; ids: number[]; moja: boolean }) {
+  const [otvorena, setOtvorena] = useState<{ id: number; src: string } | null>(null);
+  const toast = useToast();
+  function obrisi(id: number) {
+    void obrisiSliku(pregledId, stavkaId, id)
+      .then(() => { toast.success('Slika je obrisana.'); setOtvorena(null); })
+      .catch((e) => toast.error(porukaGreske(e, 'Slika nije obrisana.')));
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {ids.map((id, i) => <Slicica key={id} id={id} redni={i + 1} onOtvori={(src) => setOtvorena({ id, src })} />)}
+      {otvorena && (
+        <Modal open title="Slika" onClose={() => setOtvorena(null)}>
+          <img src={otvorena.src} alt="Slika uz stavku" className="mx-auto max-h-[60vh] rounded-lg object-contain" />
+          <div className="flex justify-end gap-2 pt-4">
+            {moja && <Button variant="danger" onClick={() => obrisi(otvorena.id)}>Obriši sliku</Button>}
+            <Button variant="ghost" onClick={() => setOtvorena(null)}>Zatvori</Button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/** Jedna sličica: neposlata (negativan ID) iz IndexedDB-a, poslata kroz API sa tokenom (img ne nosi Authorization). */
+function Slicica({ id, redni, onOtvori }: { id: number; redni: number; onOtvori: (src: string) => void }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let ziv = true;
+    let url: string | null = null;
+    const ucitaj: Promise<Blob | undefined> = id < 0
+      ? lokalnaSlika(id)
+      : api.get<Blob>(`/fotografije/${id}`, { responseType: 'blob' }).then((r) => r.data).catch(() => undefined);
+    void ucitaj.then((b) => {
+      if (b && ziv) {
+        url = URL.createObjectURL(b);
+        setSrc(url);
+      }
+    });
+    return () => {
+      ziv = false;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [id]);
+  return (
+    <button type="button" onClick={() => src && onOtvori(src)} aria-label={`Slika ${redni}`}
+      className="h-16 w-16 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 text-[11px] text-gray-500">
+      {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : 'slika'}
+    </button>
   );
 }
 
@@ -439,6 +546,8 @@ function PoljeUnos({ polje, vrednost, disabled, onChange, onBlur }: {
  */
 export function PreDatuma({ id, pz, datum }: { id: number; pz: boolean; datum: string }) {
   const zatrazi = useZatraziRanijiPocetak();
+  const zahtevi = useZahteviPrebacivanja('zahtev');
+  const poslat = (zahtevi.data ?? []).some((z) => z.pregled.id === id && z.vrsta === 'raniji_pocetak');
   const toast = useToast();
   const [otvoren, setOtvoren] = useState(false);
   const [razlog, setRazlog] = useState('');
@@ -464,7 +573,9 @@ export function PreDatuma({ id, pz, datum }: { id: number; pz: boolean; datum: s
       {pz ? (
         <>
           <p className="text-sm text-gray-600">Ako zastoj počinje ranije, zatražite raniji početak; odobrava Supervizor ili Direktor.</p>
-          <Button variant="secondary" className="w-full sm:w-auto" onClick={() => { setGreska(null); setOtvoren(true); }}>Zatraži raniji početak</Button>
+          {poslat
+            ? <p className="text-sm font-semibold text-amber-800">Zahtev poslat — čeka odluku.</p>
+            : <Button variant="secondary" className="w-full sm:w-auto" onClick={() => { setGreska(null); setOtvoren(true); }}>Zatraži raniji početak</Button>}
         </>
       ) : (
         <p className="text-sm text-gray-600">Dnevni pregled se radi na svoj dan. Ako tog dana niste tu, zatražite prebacivanje na Početnoj.</p>

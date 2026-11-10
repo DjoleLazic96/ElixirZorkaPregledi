@@ -90,7 +90,8 @@ export type Operacija =
   | { vrsta: 'sve_ispravno'; podaci: { sekcija: string } }
   | { vrsta: 'predaja'; podaci: Record<string, never> }
   | { vrsta: 'akcija'; podaci: { stavkaId: number; vrsta: string; hitnost: string; opis: string | null } }
-  | { vrsta: 'akcija_odgovor'; podaci: { akcijaId: number; uradjeno: boolean } };
+  | { vrsta: 'akcija_odgovor'; podaci: { akcijaId: number; uradjeno: boolean } }
+  | { vrsta: 'obrisi_sliku'; podaci: { fotografijaId: number; stavkaId: number } };
 
 /** Pregled iz lokalne kopije; ako ga nema, preuzima se sa servera (potrebna je veza samo prvi put). */
 export function usePopunjavanje(id: number) {

@@ -22,6 +22,10 @@ export interface PregledKalendarDto {
   dodeljen: string;
   ucesnici: UcesnikDto[];
   napomena: string | null;
+  /** Planiran pregled je ostao inženjeru koji je tog dana odsutan (zamerka 3). */
+  inzenjerOdsutan?: boolean;
+  /** Zahtev inženjera koji čeka odluku (zamerke 9 i 10). */
+  zahtevNaCekanju?: 'prebacivanje' | 'raniji_pocetak' | null;
 }
 
 export interface RasporedDto {
