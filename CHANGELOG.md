@@ -51,6 +51,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Vreme početka i predaje pregleda se ne ispisuje sa duplim datumom.
 - Aktivno vreme u Word/PDF izveštaju se zaokružuje isto kao na ekranu.
 - Datum na Početnoj: naziv meseca malim slovom („9. novembar“).
+- Početna: ispod pozdrava stoji samo datum (uklonjena napomena prepisana iz mockup-a).
 - Bez interneta odgovori, slike i predaja se odmah čuvaju na telefonu (ranije su čekali povratak veze).
 - Slike snimljene bez interneta se više ne gube kad se pregled preda: telefon prvo pošalje slike, pa tek onda predaju. Slika koju server odbije ostaje sačuvana na telefonu, i posle odjave.
 - Jedna neispravna promena sa telefona više ne zaustavlja slanje svih ostalih: odbija se samo ta promena, uz razlog.
