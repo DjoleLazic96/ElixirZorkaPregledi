@@ -15,10 +15,12 @@ import { Checkbox } from '../../components/ui/Checkbox';
 import { Input } from '../../components/ui/Input';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Ucitavanje } from '../../components/ui/Spinner';
+import { FormField } from '../../components/ui/FormField';
 import { Textarea } from '../../components/ui/Textarea';
 import { porukaGreske } from '../../lib/apiError';
 import { cn } from '../../lib/cn';
-import { formatirajDatum, formatirajVreme } from '../../lib/datum';
+import { danasYmd, formatirajDatum, formatirajVreme } from '../../lib/datum';
+import { useZatraziRanijiPocetak } from '../raspored/hooks';
 import { nedostaje } from '../../offline/lokalno';
 import { useStanjeSinhronizacije } from '../../offline/sinhronizacija';
 import { useAuth } from '../auth/AuthProvider';
@@ -78,10 +80,16 @@ export function PopunjavanjePage() {
         <PageHeader title={p.broj} description={`Planiran za ${formatirajDatum(p.planiraniDatum)}.`} />
         <Card>
           <CardBody className="space-y-3">
-            <p className="text-sm text-gray-700">Datum i vreme početka upisuju se automatski i ne mogu da se menjaju.</p>
-            <Button className="w-full sm:w-auto" onClick={() => void zapocni.mutateAsync(p.verzijaId).catch((e) => toast.error(porukaGreske(e, 'Pregled nije započet.')))} disabled={zapocni.isPending}>
-              Započni pregled
-            </Button>
+            {p.planiraniDatum > danasYmd() ? (
+              <PreDatuma id={p.id} pz={p.tip.startsWith('PZ')} datum={p.planiraniDatum} />
+            ) : (
+              <>
+                <p className="text-sm text-gray-700">Datum i vreme početka upisuju se automatski i ne mogu da se menjaju.</p>
+                <Button className="w-full sm:w-auto" onClick={() => void zapocni.mutateAsync(p.verzijaId).catch((e) => toast.error(porukaGreske(e, 'Pregled nije započet.')))} disabled={zapocni.isPending}>
+                  Započni pregled
+                </Button>
+              </>
+            )}
           </CardBody>
         </Card>
       </div>
@@ -422,5 +430,55 @@ function PoljeUnos({ polje, vrednost, disabled, onChange, onBlur }: {
       <Input type="number" inputMode="numeric" min={0} disabled={disabled} value={typeof vrednost === 'number' ? vrednost : ''}
         onChange={(e) => onChange(Number(e.target.value))} onBlur={onBlur} />
     </label>
+  );
+}
+
+/**
+ * Pregled pre planiranog dana (odluka 2026-11-10): ne može da se započne. DP se radi na svoj dan (ako inženjer tada nije tu,
+ * traži prebacivanje), a za PZ može da zatraži raniji početak — odobrava Supervizor ili Direktor i PZ se pomera na danas.
+ */
+export function PreDatuma({ id, pz, datum }: { id: number; pz: boolean; datum: string }) {
+  const zatrazi = useZatraziRanijiPocetak();
+  const toast = useToast();
+  const [otvoren, setOtvoren] = useState(false);
+  const [razlog, setRazlog] = useState('');
+  const [greska, setGreska] = useState<string | null>(null);
+
+  async function posalji() {
+    if (!razlog.trim()) {
+      setGreska('Razlog je obavezan.');
+      return;
+    }
+    try {
+      await zatrazi.mutateAsync({ pregledId: id, razlog: razlog.trim() });
+      toast.success('Zahtev je poslat. Javićemo vam kad Supervizor ili Direktor odluči.');
+      setOtvoren(false);
+    } catch (err) {
+      setGreska(porukaGreske(err, 'Zahtev nije poslat.'));
+    }
+  }
+
+  return (
+    <>
+      <p className="text-sm font-semibold text-gray-800">Pregled može da se započne od {formatirajDatum(datum)}.</p>
+      {pz ? (
+        <>
+          <p className="text-sm text-gray-600">Ako zastoj počinje ranije, zatražite raniji početak; odobrava Supervizor ili Direktor.</p>
+          <Button variant="secondary" className="w-full sm:w-auto" onClick={() => { setGreska(null); setOtvoren(true); }}>Zatraži raniji početak</Button>
+        </>
+      ) : (
+        <p className="text-sm text-gray-600">Dnevni pregled se radi na svoj dan. Ako tog dana niste tu, zatražite prebacivanje na Početnoj.</p>
+      )}
+      <Modal open={otvoren} title="Raniji početak" onClose={() => setOtvoren(false)}>
+        <FormField label="Razlog" htmlFor="raniji-razlog">
+          <Textarea id="raniji-razlog" rows={3} value={razlog} onChange={(e) => setRazlog(e.target.value)} placeholder="Npr. zastoj počinje danas" />
+        </FormField>
+        {greska && <p role="alert" className="mt-3 text-sm text-red-600">{greska}</p>}
+        <div className="flex justify-end gap-2 pt-4">
+          <Button variant="ghost" onClick={() => setOtvoren(false)}>Odustani</Button>
+          <Button onClick={() => void posalji()} disabled={zatrazi.isPending}>Pošalji zahtev</Button>
+        </div>
+      </Modal>
+    </>
   );
 }

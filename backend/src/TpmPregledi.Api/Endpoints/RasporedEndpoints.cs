@@ -47,6 +47,11 @@ public sealed record OdlukaOdsustvaInput(bool Odobreno, string? Razlog, IReadOnl
 /// <param name="PredlozenaZamenaId">Predlog zamene.</param>
 public sealed record ZahtevPrebacivanjaInput(int PregledId, string Razlog, string? PredlozenaZamenaId);
 
+/// <summary>Telo zahteva za raniji početak PZ-a.</summary>
+/// <param name="PregledId">PZ.</param>
+/// <param name="Razlog">Razlog.</param>
+public sealed record ZahtevRanijegPocetkaInput(int PregledId, string Razlog);
+
 /// <summary>Telo odluke o prebacivanju.</summary>
 /// <param name="Odobreno">Odobri ili odbij.</param>
 /// <param name="ZamenaId">Zamena.</param>
@@ -153,6 +158,9 @@ public static class RasporedEndpoints
         z.MapPost("", async ([FromBody] ZahtevPrebacivanjaInput i, IMediator m) =>
                 Results.Ok(await m.Send(new PodnesiZahtevPrebacivanjaCommand(i.PregledId, i.Razlog, i.PredlozenaZamenaId))))
             .RequireAuthorization(PravoPolitika.Za(Prava.PreglediPopunjavanje)).WithSummary("Inženjer traži prebacivanje svog pregleda");
+        z.MapPost("/raniji-pocetak", async ([FromBody] ZahtevRanijegPocetkaInput i, IMediator m) =>
+                Results.Ok(await m.Send(new PodnesiZahtevRanijegPocetkaCommand(i.PregledId, i.Razlog))))
+            .RequireAuthorization(PravoPolitika.Za(Prava.PreglediPopunjavanje)).WithSummary("Inženjer traži raniji početak svog PZ-a");
         z.MapPost("/{id:int}/odluka", async (int id, [FromBody] OdlukaPrebacivanjaInput i, IMediator m) =>
                 Results.Ok(await m.Send(new OdluciOPrebacivanjuCommand(id, i.Odobreno, i.ZamenaId))))
             .RequireAuthorization(raspored).WithSummary("Odobri (sa zamenom) ili odbij");

@@ -63,6 +63,8 @@ export interface PregledZaPrebacivanjeDto {
 
 export interface ZahtevPrebacivanjaDto {
   id: number;
+  /** `prebacivanje` (na drugog inženjera) ili `raniji_pocetak` (PZ pre zakazanog dana). */
+  vrsta: 'prebacivanje' | 'raniji_pocetak';
   pregled: PregledKalendarDto;
   podneoId: string;
   podneo: string;
@@ -217,6 +219,16 @@ export function usePodnesiPrebacivanje() {
   return useMutation({
     mutationFn: async (v: { pregledId: number; razlog: string; predlozenaZamenaId: string | null }) =>
       (await api.post<ZahtevPrebacivanjaDto>('/zahtevi-prebacivanja', v)).data,
+    onSuccess: inv,
+  });
+}
+
+/** Inženjer traži da započne svoj PZ pre zakazanog dana; odlučuju Supervizor i Direktor. */
+export function useZatraziRanijiPocetak() {
+  const inv = useInvalidiraj();
+  return useMutation({
+    mutationFn: async (v: { pregledId: number; razlog: string }) =>
+      (await api.post<ZahtevPrebacivanjaDto>('/zahtevi-prebacivanja/raniji-pocetak', v)).data,
     onSuccess: inv,
   });
 }

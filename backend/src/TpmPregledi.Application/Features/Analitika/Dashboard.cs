@@ -136,8 +136,10 @@ public sealed class DashboardHandler(IAppDbContext db, ICurrentUser currentUser,
                 odluke.AddRange((await (from z in db.ZahteviPrebacivanja.AsNoTracking()
                         join p in db.Pregledi.AsNoTracking() on z.PregledId equals p.Id
                         where z.Status == "zahtev"
-                        select new { p.Broj, p.PlaniraniDatum, z.PodneoId, z.Razlog, z.KreiranoAt }).ToListAsync(ct))
-                    .Select(z => new OdlukaDto("prebacivanje", $"Prebacivanje {z.Broj} ({z.PlaniraniDatum:dd.MM.yyyy}, {k.Ime(z.PodneoId)}): {z.Razlog}", "/raspored", z.KreiranoAt, false)));
+                        select new { p.Broj, p.PlaniraniDatum, z.Vrsta, z.PodneoId, z.Razlog, z.KreiranoAt }).ToListAsync(ct))
+                    .Select(z => new OdlukaDto("prebacivanje",
+                        $"{(z.Vrsta == VrsteZahteva.RanijiPocetak ? "Raniji početak" : "Prebacivanje")} {z.Broj} ({z.PlaniraniDatum:dd.MM.yyyy}, {k.Ime(z.PodneoId)}): {z.Razlog}",
+                        "/raspored", z.KreiranoAt, false)));
             if (prava.Contains(Prava.OdsustvaOdobravanje))
                 odluke.AddRange((await db.Odsustva.AsNoTracking().Where(o => o.Status == "zahtev").ToListAsync(ct))
                     .Select(o => new OdlukaDto("odsustvo", $"Odsustvo {k.Ime(o.KorisnikId)} {o.Od:dd.MM.yyyy}–{o.Do:dd.MM.yyyy}", "/raspored", o.KreiranoAt, false)));
@@ -162,8 +164,8 @@ public sealed class DashboardHandler(IAppDbContext db, ICurrentUser currentUser,
         rez.AddRange((await (from z in db.ZahteviPrebacivanja.AsNoTracking()
                 join p in db.Pregledi.AsNoTracking() on z.PregledId equals p.Id
                 where z.PodneoId == ja && z.Status == "zahtev"
-                select new { p.Id, p.Broj, z.KreiranoAt }).ToListAsync(ct))
-            .Select(z => new OdlukaDto("prebacivanje", $"Prebacivanje {z.Broj}", "/kalendar", z.KreiranoAt, false)));
+                select new { p.Id, p.Broj, z.Vrsta, z.KreiranoAt }).ToListAsync(ct))
+            .Select(z => new OdlukaDto("prebacivanje", $"{(z.Vrsta == VrsteZahteva.RanijiPocetak ? "Raniji početak" : "Prebacivanje")} {z.Broj}", "/kalendar", z.KreiranoAt, false)));
         rez.AddRange((await db.Odsustva.AsNoTracking().Where(o => o.KorisnikId == ja && o.Status == "zahtev").ToListAsync(ct))
             .Select(o => new OdlukaDto("odsustvo", $"Odsustvo {o.Od:dd.MM.yyyy}–{o.Do:dd.MM.yyyy}", "/moja-odsustva", o.KreiranoAt, false)));
         rez.AddRange((await (from z in db.ZahteviDorade.AsNoTracking()

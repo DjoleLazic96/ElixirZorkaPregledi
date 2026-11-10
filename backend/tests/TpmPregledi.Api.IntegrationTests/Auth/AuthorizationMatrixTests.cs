@@ -83,6 +83,7 @@ public class AuthorizationMatrixTests(CustomWebAppFactory factory)
         ("GET",  $"/api/v1/odsustva/{NemaId}/pregledi?od=2026-11-09&do=2026-11-15", Supervizor),
         ("GET",  "/api/v1/zahtevi-prebacivanja",               Korisnik),
         ("POST", "/api/v1/zahtevi-prebacivanja",               Inzenjer),
+        ("POST", "/api/v1/zahtevi-prebacivanja/raniji-pocetak", Inzenjer),
         ("POST", "/api/v1/zahtevi-prebacivanja/999999/odluka", Supervizor),
 
         ("POST", "/api/v1/pregledi/999999/zapocni",            Inzenjer),

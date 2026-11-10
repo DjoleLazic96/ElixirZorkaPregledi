@@ -6,6 +6,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- Pregled se započinje najranije na planirani dan. Za PZ inženjer može da zatraži raniji početak (uz razlog); Supervizor ili Direktor odobrava, i PZ se pomera na danas.
 - Posle prijave aplikacija otvara stranicu sa koje ste došli (npr. QR nalepnica uređaja), a ne uvek Početnu.
 - **Nova verzija šablona u aplikaciji**: nacrt (dodavanje, izbacivanje, izmena i redosled stavki), pregled razlika i objava sa datumom od kog važi; započeti pregledi se završavaju po staroj verziji.
 - **Predlozi izmena šablona** uz obavezan razlog; Direktor i Administrator ih odobravaju ili odbijaju.

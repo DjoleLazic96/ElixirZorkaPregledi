@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '../../app/providers/ToastProvider';
+import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '../../components/ui/Card';
 import { DatePicker } from '../../components/ui/DatePicker';
@@ -220,7 +221,7 @@ function ZahteviPrebacivanja() {
   const [odluka, setOdluka] = useState<ZahtevPrebacivanjaDto | null>(null);
   return (
     <Card>
-      <CardHeader><CardTitle>Zahtevi za prebacivanje</CardTitle></CardHeader>
+      <CardHeader><CardTitle>Zahtevi inženjera</CardTitle></CardHeader>
       <CardBody>
         {zahtevi.isLoading ? <Ucitavanje /> : !zahtevi.data?.length ? <EmptyState title="Nema zahteva na čekanju." /> : (
           <ul className="divide-y divide-gray-100">
@@ -228,6 +229,7 @@ function ZahteviPrebacivanja() {
               <li key={z.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                 <span className="min-w-0">
                   <span className="whitespace-nowrap font-semibold">{z.pregled.broj}</span> · {formatirajDatum(z.pregled.planiraniDatum)} · {z.podneo}
+                  {' '}<Badge tone={z.vrsta === 'raniji_pocetak' ? 'blue' : 'gray'}>{z.vrsta === 'raniji_pocetak' ? 'raniji početak' : 'prebacivanje'}</Badge>
                   <span className="block break-words text-xs text-gray-500">{z.razlog}{z.predlozenaZamena && ` · predlog: ${z.predlozenaZamena}`}</span>
                 </span>
                 <Button size="sm" variant="secondary" onClick={() => setOdluka(z)}>Odluči</Button>
@@ -248,10 +250,12 @@ function OdlukaPrebacivanja({ zahtev, onClose }: { zahtev: ZahtevPrebacivanjaDto
   const [zamena, setZamena] = useState<string | null>(zahtev.predlozenaZamenaId);
   const [greska, setGreska] = useState<string | null>(null);
 
+  const raniji = zahtev.vrsta === 'raniji_pocetak';
+
   async function posalji(odobreno: boolean) {
     try {
-      await odluci.mutateAsync({ id: zahtev.id, odobreno, zamenaId: odobreno ? zamena : null });
-      toast.success(odobreno ? 'Pregled je prebačen.' : 'Zahtev je odbijen.');
+      await odluci.mutateAsync({ id: zahtev.id, odobreno, zamenaId: odobreno && !raniji ? zamena : null });
+      toast.success(!odobreno ? 'Zahtev je odbijen.' : raniji ? 'Pregled je pomeren na danas.' : 'Pregled je prebačen.');
       onClose();
     } catch (err) {
       setGreska(porukaGreske(err, 'Odluka nije sačuvana.'));
@@ -259,16 +263,22 @@ function OdlukaPrebacivanja({ zahtev, onClose }: { zahtev: ZahtevPrebacivanjaDto
   }
 
   return (
-    <Modal open title={`Prebacivanje — ${zahtev.pregled.broj}`} onClose={onClose}>
+    <Modal open title={`${raniji ? 'Raniji početak' : 'Prebacivanje'} — ${zahtev.pregled.broj}`} onClose={onClose}>
       <p className="mb-3 break-words text-sm text-gray-600">{zahtev.podneo}: {zahtev.razlog}</p>
-      <FormField label="Zamena" htmlFor="odl-zamena">
-        <Select id="odl-zamena" value={zamena} onChange={setZamena} placeholder="Izaberite zamenu"
-          options={(inzenjeri.data ?? []).filter((i) => i.id !== zahtev.podneoId).map((i) => ({ value: i.id, label: i.ime }))} />
-      </FormField>
+      {raniji ? (
+        <p className="text-sm text-gray-700">
+          Zakazan za {formatirajDatum(zahtev.pregled.planiraniDatum)}. Ako odobrite, pregled se pomera na danas i {zahtev.podneo} može odmah da ga započne.
+        </p>
+      ) : (
+        <FormField label="Zamena" htmlFor="odl-zamena">
+          <Select id="odl-zamena" value={zamena} onChange={setZamena} placeholder="Izaberite zamenu"
+            options={(inzenjeri.data ?? []).filter((i) => i.id !== zahtev.podneoId).map((i) => ({ value: i.id, label: i.ime }))} />
+        </FormField>
+      )}
       {greska && <p role="alert" className="mt-3 text-sm text-red-600">{greska}</p>}
       <div className="flex justify-end gap-2 pt-4">
         <Button variant="ghost" onClick={() => void posalji(false)} disabled={odluci.isPending}>Odbij</Button>
-        <Button onClick={() => void posalji(true)} disabled={odluci.isPending || !zamena}>Odobri</Button>
+        <Button onClick={() => void posalji(true)} disabled={odluci.isPending || (!raniji && !zamena)}>Odobri</Button>
       </div>
     </Modal>
   );

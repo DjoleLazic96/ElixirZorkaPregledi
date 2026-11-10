@@ -9,6 +9,18 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-10 — Pregled se započinje najranije na planirani dan (odobreno)
+
+**Kontekst:** aplikacija je dozvoljavala da inženjer započne i preda pregled pre planiranog datuma (npr. DP za četvrtak u ponedeljak); Prilog A to nije uređivao.
+**Odluka:** inženjer započinje pregled najranije na planirani dan (provera na serveru, po serverskom danu). Pre toga vidi „Može da se započne od …“.
+DP se radi samo na svoj dan; ako inženjer tada nije tu, traži prebacivanje (R3.11). Za PZ inženjer može da pošalje **zahtev za raniji početak**
+(razlog obavezan); odlučuju Supervizor i Direktor (pravo `raspored.uredjivanje`), a odobren zahtev pomera PZ na današnji dan
+(planirani i prvobitni dan, jer pregled nije propušten) i inženjer odmah može da ga započne. DP planiran za taj dan ostaje kako jeste.
+**Posledice:** novo pravilo R3.21 u Prilogu A; `zahtev_prebacivanja.vrsta` (`prebacivanje` / `raniji_pocetak`), migracija `ZahtevVrsta`;
+zahtev se vidi u „Čeka moju odluku“ i na ekranu Raspored („Zahtevi inženjera“).
+**Alternative odbijene:** raniji rad DP-a uz zamenu dana ili dva DP-a istog dana — DP je provera stanja tog dana, a zamena bi pomešala redosled DP1/DP2 i analitiku.
+**Odlučio:** vlasnik projekta (2026-11-10).
+
 ## 2026-11-05 — Izgled po mockup-u (odobreno)
 
 **Kontekst:** blueprint 14 propisuje UI kit (bela bočna traka, neutralne sive); korisnici su videli i odobrili mockup `docs/mockup/index.html`.

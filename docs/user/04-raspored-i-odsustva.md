@@ -29,7 +29,11 @@ pregled završava isti inženjer sledećeg radnog dana. Raspored posle toga mož
 ## 4.5 Prebacivanje
 
 Inženjer: kalendar → svoj planiran pregled → **Zatraži prebacivanje** (razlog obavezan, predlog zamene nije). Supervizor ili
-Direktor: **Raspored** → **Zahtevi za prebacivanje** → **Odluči** → izaberite zamenu → **Odobri** ili **Odbij**. Započet pregled se ne prebacuje.
+Direktor: **Raspored** → **Zahtevi inženjera** → **Odluči** → izaberite zamenu → **Odobri** ili **Odbij**. Započet pregled se ne prebacuje.
+
+**Raniji početak PZ-a.** Inženjer može da zatraži da započne PZ pre zakazanog dana (npr. zastoj počinje ranije). Zahtev stiže u
+**Čeka moju odluku** i u **Raspored** → **Zahtevi inženjera** (oznaka „raniji početak“). **Odobri** pomera PZ na današnji dan i inženjer
+odmah može da ga započne; **Odbij** ostavlja zakazani datum. DP se ne radi ranije — on se radi na svoj dan.
 
 ## 4.6 Odsustva
 

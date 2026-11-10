@@ -24,7 +24,7 @@
 | `neradni_dan` | neradni dani i praznici | `ToTable` |
 | `odsustvo` | odsustva i zahtevi za odsustvo | `ToTable` |
 | `pregled`, `pregled_ucesnik`, `pregled_dogadjaj` | pregledi (DP/PZ), drugi inženjer na PZ-u, istorija | `ToTable` |
-| `zahtev_prebacivanja` | zahtevi za prebacivanje pregleda | `ToTable` |
+| `zahtev_prebacivanja` | zahtevi inženjera: prebacivanje pregleda i raniji početak PZ-a | `ToTable` |
 | `odgovor`, `uredjaj_van_funkcije`, `fotografija` | odgovori na stavke, „nije u funkciji“, slike uz stavke | `ToTable` |
 | `sinhronizacija_operacija` | primljene operacije sa klijenta (idempotentnost po `op_id`) | `ToTable` |
 | `sporan_unos` | operacije stigle posle prebacivanja/poništavanja (R6.8) | `ToTable` |
@@ -146,7 +146,7 @@ Ključ je par (naziv, oznaka), ne sama oznaka: DP1, DP2 i PZ1 su prepisani doslo
 ### `neradni_dan`, `odsustvo`, `zahtev_prebacivanja`
 - `neradni_dan` — `datum` unique (`ux_neradni_dan_datum`), `naziv`, `vrsta` (`drzavni`/`verski`/`fabrika`), `uneo_id`; `[Auditable]`.
 - `odsustvo` — `korisnik_id` FK, `od`, `do` (date), `vrsta` (`godisnji`/`bolovanje`/`slobodan_dan`/`sluzbeni_put`/`ostalo`), `napomena`, `status` (`zahtev`/`odobreno`/`odbijeno`), `zatrazio_id`, `odlucio_id`, `razlog_odbijanja`, `kreirano_at`, `odluceno_at`; `[Auditable]`.
-- `zahtev_prebacivanja` — `pregled_id`, `podneo_id`, `predlozena_zamena_id`, `razlog`, `status`, `zamena_id`, `odlucio_id`, vremena; `[Auditable]`.
+- `zahtev_prebacivanja` — `vrsta` (`prebacivanje` | `raniji_pocetak`, podrazumevano `prebacivanje`, migracija `ZahtevVrsta`), `pregled_id`, `podneo_id`, `predlozena_zamena_id`, `razlog`, `status`, `zamena_id`, `odlucio_id`, vremena; `[Auditable]`.
 
 ### `pregled`, `pregled_ucesnik`, `pregled_dogadjaj`
 - `pregled` — `broj` unique (`DP1-2026-0142`, iz `brojac` po godini planiranog datuma), `tip`, `sablon_verzija_id` null (vezuje se pri početku, faza 04), `planirani_datum`, `prvobitni_datum`, `status` (`planiran`/`u_radu`/`ceka_overu`/`overen`/`vracen_na_doradu`/`ponisten`), `dodeljen_id` FK, `napomena`, `kreirano_at`; `[Auditable]`. Kolone popunjavanja dodaje faza 04.

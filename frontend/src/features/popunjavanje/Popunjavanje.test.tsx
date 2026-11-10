@@ -5,7 +5,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { renderSaProviderima } from '../../test/utils';
 import { smanjeneDimenzije } from '../../lib/slika';
 import { DonjiMeni } from '../../app/layout/Sidebar';
-import { StavkaRed } from './PopunjavanjePage';
+import { api } from '../../api/client';
+import { odgovor } from '../../test/utils';
+import { PreDatuma, StavkaRed } from './PopunjavanjePage';
 import type { StavkaPopunjavanjaDto } from './hooks';
 
 vi.mock('../../api/client', () => ({ api: { get: vi.fn(), post: vi.fn() } }));
@@ -59,5 +61,27 @@ describe('mobilni prikaz i slike', () => {
     expect(smanjeneDimenzije(4000, 3000)).toEqual({ sirina: 2048, visina: 1536 });
     expect(smanjeneDimenzije(1000, 3000)).toEqual({ sirina: 683, visina: 2048 });
     expect(smanjeneDimenzije(800, 600)).toEqual({ sirina: 800, visina: 600 });
+  });
+});
+
+describe('Pregled pre planiranog dana', () => {
+  it('DP ne može da se započne ni da se traži ranije — upućuje na prebacivanje', () => {
+    renderSaProviderima(<PreDatuma id={3} pz={false} datum="2026-11-12" />);
+    expect(screen.getByText('Pregled može da se započne od 12.11.2026.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Zatraži raniji početak' })).not.toBeInTheDocument();
+    expect(screen.getByText(/zatražite prebacivanje/)).toBeInTheDocument();
+  });
+
+  it('PZ šalje zahtev za raniji početak sa obaveznim razlogom', async () => {
+    vi.mocked(api.post).mockResolvedValue(odgovor({}));
+    renderSaProviderima(<PreDatuma id={9} pz datum="2026-11-20" />);
+    await userEvent.click(screen.getByRole('button', { name: 'Zatraži raniji početak' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Pošalji zahtev' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Razlog je obavezan.');
+    expect(api.post).not.toHaveBeenCalled();
+
+    await userEvent.type(screen.getByLabelText('Razlog'), 'Zastoj počinje danas');
+    await userEvent.click(screen.getByRole('button', { name: 'Pošalji zahtev' }));
+    expect(api.post).toHaveBeenCalledWith('/zahtevi-prebacivanja/raniji-pocetak', { pregledId: 9, razlog: 'Zastoj počinje danas' });
   });
 });

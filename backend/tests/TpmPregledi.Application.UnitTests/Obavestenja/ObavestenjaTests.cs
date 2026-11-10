@@ -246,7 +246,7 @@ public class ObavestenjaTests
             var ops = new List<(string, object)> { ("zapocni", new { }), ("odgovor", new { stavkaId = stavka, vrednost = 1, napomena = "ne okreće" }) };
             if (dan == 9) ops.Add(("akcija", new { stavkaId = stavka, vrsta = "zameniti", hitnost = "hitno" }));
             ops.Add(("predaja", new { }));
-            var r = await new PopunjavanjeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana }, new FakeClock(), brojac).Handle(new SinhronizacijaCommand(null, null,
+            var r = await new PopunjavanjeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana }, new FakeClock(FakeClock.PosleRasporeda), brojac).Handle(new SinhronizacijaCommand(null, null,
                 ops.Select(x => new OperacijaInput(Guid.NewGuid(), x.Item1, p.Id, new DateTime(2026, 11, dan, 8, 0, 0, DateTimeKind.Utc), JsonSerializer.SerializeToElement(x.Item2, jo))).ToList()), default);
             r.Odbijene.Should().BeEmpty();
         }

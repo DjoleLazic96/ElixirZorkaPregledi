@@ -11,6 +11,7 @@
 - **Početna**, ekran uređaja sa istorijom i QR nalepnicom, analitika i ispunjenje plana, pretraga.
 - **Obaveštenja** u zvonu, na telefonu i mejlom.
 - **Šabloni u aplikaciji**: nacrt, objava sa datumom, predlozi izmena, istorijat i uputstva za aktivnosti.
+- **Pregled se započinje na svoj dan**; za PZ može da se zatraži raniji početak, koji odobrava Supervizor ili Direktor.
 
 ## Verzija 0.1.0
 

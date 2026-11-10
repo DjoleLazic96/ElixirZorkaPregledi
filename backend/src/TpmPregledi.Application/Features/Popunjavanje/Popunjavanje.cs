@@ -137,6 +137,18 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
     /// <summary>Poruka kad pregled nastavlja drugi telefon (R10.5).</summary>
     public const string PorukaDrugiTelefon = "Pregled je započet na drugom telefonu. Nastaviće se kad taj telefon pošalje podatke.";
 
+    /// <summary>Poruka kad se pregled započinje pre planiranog dana; <c>{0}</c> je datum.</summary>
+    public const string PorukaPreDatuma = "Pregled može da se započne od {0:dd.MM.yyyy}.";
+
+    /// <summary>
+    /// Pregled se započinje najranije na planirani dan (odluka 2026-11-10): DP je provera stanja tog dana, a PZ ranije pomera
+    /// Supervizor ili Direktor odobravanjem zahteva. Proverava se serverski dan — sat telefona napred ne otvara pregled ranije.
+    /// </summary>
+    private void ProveriDatumPocetka(Pregled p)
+    {
+        if (p.PlaniraniDatum > clock.Today) throw new BusinessRuleException(string.Format(PorukaPreDatuma, p.PlaniraniDatum));
+    }
+
     /// <inheritdoc />
     public async Task<PaketDto> Handle(GetMojPaketQuery _, CancellationToken ct)
     {
@@ -164,6 +176,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
         ProveriUcesnika(p);
         if (p.Status == StatusPregleda.Planiran)
         {
+            ProveriDatumPocetka(p);
             var verzija = await VazecaVerzijaAsync(p.Tip, ct) ?? throw new BusinessRuleException($"Šablon {p.Tip} još nije uvezen.");
             p.SablonVerzijaId = verzija;
             p.Status = StatusPregleda.URadu;
@@ -463,6 +476,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
             return;
         }
         if (p.Status != StatusPregleda.Planiran) throw new BusinessRuleException("Predat pregled se menja samo kroz doradu.");
+        ProveriDatumPocetka(p);
 
         int? verzija = null;
         if (op.Podaci.ValueKind == JsonValueKind.Object && op.Podaci.TryGetProperty("verzijaId", out var v) && v.ValueKind == JsonValueKind.Number)
