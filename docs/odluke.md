@@ -9,6 +9,16 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-10 — Izmena i otkazivanje odsustva; spisak svih odsustava (odobreno)
+
+**Kontekst:** uneto ili odobreno odsustvo nije moglo da se promeni ni otkaže, a Direktor nije imao mesto gde vidi sva odsustva.
+**Odluka:** Supervizor i Direktor (pravo `odsustva.odobravanje`) na ekranu „Raspored“ imaju karticu „Odsustva“ (tekuća i buduća; filter po inženjeru;
+„Prikaži i ranija“) sa „Izmeni“ (od–do) i „Otkaži“. Inženjer u „Moja odsustva“ povlači svoj zahtev dok o njemu nije odlučeno. Otkazano odsustvo
+dobija status `otkazano` (ne briše se) i ne računa se u rasporedu; prebačeni pregledi ostaju zamenama dok ih Supervizor ili Direktor ne vrati.
+**Posledice:** pravilo R3.25 u Prilogu A; `PUT /odsustva/{id}`, `POST /odsustva/{id}/otkazi`; inženjer dobija obaveštenje o izmeni i otkazivanju.
+**Alternative odbijene:** brisanje odsustva — gubi se trag; automatsko vraćanje prebačenih pregleda — menja raspored bez znanja supervizora.
+**Odlučio:** vlasnik projekta (2026-11-10).
+
 ## 2026-11-10 — Pregled se započinje najranije na planirani dan (odobreno)
 
 **Kontekst:** aplikacija je dozvoljavala da inženjer započne i preda pregled pre planiranog datuma (npr. DP za četvrtak u ponedeljak); Prilog A to nije uređivao.
@@ -16,7 +26,7 @@
 DP se radi samo na svoj dan; ako inženjer tada nije tu, traži prebacivanje (R3.11). Za PZ inženjer može da pošalje **zahtev za raniji početak**
 (razlog obavezan); odlučuju Supervizor i Direktor (pravo `raspored.uredjivanje`), a odobren zahtev pomera PZ na današnji dan
 (planirani i prvobitni dan, jer pregled nije propušten) i inženjer odmah može da ga započne. DP planiran za taj dan ostaje kako jeste.
-**Posledice:** novo pravilo R3.21 u Prilogu A; `zahtev_prebacivanja.vrsta` (`prebacivanje` / `raniji_pocetak`), migracija `ZahtevVrsta`;
+**Posledice:** novo pravilo R3.24 u Prilogu A; `zahtev_prebacivanja.vrsta` (`prebacivanje` / `raniji_pocetak`), migracija `ZahtevVrsta`;
 zahtev se vidi u „Čeka moju odluku“ i na ekranu Raspored („Zahtevi inženjera“).
 **Alternative odbijene:** raniji rad DP-a uz zamenu dana ili dva DP-a istog dana — DP je provera stanja tog dana, a zamena bi pomešala redosled DP1/DP2 i analitiku.
 **Odlučio:** vlasnik projekta (2026-11-10).

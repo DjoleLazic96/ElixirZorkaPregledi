@@ -145,7 +145,7 @@ Ključ je par (naziv, oznaka), ne sama oznaka: DP1, DP2 i PZ1 su prepisani doslo
 
 ### `neradni_dan`, `odsustvo`, `zahtev_prebacivanja`
 - `neradni_dan` — `datum` unique (`ux_neradni_dan_datum`), `naziv`, `vrsta` (`drzavni`/`verski`/`fabrika`), `uneo_id`; `[Auditable]`.
-- `odsustvo` — `korisnik_id` FK, `od`, `do` (date), `vrsta` (`godisnji`/`bolovanje`/`slobodan_dan`/`sluzbeni_put`/`ostalo`), `napomena`, `status` (`zahtev`/`odobreno`/`odbijeno`), `zatrazio_id`, `odlucio_id`, `razlog_odbijanja`, `kreirano_at`, `odluceno_at`; `[Auditable]`.
+- `odsustvo` — `korisnik_id` FK, `od`, `do` (date), `vrsta` (`godisnji`/`bolovanje`/`slobodan_dan`/`sluzbeni_put`/`ostalo`), `napomena`, `status` (`zahtev`/`odobreno`/`odbijeno`/`otkazano` — otkazano se ne računa u rasporedu), `zatrazio_id`, `odlucio_id`, `razlog_odbijanja`, `kreirano_at`, `odluceno_at`; `[Auditable]`.
 - `zahtev_prebacivanja` — `vrsta` (`prebacivanje` | `raniji_pocetak`, podrazumevano `prebacivanje`, migracija `ZahtevVrsta`), `pregled_id`, `podneo_id`, `predlozena_zamena_id`, `razlog`, `status`, `zamena_id`, `odlucio_id`, vremena; `[Auditable]`.
 
 ### `pregled`, `pregled_ucesnik`, `pregled_dogadjaj`
