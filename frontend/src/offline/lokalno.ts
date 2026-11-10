@@ -38,6 +38,12 @@ export function primeniLokalno(p: PopunjavanjeDto, op: Operacija, sada: string):
       for (const s of kopija.sekcije)
         for (const u of s.uredjaji) u.otvoreneAkcije = u.otvoreneAkcije.filter((a) => a.id !== op.podaci.akcijaId);
       return kopija;
+    case 'obrisi_sliku':
+      for (const s of kopija.sekcije)
+        for (const u of s.uredjaji)
+          for (const st of u.stavke)
+            if (st.stavkaId === op.podaci.stavkaId) st.fotografije = st.fotografije.filter((x) => x !== op.podaci.fotografijaId);
+      return kopija;
     case 'predaja':
       // „Predato – čeka slanje“ postoji samo na telefonu (spec §6.4); dok se ne pošalje, pregled se ne menja.
       kopija.status = 'predato_ceka';

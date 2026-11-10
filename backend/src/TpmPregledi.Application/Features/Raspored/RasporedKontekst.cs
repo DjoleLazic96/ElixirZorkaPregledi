@@ -34,6 +34,16 @@ public sealed class RasporedKontekst
     /// <summary>Odobrena odsustva.</summary>
     public IReadOnlyList<Odsustvo> Odsustva { get; private init; } = [];
 
+    /// <summary>Pregledi za koje zahtev inženjera (prebacivanje ili raniji početak) čeka odluku: pregled → vrsta zahteva.</summary>
+    public IReadOnlyDictionary<int, string> ZahteviNaCekanju { get; private init; } = new Dictionary<int, string>();
+
+    /// <summary>Nazivi vrsta odsustva za poruke.</summary>
+    public static readonly IReadOnlyDictionary<string, string> NaziviOdsustva = new Dictionary<string, string>
+    {
+        ["godisnji"] = "Godišnji odmor", ["bolovanje"] = "Bolovanje", ["slobodan_dan"] = "Slobodan dan",
+        ["sluzbeni_put"] = "Službeni put", ["ostalo"] = "Ostalo",
+    };
+
     /// <summary>Učitava kontekst.</summary>
     public static async Task<RasporedKontekst> UcitajAsync(IAppDbContext db, CancellationToken ct)
     {
@@ -53,11 +63,27 @@ public sealed class RasporedKontekst
             Inzenjeri = uRotaciji,
             Imena = korisnici.ToDictionary(k => k.Id, k => k.FullName),
             Odsustva = await db.Odsustva.AsNoTracking().Where(o => o.Status == "odobreno").ToListAsync(ct),
+            ZahteviNaCekanju = (await db.ZahteviPrebacivanja.AsNoTracking().Where(z => z.Status == "zahtev").Select(z => new { z.PregledId, z.Vrsta }).ToListAsync(ct))
+                .GroupBy(z => z.PregledId).ToDictionary(g => g.Key, g => g.First().Vrsta),
         };
     }
 
     /// <summary>Da li je inženjer tog dana na odobrenom odsustvu.</summary>
     public bool JeOdsutan(string korisnikId, DateOnly d) => Odsustva.Any(o => o.KorisnikId == korisnikId && o.Pokriva(d));
+
+    /// <summary>
+    /// Ručno izabran inženjer ne sme biti odsutan tog dana (zamerka 2, R3.18) — inače 422 sa imenom, danom i vrstom odsustva.
+    /// Predlog rasporeda odsutne već preskače; ovo pokriva ručni izbor (PZ, izmena, drugi inženjer, zamena, potvrda predloga).
+    /// </summary>
+    public void ProveriDostupnost(string? id, DateOnly d)
+    {
+        var o = id is null ? null : Odsustva.FirstOrDefault(x => x.KorisnikId == id && x.Pokriva(d));
+        if (o is not null) throw new BusinessRuleException(PorukaOdsutan(id!, d, o));
+    }
+
+    /// <summary>„Ana Anić je odsutna 10.11.2026 (Godišnji odmor). Izaberite drugog inženjera.“</summary>
+    public string PorukaOdsutan(string id, DateOnly d, Odsustvo o) =>
+        $"{Ime(id)} je odsutan {d:dd.MM.yyyy} ({NaziviOdsustva.GetValueOrDefault(o.Vrsta, o.Vrsta)}). Izaberite drugog inženjera.";
 
     /// <summary>Da li se tog dana radi DP.</summary>
     public bool JeDanZaDp(DateOnly d) => RasporedPravila.JeDanZaDp(d, Neradni, DaniPz, DpNaDanPz);

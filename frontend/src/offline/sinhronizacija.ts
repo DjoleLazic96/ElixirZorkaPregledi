@@ -25,6 +25,8 @@ export interface StavkaReda {
 
 export interface SlikaUCekanju {
   klijentId: string;
+  /** Negativan ID pod kojim se slika vidi uz stavku dok ne stigne na server (za prikaz i brisanje). */
+  lokalniId?: number;
   korisnikId?: string;
   pregledId: number;
   stavkaId: number;
@@ -131,15 +133,41 @@ export async function dodajOperaciju(pregledId: number, op: Operacija): Promise<
 export async function dodajSliku(pregledId: number, stavkaId: number, blob: Blob, izvor: 'kamera' | 'galerija'): Promise<void> {
   const korisnikId = prijavljen();
   const klijentId = noviId();
+  const lokalniId = -(Date.now() * 1000 + Math.floor(Math.random() * 1000));
   await db.transaction('rw', db.pregledi, db.slike, async () => {
-    await db.slike.add({ klijentId, korisnikId, pregledId, stavkaId, izvor, blob });
+    await db.slike.add({ klijentId, lokalniId, korisnikId, pregledId, stavkaId, izvor, blob });
     const p = await db.pregledi.get(pregledId);
     if (p) {
-      for (const s of p.sekcije) for (const u of s.uredjaji) for (const st of u.stavke) if (st.stavkaId === stavkaId) st.fotografije.push(-Date.now());
+      for (const s of p.sekcije) for (const u of s.uredjaji) for (const st of u.stavke) if (st.stavkaId === stavkaId) st.fotografije.push(lokalniId);
       await db.pregledi.put(p);
     }
   });
   void sinhronizuj();
+}
+
+/** Slika koja još čeka slanje (negativan ID uz stavku), za prikaz na telefonu. */
+export async function lokalnaSlika(lokalniId: number): Promise<Blob | undefined> {
+  return (await db.slike.filter((s) => s.lokalniId === lokalniId).first())?.blob;
+}
+
+/**
+ * Brisanje slike sa stavke (zamerka 5). Neposlata slika se samo izbaci iz reda; poslata se briše operacijom koja ide
+ * kao i ostale (radi i bez interneta, server je idempotentan).
+ */
+export async function obrisiSliku(pregledId: number, stavkaId: number, id: number): Promise<void> {
+  if (id < 0) {
+    await db.transaction('rw', db.pregledi, db.slike, async () => {
+      await db.slike.filter((s) => s.lokalniId === id).delete();
+      const p = await db.pregledi.get(pregledId);
+      if (p) {
+        for (const s of p.sekcije) for (const u of s.uredjaji) for (const st of u.stavke)
+          if (st.stavkaId === stavkaId) st.fotografije = st.fotografije.filter((x) => x !== id);
+        await db.pregledi.put(p);
+      }
+    });
+    return;
+  }
+  await dodajOperaciju(pregledId, { vrsta: 'obrisi_sliku', podaci: { fotografijaId: id, stavkaId } });
 }
 
 /** Preuzima pregled sa servera ako ga nema lokalno (npr. otvoren direktno, a nije u paketu). */
@@ -202,6 +230,7 @@ async function posaljiSlike(korisnikId: string, pregledId?: number): Promise<voi
 }
 
 async function posalji(korisnikId: string): Promise<void> {
+  const odbijenihPre = await db.odbijene.where('korisnikId').equals(korisnikId).count();
   // 1) Operacije redom, u paketima. Predaja pregleda čeka da se pošalju njegove slike — server posle predaje slike ne prima.
   for (;;) {
     const red = await db.red.orderBy('seq').filter((x) => x.korisnikId === korisnikId).limit(50).toArray();
@@ -233,7 +262,9 @@ async function posalji(korisnikId: string): Promise<void> {
   // 2) Ostale slike.
   await posaljiSlike(korisnikId);
 
-  // 3) Novi paket (ETag) i ponovna primena onoga što je u međuvremenu stalo u red.
+  // 3) Novi paket (ETag) i ponovna primena onoga što je u međuvremenu stalo u red. Ako je server nešto odbio, lokalna
+  // kopija ne sme da zadrži odbijeno (npr. „Predato – čeka slanje“ za odbijenu predaju) — paket se preuzima ceo (zamerka 8).
+  if ((await db.odbijene.where('korisnikId').equals(korisnikId).count()) > odbijenihPre) await db.meta.delete('etag');
   const etag = (await db.meta.get('etag'))?.vrednost;
   const res = await api.get<{ pregledi: PopunjavanjeDto[] }>('/moj-paket', {
     headers: etag ? { 'If-None-Match': etag } : {},
@@ -252,6 +283,11 @@ async function posalji(korisnikId: string): Promise<void> {
     });
   }
   await db.meta.put({ kljuc: 'poslednjaSinhronizacija', vrednost: new Date().toISOString() });
+}
+
+/** „U redu“ na obaveštenju o odbijenim promenama: brišu se poruke za pregled (odbijene slike ostaju — jedini primerak). */
+export async function zatvoriOdbijene(pregledId: number): Promise<void> {
+  await db.odbijene.where('pregledId').equals(pregledId).filter((x) => x.slika === undefined).delete();
 }
 
 /** Briše lokalne podatke prijavljenog korisnika (odjava) — samo kad ništa njegovo ne čeka slanje, inače bi se urađeno izgubilo. Odbijene slike ostaju (jedini primerak). */

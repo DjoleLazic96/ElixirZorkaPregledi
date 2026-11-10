@@ -118,6 +118,10 @@ export function PregledDetaljPage() {
             )}
             {moj && (p.status === 'vracen_na_doradu' || p.status === 'u_radu') && <Button onClick={() => navigate(`/pregled/${p.id}/popuni`)}>Popuni pregled</Button>}
             {raspored && <Button variant="secondary" onClick={() => setDijalog('raspored')}>Promeni u rasporedu</Button>}
+            {overa && p.vezanZaUredjaj && (
+              <Button variant="ghost" disabled={odluka.isPending}
+                onClick={() => void posalji('otkljucaj', undefined, 'Pregled je otključan; inženjer može da nastavi na drugom uređaju.')}>Otključaj za drugi uređaj</Button>
+            )}
             {raspored && p.tip.startsWith('PZ') && (
               <Button variant="secondary" onClick={() => setDijalog('ucesnik')}>{p.ucesnici.length ? 'Drugi inženjer' : 'Dodaj inženjera'}</Button>
             )}

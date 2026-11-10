@@ -286,6 +286,39 @@ public class RasporedTests
     }
 
     [Fact]
+    public async Task Odsutan_inzenjer_ne_moze_da_se_izabere_rucno_a_pregled_koji_mu_je_ostao_je_oznacen()
+    {
+        var (h, ana, bora, ceca) = await HarnessAsync();
+        await using var __ = h;
+        h.Db.Odsustva.Add(new Odsustvo { KorisnikId = bora, Od = Pon.AddDays(8), Do = Pon.AddDays(10), Vrsta = "godisnji", Status = "odobreno" });
+        await h.Db.SaveChangesAsync();
+        const string poruka = "Bora je odsutan 18.11.2026 (Godišnji odmor). Izaberite drugog inženjera.";
+
+        (await FluentActions.Awaiting(() => Sut(h).Handle(new ZakaziPzCommand(Pon.AddDays(9), "PZ1", bora, null), default))
+            .Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal(poruka);
+        (await FluentActions.Awaiting(() => Sut(h).Handle(new PotvrdiRasporedCommand([new StavkaRasporeda(Pon.AddDays(9), "DP1", bora)]), default))
+            .Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal(poruka);
+
+        var pz = await Sut(h).Handle(new ZakaziPzCommand(Pon.AddDays(9), "PZ1", ana, null), default);
+        (await FluentActions.Awaiting(() => Sut(h).Handle(new IzmeniDodeluCommand(pz.Id, bora, null), default))
+            .Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal(poruka);
+        await FluentActions.Awaiting(() => Sut(h).Handle(new PostaviUcesnikaCommand(pz.Id, bora, ["20"]), default)).Should().ThrowAsync<BusinessRuleException>();
+
+        // Pregled koji je ostao odsutnom („Ne prebacuj“) je označen, a Supervizor ga vidi u „Čeka moju odluku“.
+        h.Db.Odsustva.Add(new Odsustvo { KorisnikId = ana, Od = Pon.AddDays(9), Do = Pon.AddDays(9), Vrsta = "bolovanje", Status = "odobreno" });
+        await h.Db.SaveChangesAsync();
+        var nedelja = await Sut(h).Handle(new GetRasporedQuery(Pon.AddDays(7), Pon.AddDays(13)), default);
+        nedelja.Pregledi.Single(x => x.Id == pz.Id).InzenjerOdsutan.Should().BeTrue();
+
+        var sup = await h.SeedUserAsync("sup", "Supervizor2026!", Roles.Supervizor);
+        h.Db.KorisnikPrava.Add(new KorisnikPravo { KorisnikId = sup.Id, Pravo = Prava.RasporedUredjivanje });
+        await h.Db.SaveChangesAsync();
+        var dash = await new TpmPregledi.Application.Features.Analitika.DashboardHandler(h.Db, new FakeCurrentUser { UserId = sup.Id, Roles = [Roles.Supervizor] }, new FakeClock(new DateTime(2026, 11, 10, 9, 0, 0, DateTimeKind.Utc)))
+            .Handle(new TpmPregledi.Application.Features.Analitika.GetDashboardQuery(), default);
+        dash.CekaOdluku!.Should().Contain(o => o.Vrsta == "odsutan" && o.Opis.Contains("PZ1-2026-0001"));
+    }
+
+    [Fact]
     public void Podesavanja_imaju_DP_na_dan_PZ_iskljuceno_podrazumevano()
         => PodesavanjaDto.Podrazumevana.DpNaDanPz.Should().BeFalse();
 }

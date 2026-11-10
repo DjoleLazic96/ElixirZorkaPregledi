@@ -19,9 +19,12 @@ namespace TpmPregledi.Application.Features.Raspored;
 /// <param name="Dodeljen">Ime inženjera.</param>
 /// <param name="Ucesnici">Drugi inženjeri na PZ-u (ime i sekcije).</param>
 /// <param name="Napomena">Napomena (npr. uz promenu PZ-a).</param>
+/// <param name="InzenjerOdsutan">Planiran pregled je ostao inženjeru koji je tog dana odsutan (zamerka 3).</param>
+/// <param name="ZahtevNaCekanju">Vrsta zahteva inženjera koji čeka odluku (<c>prebacivanje</c>, <c>raniji_pocetak</c>) ili null.</param>
 public sealed record PregledKalendarDto(
     int Id, string Broj, string Tip, DateOnly PlaniraniDatum, DateOnly PrvobitniDatum, string Status,
-    string DodeljenId, string Dodeljen, IReadOnlyList<UcesnikDto> Ucesnici, string? Napomena);
+    string DodeljenId, string Dodeljen, IReadOnlyList<UcesnikDto> Ucesnici, string? Napomena,
+    bool InzenjerOdsutan = false, string? ZahtevNaCekanju = null);
 
 /// <summary>Učesnik PZ-a.</summary>
 /// <param name="KorisnikId">ID.</param>
@@ -194,6 +197,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
             if (!k.JeDanZaDp(s.Datum)) greske.Add($"{s.Datum:dd.MM.yyyy} nije dan za DP (vikend, neradni dan ili dan PZ-a).");
             if (zauzeti.Contains(s.Datum) || dani.Count(d => d == s.Datum) > 1) greske.Add($"Za {s.Datum:dd.MM.yyyy} DP je već u rasporedu.");
             if (s.InzenjerId is null || !k.Inzenjeri.Contains(s.InzenjerId)) greske.Add($"Za {s.Datum:dd.MM.yyyy} izaberite aktivnog inženjera.");
+            else if (k.Odsustva.FirstOrDefault(o => o.KorisnikId == s.InzenjerId && o.Pokriva(s.Datum)) is { } ods) greske.Add(k.PorukaOdsutan(s.InzenjerId, s.Datum, ods));
         }
         if (greske.Count > 0) throw new BusinessRuleException(greske.Distinct().ToList());
 
@@ -232,6 +236,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
     {
         var k = await RasporedKontekst.UcitajAsync(db, ct);
         k.ProveriInzenjera(req.InzenjerId);
+        k.ProveriDostupnost(req.InzenjerId, req.Datum);
         var sledeci = RasporedPravila.SledeciPz(await PoslednjiPzAsync(ct));
         var tip = req.Tip ?? sledeci;
 
@@ -286,6 +291,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
                 throw new BusinessRuleException($"Za {d:dd.MM.yyyy} DP je već u rasporedu.");
             p.PlaniraniDatum = d;
         }
+        if (p.DodeljenId != stariId || p.PlaniraniDatum != stariDatum) k.ProveriDostupnost(p.DodeljenId, p.PlaniraniDatum);
         PregledIstorija.Dodaj(db, p, "izmena_rasporeda", new { stari, novi = new { inzenjer = k.Ime(p.DodeljenId), datum = p.PlaniraniDatum } }, currentUser.UserId, clock.UtcNow);
         await ObavestiOPromeniAsync(p, stariId, stariDatum, clock.UtcNow, ct);
         await db.SaveChangesAsync(ct);
@@ -301,6 +307,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
         if (p.JeDp) throw new BusinessRuleException("Drugi inženjer se dodaje samo na PZ.");
         if (req.KorisnikId == p.DodeljenId) throw new BusinessRuleException("Inženjer je već dodeljen ovom PZ-u.");
         k.ProveriInzenjera(req.KorisnikId);
+        if (req.Sekcije.Count > 0) k.ProveriDostupnost(req.KorisnikId, p.PlaniraniDatum);
 
         var postojeci = p.Ucesnici.FirstOrDefault(u => u.KorisnikId == req.KorisnikId);
         if (req.Sekcije.Count == 0)
@@ -377,5 +384,6 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
     /// <summary>DTO za kalendar.</summary>
     public static PregledKalendarDto Dto(Pregled p, RasporedKontekst k) =>
         new(p.Id, p.Broj, p.Tip, p.PlaniraniDatum, p.PrvobitniDatum, p.Status, p.DodeljenId, k.Ime(p.DodeljenId),
-            p.Ucesnici.Select(u => new UcesnikDto(u.KorisnikId, k.Ime(u.KorisnikId), u.Sekcije)).ToList(), p.Napomena);
+            p.Ucesnici.Select(u => new UcesnikDto(u.KorisnikId, k.Ime(u.KorisnikId), u.Sekcije)).ToList(), p.Napomena,
+            p.Status == StatusPregleda.Planiran && k.JeOdsutan(p.DodeljenId, p.PlaniraniDatum), k.ZahteviNaCekanju.GetValueOrDefault(p.Id));
 }

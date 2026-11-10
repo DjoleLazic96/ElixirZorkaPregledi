@@ -250,7 +250,13 @@ public sealed class ObavestenjaHandler(IAppDbContext db, ICurrentUser currentUse
         var broj = 0;
         if (prava.Contains(Prava.Overa))
             broj += await db.Pregledi.CountAsync(p => p.Status == StatusPregleda.CekaOveru, ct) + await db.ZahteviDorade.CountAsync(z => z.Status == "zahtev", ct);
-        if (prava.Contains(Prava.RasporedUredjivanje)) broj += await db.ZahteviPrebacivanja.CountAsync(z => z.Status == "zahtev", ct);
+        if (prava.Contains(Prava.RasporedUredjivanje))
+        {
+            broj += await db.ZahteviPrebacivanja.CountAsync(z => z.Status == "zahtev", ct);
+            var danas = clock.Today;
+            broj += await db.Pregledi.CountAsync(p => p.Status == StatusPregleda.Planiran && p.PlaniraniDatum >= danas
+                && db.Odsustva.Any(o => o.Status == "odobreno" && o.KorisnikId == p.DodeljenId && o.Od <= p.PlaniraniDatum && o.Do >= p.PlaniraniDatum), ct);
+        }
         if (prava.Contains(Prava.OdsustvaOdobravanje)) broj += await db.Odsustva.CountAsync(o => o.Status == "zahtev", ct);
         if (prava.Contains(Prava.SabloniNacrt)) broj += await db.PredloziIzmena.CountAsync(p => p.Status == "zahtev", ct);
         return broj;

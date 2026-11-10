@@ -18,7 +18,7 @@ import { Plocica } from './Prikazi';
 const linkPregleda = (p: PregledKratkoDto) =>
   p.moj && ['planiran', 'u_radu', 'vracen_na_doradu'].includes(p.status) ? `/pregled/${p.id}/popuni` : `/pregledi/${p.id}`;
 
-const IKONA_ODLUKE: Record<string, string> = { overa: '✅', dorada: '↩', prebacivanje: '🔁', odsustvo: '🏖️', predlog: '🧩' };
+const IKONA_ODLUKE: Record<string, string> = { overa: '✅', dorada: '↩', prebacivanje: '🔁', odsustvo: '🏖️', predlog: '🧩', odsutan: '⚠️' };
 
 function pozdrav(): string {
   const sat = new Date().getHours();
@@ -34,8 +34,11 @@ function StavkePregleda({ pregledi, prazno, prebacivanje = false }: { pregledi: 
           naslov={`${p.tip} · ${formatirajDatum(p.datum)}`}
           opis={`Dodeljeno: ${p.inzenjer}${p.overio ? ` · overio ${p.overio}` : ''}`}
           desno={<>
+            {p.inzenjerOdsutan && <Badge tone="red">inženjer odsutan</Badge>}
             <Badge tone={tonStatusa(p.status)}>{statusLabela(p.status)}</Badge>
-            {prebacivanje && <Link to="/kalendar" className="inline-flex h-11 items-center rounded-lg border border-gray-200 bg-white px-3 text-xs font-medium text-gray-800 hover:bg-gray-100 md:h-8">Zatraži prebacivanje</Link>}
+            {prebacivanje && (p.zahtevNaCekanju
+              ? <Badge tone="amber">zahtev poslat</Badge>
+              : <Link to={`/kalendar?pregled=${p.id}&datum=${p.datum}`} className="inline-flex h-11 items-center rounded-lg border border-gray-200 bg-white px-3 text-xs font-medium text-gray-800 hover:bg-gray-100 md:h-8">Zatraži prebacivanje</Link>)}
           </>} />
       ))}
     </>

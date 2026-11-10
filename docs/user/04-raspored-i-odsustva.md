@@ -20,6 +20,10 @@ preskačući neradne dane, dan PZ-a i odsutne. Inženjera možete promeniti, pa 
 **Zakaži PZ**: datum i inženjer; PZ je unapred postavljen na sledeći po redu (PZ1 → PZ4). Izbor drugog je **Promeni PZ** (napomena
 nije obavezna), a redosled se nastavlja od zakazanog. Na dan PZ-a DP se ne radi (podešavanje), pa se DP tog dana pomera.
 
+**Odsutni inženjeri.** Inženjer koji je tog dana odsutan ne može da se izabere (poruka navodi dan i vrstu odsustva). Pregled koji je
+ostao odsutnom inženjeru ima crvenu oznaku **inženjer odsutan** i stoji u **Čeka moju odluku** dok se ne prebaci. Pregled za koji zahtev
+inženjera čeka odluku ima žutu isprekidanu ivicu (**čeka prebacivanje** / **čeka raniji početak**).
+
 **Dva inženjera na PZ-u.** Kalendar → PZ → **Dodaj inženjera**: izaberite drugog inženjera i označite njegove sekcije
 (**Označi sve sekcije**, pa skinite one koje ostaju prvom). Inženjer kome je PZ dodeljen radi sve neoznačene sekcije. Svako na svom
 telefonu vidi ceo PZ, a upisuje samo u svoje sekcije; predaje bilo ko od njih kad su sve sekcije gotove. Sekcije menjate ili drugog

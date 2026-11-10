@@ -19,7 +19,8 @@ namespace TpmPregledi.Application.Features.Analitika;
 /// <param name="Inzenjer">Kome je dodeljen.</param>
 /// <param name="Overio">Ko je overio.</param>
 /// <param name="Moj">Dodeljen meni ili sam učesnik.</param>
-public sealed record PregledKratkoDto(int Id, string Broj, string Tip, DateOnly Datum, string Status, string Inzenjer, string? Overio, bool Moj);
+public sealed record PregledKratkoDto(int Id, string Broj, string Tip, DateOnly Datum, string Status, string Inzenjer, string? Overio, bool Moj,
+    bool InzenjerOdsutan = false, string? ZahtevNaCekanju = null);
 
 /// <summary>Zahtev ili odluka (link vodi na mesto odluke).</summary>
 /// <param name="Vrsta"><c>overa</c>, <c>dorada</c>, <c>prebacivanje</c>, <c>odsustvo</c>.</param>
@@ -90,7 +91,8 @@ public sealed class DashboardHandler(IAppDbContext db, ICurrentUser currentUser,
             .Select(p => new { P = p, Moj = p.DodeljenId == ja || mojiIds.Contains(p.Id) })
             .ToListAsync(ct);
         PregledKratkoDto Dto(Pregled p, bool moj) =>
-            new(p.Id, p.Broj, p.Tip, p.PlaniraniDatum, p.Status, k.Ime(p.DodeljenId), p.OverioId is null ? null : k.Ime(p.OverioId), moj);
+            new(p.Id, p.Broj, p.Tip, p.PlaniraniDatum, p.Status, k.Ime(p.DodeljenId), p.OverioId is null ? null : k.Ime(p.OverioId), moj,
+                p.Status == StatusPregleda.Planiran && k.JeOdsutan(p.DodeljenId, p.PlaniraniDatum), k.ZahteviNaCekanju.GetValueOrDefault(p.Id));
         var svi = pregledi.Select(x => Dto(x.P, x.Moj)).ToList();
         var predatAt = pregledi.ToDictionary(x => x.P.Id, x => x.P.PredatAt);
 
@@ -132,6 +134,11 @@ public sealed class DashboardHandler(IAppDbContext db, ICurrentUser currentUser,
                         select new { p.Id, p.Broj, z.PodneoId, z.Razlog, z.KreiranoAt }).ToListAsync(ct))
                     .Select(z => new OdlukaDto("dorada", $"Zahtev za doradu {z.Broj} ({k.Ime(z.PodneoId)}): {z.Razlog}", $"/pregledi/{z.Id}", z.KreiranoAt, false)));
             }
+            if (prava.Contains(Prava.RasporedUredjivanje))
+                // Pregled ostao odsutnom inženjeru (zamerka 3): ostaje ovde dok se ne prebaci.
+                odluke.AddRange((await db.Pregledi.AsNoTracking().Where(p => p.Status == StatusPregleda.Planiran && p.PlaniraniDatum >= danas).ToListAsync(ct))
+                    .Where(p => k.JeOdsutan(p.DodeljenId, p.PlaniraniDatum))
+                    .Select(p => new OdlukaDto("odsutan", $"{p.Broj} ({p.PlaniraniDatum:dd.MM.yyyy}): {k.Ime(p.DodeljenId)} je odsutan — prebacite pregled", $"/pregledi/{p.Id}", null, true)));
             if (prava.Contains(Prava.RasporedUredjivanje))
                 odluke.AddRange((await (from z in db.ZahteviPrebacivanja.AsNoTracking()
                         join p in db.Pregledi.AsNoTracking() on z.PregledId equals p.Id

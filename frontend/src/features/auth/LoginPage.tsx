@@ -102,7 +102,6 @@ export function LoginPage() {
 
             <Checkbox
               label="Zapamti me na ovom uređaju"
-              description="Na službenom telefonu obavezno: ostajete prijavljeni i radite bez interneta."
               checked={zapamti}
               onChange={(e) => setZapamti(e.target.checked)}
             />

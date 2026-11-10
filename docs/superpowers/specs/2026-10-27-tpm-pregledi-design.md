@@ -460,6 +460,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R3.23** Klik na pregled u kalendaru: urađen otvara pregled (uz „Nazad“), planiran otvara karticu sa brojem, datumom, inženjerom i statusom; Supervizor i Direktor tu imaju „Promeni u rasporedu“. *[O]*
 - **R3.24** Pregled se započinje najranije na planirani dan; pre toga inženjer vidi „Može da se započne od …“. DP se radi samo na svoj dan (ako inženjer tada nije tu, traži prebacivanje). Za PZ inženjer može da zatraži raniji početak (razlog obavezan); Supervizor ili Direktor odobrava ili odbija, a odobren PZ se pomera na današnji dan. *[O]* (odluka 2026-11-10)
 - **R3.25** Odobreno odsustvo Supervizor ili Direktor može da izmeni (od–do, npr. raniji povratak) ili otkaže; inženjer može da povuče svoj zahtev dok o njemu nije odlučeno. Otkazano odsustvo ostaje zapisano i ne računa se u rasporedu; pregledi prebačeni zbog njega ostaju zamenama dok ih Supervizor ili Direktor ne vrati. Na ekranu „Raspored“ je spisak svih odsustava (tekuća i buduća, uz filter po inženjeru i prikaz ranijih). *[O]* (odluka 2026-11-10)
+- **R3.26** Ručno izabran inženjer (Zakaži PZ, izmena rasporeda, drugi inženjer na PZ-u, zamena pri prebacivanju, potvrda predloga) ne sme biti odsutan tog dana; aplikacija to odbija uz ime, dan i vrstu odsustva. Planiran pregled koji je ostao odsutnom inženjeru je crveno označen i stoji Supervizoru i Direktoru u „Čeka moju odluku“ dok se ne prebaci. *[O]* (2026-11-10)
 
 ### A.4 Popunjavanje pregleda
 
@@ -555,6 +556,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R10.4** Inženjer na telefonu vidi „Poslednja sinhronizacija: HH:MM“ (na početnoj strani i u pregledu), da zna da je sve stiglo na server. Kad se veza vrati, aplikacija sama šalje sve urađeno i preuzima raspored, dodeljene preglede, šablone, akcije i obaveštenja. *[O]*
 - **R10.5** Započet pregled je vezan za jedan telefon; na drugom može da se nastavi tek kad prvi pošalje podatke. Ako se šablon promeni dok je inženjer bez interneta, pregled se završava po staroj verziji. *[Z]*
 - **R10.6** Aplikacija se instalira na početni ekran telefona kroz Chrome (Android), čime rade push obaveštenja i ne gube se neposlati podaci. *[K]*
+- **R10.10** Kad server odbije promene sa telefona (npr. pregled je vezan za drugi uređaj ili predaja nije potpuna), telefon odmah prikazuje razlog i vraća pregled na stanje sa servera; Supervizor ili Direktor može da otključa pregled za drugi uređaj. Inženjer briše svoju sliku dok pregled nije predat, i bez interneta. *[O]* (2026-11-10)
 - **R10.7** Prva prijava je sa internetom; posle toga inženjer ostaje prijavljen i radi bez interneta. *[Z]*
 - **R10.8** Aplikacija je responzivna za telefon, tablet, laptop i veliki monitor: na telefonu donji meni, kartice umesto tabela, jedan uređaj u fokusu i velika dugmad; na većim ekranima bočni meni i pune tabele. *[Z]*
 - **R10.9** Osnovna pravila prikaza (važe za sve ekrane): *[O]*

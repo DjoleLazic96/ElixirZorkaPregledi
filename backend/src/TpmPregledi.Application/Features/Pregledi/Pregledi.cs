@@ -80,7 +80,7 @@ public sealed record PregledDetaljDto(
     string DodeljenId, string Inzenjer, int? VerzijaBroj, DateTime? ZapocetAt, DateTime? PredatAt, int AktivnoSekundi, int Delova,
     string? Overio, DateTime? OverenoAt, bool OverioDirektor, string? PonistenRazlog,
     IReadOnlyList<string> Upozorenja, IReadOnlyList<DetaljSekcijaDto> Sekcije, IReadOnlyList<DogadjajDto> Istorija,
-    IReadOnlyList<SporanUnosDto> SporniUnosi, IReadOnlyList<ZahtevDoradeDto> ZahteviDorade, IReadOnlyList<UcesnikDto> Ucesnici);
+    IReadOnlyList<SporanUnosDto> SporniUnosi, IReadOnlyList<ZahtevDoradeDto> ZahteviDorade, IReadOnlyList<UcesnikDto> Ucesnici, bool VezanZaUredjaj = false);
 
 // ─── Zahtevi ──────────────────────────────────────────────────────────────
 
@@ -119,6 +119,13 @@ public sealed record OdluciODoradiCommand(int Id, bool Odobreno) : IRequest<Preg
 /// <param name="Id">ID.</param>
 /// <param name="Razlog">Razlog.</param>
 public sealed record PonistiCommand(int Id, string Razlog) : IRequest<PregledDetaljDto>;
+
+/// <summary>
+/// Otključava pregled za drugi uređaj (zamerka 8): telefon je zamenjen, pokvaren ili je pregled započet u pogrešnom browseru.
+/// Sledeći uređaj koji pošalje promene preuzima pregled.
+/// </summary>
+/// <param name="Id">Pregled.</param>
+public sealed record OtkljucajUredjajCommand(int Id) : IRequest<PregledDetaljDto>;
 
 /// <summary>Odluka o spornom unosu (R6.8).</summary>
 /// <param name="PregledId">Pregled.</param>
@@ -164,6 +171,7 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
     IRequestHandler<ZatraziDoraduCommand, PregledDetaljDto>,
     IRequestHandler<OdluciODoradiCommand, PregledDetaljDto>,
     IRequestHandler<PonistiCommand, PregledDetaljDto>,
+    IRequestHandler<OtkljucajUredjajCommand, PregledDetaljDto>,
     IRequestHandler<OdluciOSpornomUnosuCommand, PregledDetaljDto>
 {
     /// <summary>Poruka kad Supervizor dira overu Direktora (R6.5).</summary>
@@ -256,7 +264,8 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
             dogadjaji.Select(d => new DogadjajDto(d.Vrsta, OpisDogadjaja(d), k.Ime(d.KorisnikId), d.At)).ToList(),
             sporni.Select(s => new SporanUnosDto(s.Id, k.Ime(s.KorisnikId), OpisOperacije(s.Operacija), s.Razlog, s.PrimljenoAt, s.Odluka)).ToList(),
             zahtevi.Select(z => new ZahtevDoradeDto(z.Id, k.Ime(z.PodneoId), z.Razlog, z.Status, z.KreiranoAt)).ToList(),
-            p.Ucesnici.Select(u => new UcesnikDto(u.KorisnikId, k.Ime(u.KorisnikId), u.Sekcije)).ToList());
+            p.Ucesnici.Select(u => new UcesnikDto(u.KorisnikId, k.Ime(u.KorisnikId), u.Sekcije)).ToList(),
+            p.UredjajKlijenta is not null && p.Status is StatusPregleda.URadu or StatusPregleda.VracenNaDoradu);
     }
 
     /// <inheritdoc />
@@ -336,6 +345,20 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
         p.PonistenRazlog = req.Razlog.Trim();
         p.PonistioId = currentUser.UserId;
         PregledIstorija.Dodaj(db, p, "ponistavanje", new { razlog = p.PonistenRazlog }, currentUser.UserId, clock.UtcNow);
+        await db.SaveChangesAsync(ct);
+        return await Handle(new GetPregledQuery(p.Id), ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<PregledDetaljDto> Handle(OtkljucajUredjajCommand req, CancellationToken ct)
+    {
+        var p = await UcitajAsync(req.Id, ct);
+        if (p.Status is not (StatusPregleda.URadu or StatusPregleda.VracenNaDoradu)) throw new BusinessRuleException("Otključava se pregled koji je u radu ili na doradi.");
+        if (p.UredjajKlijenta is null) throw new BusinessRuleException("Pregled nije vezan ni za jedan uređaj.");
+        p.UredjajKlijenta = null;
+        PregledIstorija.Dodaj(db, p, "otkljucan", new { }, currentUser.UserId, clock.UtcNow);
+        await Obavesti.DodajAsync(db, [p.DodeljenId], VrsteObavestenja.IshodZahteva, $"{p.Broj} je otključan",
+            $"{p.Broj} možete da nastavite na drugom uređaju. Promene koje su ranije odbijene treba ponovo uneti.", $"/pregled/{p.Id}/popuni", null, clock.UtcNow, ct);
         await db.SaveChangesAsync(ct);
         return await Handle(new GetPregledQuery(p.Id), ct);
     }
@@ -446,6 +469,7 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
             "ponistavanje" => $"Poništen: {S("razlog")}",
             "odstupanje_sata" => $"Sat telefona odstupa {S("sekundi")} s",
             "sporan_unos" => $"Sporan unos: {S("odluka")}",
+            "otkljucan" => "Otključan za drugi uređaj",
             _ => d.Vrsta,
         };
     }

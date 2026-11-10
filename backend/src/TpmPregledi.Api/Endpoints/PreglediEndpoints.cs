@@ -67,6 +67,8 @@ public static class PreglediEndpoints
         g.MapPost("/{id:int}/ponisti", async (int id, [FromBody] RazlogInput i, IMediator m) =>
                 Results.Ok(await m.Send(new PonistiCommand(id, i.Razlog))))
             .RequireAuthorization(overa).WithSummary("Poništi pregled (razlog obavezan)");
+        g.MapPost("/{id:int}/otkljucaj", async (int id, IMediator m) => Results.Ok(await m.Send(new OtkljucajUredjajCommand(id))))
+            .RequireAuthorization(overa).WithSummary("Otključaj pregled za drugi uređaj");
         g.MapPost("/{id:int}/sporan-unos/{unosId:long}/odluka", async (int id, long unosId, [FromBody] SporanInput i, IMediator m) =>
                 Results.Ok(await m.Send(new OdluciOSpornomUnosuCommand(id, unosId, i.Primeni))))
             .RequireAuthorization(overa).WithSummary("Odluka o spornom unosu");

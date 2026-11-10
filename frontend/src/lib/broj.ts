@@ -96,3 +96,11 @@ export function mnozina(
   if (poslednja >= 2 && poslednja <= 4) return oblici.paukal;
   return oblici.mnozina;
 }
+
+/** „1 slika“, „2 slike“, „5 slika“ — srpska množina. */
+export function brojSlika(n: number): string {
+  const d = n % 10;
+  const st = n % 100;
+  const rec = d === 1 && st !== 11 ? 'slika' : d >= 2 && d <= 4 && (st < 12 || st > 14) ? 'slike' : 'slika';
+  return `${n} ${rec}`;
+}

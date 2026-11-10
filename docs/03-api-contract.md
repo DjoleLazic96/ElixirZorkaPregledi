@@ -118,7 +118,7 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 | GET | `/moj-paket` | `{ pregledi[], generisanoAt }` — dodeljeni za danas + 7 dana i započeti; `ETag`, `If-None-Match` → 304 |
 | POST | `/pregledi/{id}/zapocni` | status `u_radu`, vreme početka, važeća verzija šablona; samo dodeljeni ili učesnik (403); najranije na planirani dan — ranije 422 „Pregled može da se započne od …“ (važi i za `zapocni` u sinhronizaciji, R3.24) |
 | GET | `/pregledi/{id}/popunjavanje` | sekcije (`moja`, `radi`) → uređaji (`vanFunkcije`, `prosliPutVanFunkcije`) → stavke (polja, odgovor, ID-jevi slika) |
-| POST | `/sinhronizacija` `{ uredjajKlijenta, klijentSada, operacije[{opId, vrsta, pregledId, klijentAt, podaci}] }` | `{ prihvacene[], odbijene[{opId, razlog}], serverSada }`; vrste `akcija` (`stavkaId`, `vrsta`, `hitnost`, `opis`), `akcija_odgovor` (`akcijaId`, `uradjeno`), `zapocni` (`verzijaId`; vreme početka = `klijentAt`, vezuje `uredjajKlijenta`), `odgovor` (`stavkaId`, `vrednost`, `napomena`, `polja`), `van_funkcije` (`uredjajId`, `vanFunkcije`), `sve_ispravno` (`sekcija`), `predaja`; ponovljen `opId` = već primenjeno |
+| POST | `/sinhronizacija` `{ uredjajKlijenta, klijentSada, operacije[{opId, vrsta, pregledId, klijentAt, podaci}] }` | `{ prihvacene[], odbijene[{opId, razlog}], serverSada }`; vrste `akcija` (`stavkaId`, `vrsta`, `hitnost`, `opis`), `akcija_odgovor` (`akcijaId`, `uradjeno`), `zapocni` (`verzijaId`; vreme početka = `klijentAt`, vezuje `uredjajKlijenta`), `odgovor` (`stavkaId`, `vrednost`, `napomena`, `polja`), `van_funkcije` (`uredjajId`, `vanFunkcije`), `sve_ispravno` (`sekcija`), `obrisi_sliku` (`fotografijaId`, `stavkaId`; već obrisana = prihvaćeno), `predaja`; ponovljen `opId` = već primenjeno |
 | POST | `/fotografije` multipart (`fajl`, `klijentId`, `pregledId`, `stavkaId`, `izvor`) | ≤ 3 MB (400 „Slika je prevelika.“), JPEG/PNG/WebP, najviše 5 po stavci (422) |
 | GET | `/fotografije/{id}` | slika (RequireKorisnik — svi vide sve preglede) |
 
@@ -136,6 +136,7 @@ Odbijene operacije: „Pregled još nije potpun: nedostaje N odgovora i M obavez
 | POST | `/pregledi/{id}/zahtev-za-doradu` `{ razlog }` | pregledi.popunjavanje (inženjer koji je radio) | |
 | POST | `/pregledi/{id}/zahtev-za-doradu/odluka` `{ odobreno }` | overa | posle overe: onaj ko je overio ili Direktor |
 | POST | `/pregledi/{id}/ponisti` `{ razlog }` | overa | u radu / čeka overu / overen / vraćen |
+| POST | `/pregledi/{id}/otkljucaj` | overa | briše vezu sa uređajem (u radu / dorada); detalj ima `vezanZaUredjaj` (R10.10) |
 | POST | `/pregledi/{id}/sporan-unos/{unosId}/odluka` `{ primeni }` | overa | sporan odgovor se upisuje u tekuću doradu ili odbacuje |
 
 ### Akcije i neispravnosti (faza 07)

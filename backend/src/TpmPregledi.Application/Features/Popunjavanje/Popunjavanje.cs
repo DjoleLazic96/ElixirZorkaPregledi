@@ -376,6 +376,17 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 }
                 break;
             }
+            case "obrisi_sliku":
+            {
+                // Zamerka 5: inženjer briše svoju sliku dok pregled nije predat. Već obrisana (ponovljeno slanje) = prihvaćeno.
+                var fotoId = op.Podaci.GetProperty("fotografijaId").GetInt64();
+                var f = await db.Fotografije.FirstOrDefaultAsync(x => x.Id == fotoId && x.PregledId == p.Id, ct);
+                if (f is null) break;
+                var s = stavke.FirstOrDefault(x => x.StavkaId == f.StavkaId) ?? throw new BusinessRuleException("Stavka nije u ovom pregledu.");
+                ProveriSekciju(p, s.Sekcija, k);
+                db.Fotografije.Remove(f);
+                break;
+            }
             case "van_funkcije":
             {
                 var uredjajId = op.Podaci.GetProperty("uredjajId").GetInt32();

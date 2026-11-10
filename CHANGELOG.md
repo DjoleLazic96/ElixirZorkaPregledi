@@ -6,6 +6,11 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- Popunjavanje: sličice dodatih slika uz stavku; dodir otvara sliku, a iz nje se briše (i bez interneta).
+- Popunjavanje: dugmad za prethodnu i sledeću sekciju na dnu sekcije; „Sledeća“ je zelena kad je sekcija gotova.
+- Stranica pregleda: „Otključaj za drugi uređaj“ (Supervizor, Direktor) kad je telefon zamenjen ili je pregled započet u pogrešnom browseru.
+- Pregled koji je ostao odsutnom inženjeru je crveno označen u Rasporedu, Kalendaru i na Početnoj i stoji u „Čeka moju odluku“.
+- Pregled za koji zahtev inženjera čeka odluku ima žutu isprekidanu oznaku u Kalendaru i Rasporedu.
 - **Odsustva**: na Rasporedu spisak svih odsustava (filter po inženjeru, i ranija), sa izmenom perioda i otkazivanjem; inženjer povlači svoj zahtev dok čeka odluku.
 - Na stranici pregleda Supervizor i Direktor imaju „Promeni u rasporedu“, a za PZ i „Dodaj inženjera“ (kao u Kalendaru).
 - **Dva inženjera na PZ-u**: Supervizor ili Direktor u Kalendaru dodaje drugog inženjera i deli sekcije („Označi sve sekcije“).
@@ -58,6 +63,13 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Početna: ispod pozdrava stoji samo datum (uklonjena napomena prepisana iz mockup-a).
 - PDF i Word na stranici pregleda ne mogu da se kliknu dok pregled ne počne (izveštaj bi bio prazan).
 - Istorija pregleda pokazuje šta je promenjeno u rasporedu (inženjer, datum), raniji početak i sekcije drugog inženjera.
+- Kad server odbije promene sa telefona, telefon to odmah jasno javlja (sa razlogom) i vraća pregled na stanje sa servera; više nema lažnog „Predato – čeka slanje“.
+- Odsutan inženjer ne može da se izabere ručno (Zakaži PZ, Promeni u rasporedu, drugi inženjer na PZ-u, zamena, potvrda predloga).
+- Dok zahtev za prebacivanje ili raniji početak čeka odluku, umesto dugmeta piše „Zahtev poslat — čeka odluku“.
+- „Zatraži prebacivanje“ sa Početne otvara Kalendar na tom pregledu.
+- Broj slika je u drugom redu dugmeta „Fotografiši“ (tekst više ne izlazi iz dugmeta na telefonu).
+- Uklonjene suvišne napomene na prijavi i u prozorima za izmenu i otkazivanje odsustva.
+- Na telefonu su i dugmad pregleda u nedeljnom rasporedu i dugme „Slika“ najmanje 44 px.
 - Bez interneta odgovori, slike i predaja se odmah čuvaju na telefonu (ranije su čekali povratak veze).
 - Slike snimljene bez interneta se više ne gube kad se pregled preda: telefon prvo pošalje slike, pa tek onda predaju. Slika koju server odbije ostaje sačuvana na telefonu, i posle odjave.
 - Jedna neispravna promena sa telefona više ne zaustavlja slanje svih ostalih: odbija se samo ta promena, uz razlog.

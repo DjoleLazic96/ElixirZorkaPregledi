@@ -297,6 +297,7 @@ public sealed class OdsustvaHandler(IAppDbContext db, ICurrentUser currentUser, 
             var p = pregledi.FirstOrDefault(p => p.Id == x.PregledId) ?? throw new NotFoundException("Pregled ne postoji.");
             if (p.Status != StatusPregleda.Planiran) throw new BusinessRuleException(PorukaZapocet);
             k.ProveriInzenjera(x.ZamenaId);
+            k.ProveriDostupnost(x.ZamenaId, p.PlaniraniDatum);
             PregledIstorija.Dodaj(db, p, "prebacivanje", new { razlog = "odsustvo", stari = k.Ime(p.DodeljenId), novi = k.Ime(x.ZamenaId) }, currentUser.UserId, sada);
             await Obavesti.DodajAsync(db, [x.ZamenaId], VrsteObavestenja.Dodela, $"Dodeljen vam je {p.Broj}",
                 $"{p.Broj} za {p.PlaniraniDatum:dd.MM.yyyy} je sada vaš (zamena za {k.Ime(p.DodeljenId)}).", "/kalendar", null, sada, ct);
@@ -452,6 +453,7 @@ public sealed class ZahteviPrebacivanjaHandler(IAppDbContext db, ICurrentUser cu
         {
             if (p.Status != StatusPregleda.Planiran) throw new BusinessRuleException(OdsustvaHandler.PorukaZapocet);
             k.ProveriInzenjera(req.ZamenaId);
+            k.ProveriDostupnost(req.ZamenaId, p.PlaniraniDatum);
             // Kod PZ-a sa dva inženjera prebacuje se samo deo onoga ko traži (R3.12).
             var ucesnik = p.Ucesnici.FirstOrDefault(u => u.KorisnikId == z.PodneoId);
             if (ucesnik is not null)

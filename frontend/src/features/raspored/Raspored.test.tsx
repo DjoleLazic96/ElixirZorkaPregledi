@@ -83,6 +83,13 @@ describe('PregledKartica', () => {
     pristup = { user: { id: 'ana', userName: 'ana', fullName: 'Ana', email: null }, roles: ['Inzenjer'], prava: ['pregledi.popunjavanje'] };
   });
 
+  it('dok zahtev čeka odluku, umesto dugmeta piše „Zahtev poslat — čeka odluku“ (zamerka 9)', () => {
+    renderSaProviderima(<PregledKartica pregled={{ ...P, zahtevNaCekanju: 'prebacivanje' }} onClose={() => {}} />);
+    expect(screen.queryByRole('button', { name: 'Zatraži prebacivanje' })).not.toBeInTheDocument();
+    expect(screen.getByText('Zahtev poslat — čeka odluku')).toBeInTheDocument();
+    expect(screen.getByText(/čeka prebacivanje/)).toBeInTheDocument();
+  });
+
   it('tuđi pregled nema „Zatraži prebacivanje“', () => {
     renderSaProviderima(<PregledKartica pregled={{ ...P, dodeljenId: 'bora' }} onClose={() => {}} />);
     expect(screen.queryByRole('button', { name: 'Zatraži prebacivanje' })).not.toBeInTheDocument();
