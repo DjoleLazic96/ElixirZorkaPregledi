@@ -46,7 +46,7 @@ bash deploy/scripts/export-images.sh                      # build image-a u tar 
 5. Vreme kroz `IDateTimeProvider`; datumi `DateOnly`; frontend datumi/brojevi samo kroz `lib/datum.ts`, `lib/broj.ts`.
 6. Novi feature = kopija obrasca `Uredjaji` (backend `Features/Uredjaji/Uredjaji.cs`, frontend `features/sabloni/UredjajiPage.tsx` + `hooks.ts`), ne izmišljanje novog.
 7. Forme su prezentacione; roditelj drži mutacije i toastove; `npm run lint` mora biti 0.
-8. Ne push-uj u `main`, ne deploy-uj, ne diraj produkciju ni tajne — to radi čovek.
+8. Ne push-uj direktno u `main`: izmene idu na granu i kroz PR (`gh`), a PR spaja asistent tek kad su CI provere zelene (odluka vlasnika repoa 2026-11-10). Ne deploy-uj, ne diraj produkciju ni tajne — to radi čovek.
 9. Testovi po blueprint dokumentu 16: pravilo koje se krši, 401/403 po ruti, guard rute na frontu.
 
 ## Šta ne dirati
