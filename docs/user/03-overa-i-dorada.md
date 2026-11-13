@@ -14,7 +14,7 @@ Gore su šablon i verzija, datumi, inženjer, početak i predaja, **aktivno vrem
 **upozorenja** (npr. sat telefona je odstupao, „Sve neoznačeno je ispravno“ upotrebljeno). Zatim kartica sa dva prikaza: **Rezime**
 (otvara se prvi: neispravne stavke sa napomenom, poljima, slikama i akcijom, uređaji van funkcije, akcije otvorene na pregledu, odgovori na
 ranije akcije, napomene uz ispravne stavke, „Sve ispravno“ i predlozi izmene šablona) i **Ceo pregled** (sekcije kao dugmad na vrhu —
-crvena ima neispravnu stavku; neispravno je crveno, akcija plavo, van funkcije narandžasto). Ispod je **Istorija**. **PDF** i **Word** preuzimaju izveštaj (dok pregled ne počne, ne mogu da se kliknu).
+crvena ima neispravnu stavku; neispravno je crveno, akcija plavo, van funkcije narandžasto). Ispod je **Istorija**. **PDF** i **Word** otvaraju izbor **Rezime** (isto što i rezime na ekranu, obično jedna strana) ili **Ceo pregled** (sve sekcije, za arhivu); dok pregled ne počne, ne mogu da se kliknu. Neispravno je u izveštaju crveno i podebljano, pa se vidi i na crno-belom papiru.
 Za planiran ili započet pregled Supervizor i Direktor ovde imaju i **Promeni u rasporedu** (inženjer, datum), a za PZ **Dodaj inženjera** — isto kao u Kalendaru.
 
 ## 3.3 Odluke (Supervizor, Direktor)
@@ -24,7 +24,7 @@ Za planiran ili započet pregled Supervizor i Direktor ovde imaju i **Promeni u 
   oznaka „dorada 1“; prethodna verzija ostaje u istoriji, a posle dorade pregled opet ide na overu.
 - **Poništi pregled** — uz razlog; pregled ostaje u arhivi kao „Poništen“. Inženjer i onaj ko je overio dobijaju obaveštenje, a zahtevi koji su čekali odluku se zatvaraju.
 - Supervizor ne može da vrati ni da poništi pregled koji je overio Direktor.
-- **Sporni unosi** — ako je inženjer bez interneta radio pregled koji je u međuvremenu prebačen ili poništen, njegovi odgovori
+- **Sporni unosi** — ako je inženjer bez interneta radio pregled koji je u međuvremenu prebačen ili poništen, stiže obaveštenje „Sporni unosi“ (Supervizor i Direktor, onaj ko je prebacio, novi inženjer; inženjer dobija poruku da njegov unos čeka odluku). Njegovi odgovori
   čekaju ovde: **Primeni** ili **Odbaci**. Primeniti se može samo na pregled koji je u radu ili na doradi; ako je pregled
   predat ili overen, prvo ga **vratite na doradu**, pa primenite unos.
 - Ako je neko drugi u međuvremenu odlučio o istom pregledu, aplikacija javlja da je pregled izmenjen — osvežite stranicu i

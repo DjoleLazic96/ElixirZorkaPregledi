@@ -60,6 +60,7 @@ inženjera uklanjate na istom mestu (**Drugi inženjer**).
 Ako DP do kraja radnog dana (podešavanje) nije ni započet, aplikacija ga sama prenosi na sledeći radni dan, a ceo raspored DP-a
 se pomera. Inženjeri ostaju na svojim danima: propušten DP1 sa ponedeljka u utorak radi inženjer raspoređen za utorak. Započet
 pregled se ne prenosi: ostaje na svom danu i inženjer ga završava i posle kraja radnog dana (u ispunjenju plana „kasnije“). Raspored posle toga možete ručno menjati (kartica pregleda → **Promeni u rasporedu**).
+Ako server nije radio u vreme kraja radnog dana, prenos se obavi čim se server upali, istim pravilom. Direktor i Supervizor u dnevnom rezimeu vide koji je DP prenet i kome.
 U kalendaru propušten pregled na prvobitnom danu ima crvenu oznaku „nije urađen – prenet na …“, a ručno pomeren sivu „pomeren na …“.
 
 ## 4.5 Prebacivanje

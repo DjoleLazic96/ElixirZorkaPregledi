@@ -107,6 +107,28 @@ public sealed record ZakaziPzCommand(DateOnly Datum, string? Tip, string Inzenje
 /// <param name="Dan">Dan čiji se nezapočet DP prenosi.</param>
 public sealed record PrenesiCommand(DateOnly Dan) : IRequest<int>;
 
+/// <summary>
+/// Koje dane posao prenosa obrađuje (zamerka 59). Poslednji obrađen dan se pamti u <c>podesavanje</c>; ako server nije radio u
+/// vreme kraja radnog dana, posle paljenja se obrade i propušteni dani, istim redom kao da je radio (najviše 31 dan unazad).
+/// Prvi start bez zapisa obrađuje samo danas — stari dani se ne diraju.
+/// </summary>
+public static class PrenosPropustenog
+{
+    /// <summary>Ključ u <c>podesavanje</c> (nije deo podešavanja na ekranu); vrednost je JSON datum poslednjeg obrađenog dana.</summary>
+    public const string KljucPoslednji = "_poslednjiPrenos";
+
+    /// <summary>Dani redom: posle poslednjeg obrađenog do juče, i danas ako je prošao kraj radnog dana.</summary>
+    public static IReadOnlyList<DateOnly> DaniZaObradu(DateOnly? poslednji, DateOnly danas, bool prosaoKrajDana)
+    {
+        var od = poslednji?.AddDays(1) ?? danas;
+        if (od < danas.AddDays(-31)) od = danas.AddDays(-31);
+        var doDana = prosaoKrajDana ? danas : danas.AddDays(-1);
+        var dani = new List<DateOnly>();
+        for (var d = od; d <= doDana; d = d.AddDays(1)) dani.Add(d);
+        return dani;
+    }
+}
+
 /// <summary>Ručna izmena dodele i/ili datuma (R3.6, R3.13).</summary>
 /// <param name="PregledId">Pregled.</param>
 /// <param name="InzenjerId">Novi inženjer (null = bez promene).</param>

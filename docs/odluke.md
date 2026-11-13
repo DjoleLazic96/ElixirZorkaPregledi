@@ -9,6 +9,17 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-13 — Zamerke 59–62: prenos posle pada servera, sporni unosi, rezime, štampa (odobreno)
+
+**Kontekst:** treći krug testiranja scenarija.
+**Odluka:**
+- Posao prenosa propuštenog DP-a obrađuje sve dane posle poslednjeg obrađenog (najviše 31 unazad), pa pad servera preko kraja radnog dana ne ostavlja nepreneti DP (zamerka 59).
+- Sporan unos šalje obaveštenje (nova vrsta `sporan_unos`, primaoce bira Admin; uz to onaj ko je prebacio, novi inženjer i sam inženjer), jednom dnevno po pregledu i inženjeru (zamerka 60).
+- Dnevni rezime stiže svakog radnog dana, posle prenosa (ili najkasnije 15 min posle kraja radnog dana), navodi preneti DP i kome je otišao, a link vodi na kalendar; dan bez pregleda javlja „Proverite raspored“ (zamerka 61).
+- PDF i Word: neispravno podebljano (bez dodatnih oznaka); izbor Rezime / Ceo pregled; dugmad sekcija na ekranu ostaju kako jesu (zamerka 62).
+**Posledice:** `PrenosPropustenog.DaniZaObradu`; `GET /pregledi/{id}/izvoz?prikaz=rezime`; nova vrsta obaveštenja u podešavanjima primalaca.
+**Odlučio:** vlasnik projekta (2026-11-13).
+
 ## 2026-11-13 — Zamerka 58: započet DP se ne prenosi posle kraja radnog dana (odobreno)
 
 **Kontekst:** treći krug testiranja scenarija — DP započet u 14:30 i predat u 15:10 bio je u 15:00 prenet kao propušten, a ceo niz DP-ova pomeren za dan sa promenom inženjera. Kod je odstupao od R3.3 („propušten ako nije ni započet“).

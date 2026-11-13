@@ -138,7 +138,7 @@ Odbijene operacije: „Pregled još nije potpun: nedostaje N odgovora i M obavez
 |---|---|---|---|
 | GET | `/pregledi?od&do&tip&status&inzenjerId&pretraga&stranica&velicina` | RequireKorisnik | `StranicaDto<PregledRedDto>` (sa brojem neispravnih) |
 | GET | `/pregledi/{id}` | RequireKorisnik | detalj: zaglavlje, aktivno vreme i delovi, upozorenja, sekcije sa odgovorima/poljima/slikama, istorija, sporni unosi, zahtevi za doradu, `ucesnici` (drugi inženjer PZ-a sa sekcijama), `akcije` (otvorene na pregledu, sa `stavkaId`), `odgovoriNaAkcije`, `predlozi` |
-| GET | `/pregledi/{id}/izvoz?format=pdf\|docx` | RequireKorisnik | izveštaj sa rezimeom problematičnih stavki |
+| GET | `/pregledi/{id}/izvoz?format=pdf\|docx&prikaz=ceo\|rezime` | RequireKorisnik | izveštaj: ceo pregled (podrazumevano) ili samo rezime kao na ekranu |
 | GET | `/izvoz/pregledi.xlsx?…filteri` | RequireKorisnik | arhiva u Excel (filtrirano) |
 | POST | `/pregledi/{id}/overi` | overa | `ceka_overu` → `overen` |
 | POST | `/pregledi/{id}/vrati-na-doradu` `{ inzenjerId, razlog }` | overa | pre i posle overe; 422 „Pregled je overio Direktor; samo Direktor može da poništi tu overu.“ |

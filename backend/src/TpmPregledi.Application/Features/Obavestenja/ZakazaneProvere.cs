@@ -42,7 +42,8 @@ public sealed class ZakazaneProvereHandler(IAppDbContext db, IDateTimeProvider c
         broj += await VanFunkcijeAsync(danas, p, sada, ct);
         if (sat >= p.KrajRadnogDana)
         {
-            broj += await RezimeAsync(danas, sada, ct);
+            // Rezime posle prenosa propuštenog DP-a (drugi posao, isti minut), da bi video prenos; ako prenos kasni, šalje se posle 15 min.
+            if (await PrenosGotovAsync(danas, ct) || sat >= p.KrajRadnogDana.AddMinutes(15)) broj += await RezimeAsync(danas, k, sada, ct);
             if (lokalno.DayOfWeek is DayOfWeek.Thursday or DayOfWeek.Friday) broj += await PredlogRasporedaAsync(danas, k, sada, ct);
         }
         await db.SaveChangesAsync(ct);
@@ -98,20 +99,61 @@ public sealed class ZakazaneProvereHandler(IAppDbContext db, IDateTimeProvider c
         return broj;
     }
 
-    /// <summary>Dnevni rezime posle kraja radnog dana (samo dani kada je bilo pregleda).</summary>
-    private async Task<int> RezimeAsync(DateOnly danas, DateTime sada, CancellationToken ct)
+    private async Task<bool> PrenosGotovAsync(DateOnly danas, CancellationToken ct)
     {
+        var oznaka = JsonSerializer.Serialize(danas);
+        return await db.Podesavanja.AsNoTracking().AnyAsync(x => x.Kljuc == PrenosPropustenog.KljucPoslednji && x.Vrednost == oznaka, ct);
+    }
+
+    /// <summary>
+    /// Dnevni rezime posle kraja radnog dana, svakog radnog dana (zamerka 61): koliko je predato, koji je DP prenet i gde; dan bez
+    /// pregleda javlja da raspored treba proveriti (ujedno znak da server radi). Vikendom i na neradne dane bez pregleda ne stiže.
+    /// </summary>
+    private async Task<int> RezimeAsync(DateOnly danas, RasporedKontekst k, DateTime sada, CancellationToken ct)
+    {
+        var naslov = $"Rezime za {danas:dd.MM.yyyy}";
+        var kljuc = $"rezime:{danas:yyyy-MM-dd}";
         var dana = await db.Pregledi.AsNoTracking().Where(x => x.PrvobitniDatum == danas && x.Status != StatusPregleda.Ponisten)
             .Select(x => new { x.PredatAt }).ToListAsync(ct);
-        if (dana.Count == 0) return 0;
+        if (dana.Count == 0)
+        {
+            var radni = danas.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday) && !k.Neradni.Contains(danas);
+            return radni
+                ? await Obavesti.PrimaocimaAsync(db, VrsteObavestenja.Rezime, naslov, "Danas nije bilo zakazanih pregleda. Proverite raspored.", "/kalendar", kljuc, sada, ct)
+                : 0;
+        }
         var predato = dana.Count(x => x.PredatAt != null);
         var cekaOveru = await db.Pregledi.CountAsync(x => x.Status == StatusPregleda.CekaOveru, ct);
         var hitne = await db.Akcije.CountAsync(a => a.Status == "otvorena" && a.Hitnost == "hitno", ct);
         var kvarovi = await db.Kvarovi.CountAsync(x => x.Otvoren == danas, ct);
-        return await Obavesti.PrimaocimaAsync(db, VrsteObavestenja.Rezime, $"Rezime za {danas:dd.MM.yyyy}",
-            $"Predato {predato} od {dana.Count} pregleda, propušteno {dana.Count - predato}. Čeka overu: {cekaOveru}. Otvorene hitne akcije: {hitne}. Novi kvarovi: {kvarovi}.",
-            "/", $"rezime:{danas:yyyy-MM-dd}", sada, ct);
+        var tekst = $"Predato {predato} od {dana.Count} pregleda, propušteno {dana.Count - predato}. Čeka overu: {cekaOveru}. Otvorene hitne akcije: {hitne}. Novi kvarovi: {kvarovi}.";
+        var preneti = await PrenetiAsync(danas, sada, ct);
+        if (preneti.Count > 0) tekst += $" Preneto: {string.Join("; ", preneti)}; naredni DP-ovi pomereni za dan.";
+        return await Obavesti.PrimaocimaAsync(db, VrsteObavestenja.Rezime, naslov, tekst, "/kalendar", kljuc, sada, ct);
     }
+
+    private static readonly string[] KratkiDani = ["ned", "pon", "uto", "sre", "čet", "pet", "sub"];
+
+    /// <summary>Propušteni DP-ovi današnjeg dana: „DP1-2026-0001 (Ana Anić) → uto 17.11. Bora Borić“ (iz istorije prenosa).</summary>
+    private async Task<List<string>> PrenetiAsync(DateOnly danas, DateTime sada, CancellationToken ct)
+    {
+        var dogadjaji = await db.PregledDogadjaji.AsNoTracking().Where(d => d.Vrsta == "prenos" && d.At >= sada.AddDays(-2))
+            .OrderBy(d => d.Id).Select(d => new { d.Podaci, d.Pregled!.Broj }).ToListAsync(ct);
+        var rez = new List<string>();
+        foreach (var d in dogadjaji)
+        {
+            var x = JsonSerializer.Deserialize<PrenosPodaci>(d.Podaci, JsonWeb);
+            if (x is null || x.Razlog != "propusten" || x.Stari?.Datum != danas || x.Novi is null) continue;
+            rez.Add($"{d.Broj} ({x.Stari.Inzenjer}) → {KratkiDani[(int)x.Novi.Datum.DayOfWeek]} {x.Novi.Datum:dd.MM.} {x.Novi.Inzenjer}");
+        }
+        return rez;
+    }
+
+    private static readonly JsonSerializerOptions JsonWeb = new(JsonSerializerDefaults.Web);
+
+    private sealed record PrenosMesto(DateOnly Datum, string? Inzenjer);
+
+    private sealed record PrenosPodaci(string? Razlog, PrenosMesto? Stari, PrenosMesto? Novi);
 
     /// <summary>
     /// Četvrtkom i petkom (zamerka 28): ako sledeće nedelje postoji dan za DP bez DP-a, podsetnik da je predlog spreman

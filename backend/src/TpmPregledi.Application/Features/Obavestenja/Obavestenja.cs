@@ -145,7 +145,8 @@ public sealed class ObavestenjaHandler(IAppDbContext db, ICurrentUser currentUse
     public static readonly IReadOnlyDictionary<string, (string Naziv, string Opis)> Opisi = new Dictionary<string, (string, string)>
     {
         [VrsteObavestenja.NijeZapocet] = ("Pregled nije započet", "DP ili PZ nije započet do vremena upozorenja (dodeljeni inženjer ga dobija uvek)."),
-        [VrsteObavestenja.Rezime] = ("Dnevni rezime", "Posle kraja radnog dana: predato, propušteno, čeka overu, hitne akcije, novi kvarovi."),
+        [VrsteObavestenja.Rezime] = ("Dnevni rezime", "Svakog radnog dana posle kraja radnog dana: predato, propušteno, preneti DP, čeka overu, hitne akcije, novi kvarovi (i kad pregleda nije bilo)."),
+        [VrsteObavestenja.SporanUnos] = ("Sporni unosi", "Inženjer je bez interneta radio pregled koji je u međuvremenu prebačen ili poništen; unos čeka Primeni / Odbaci."),
         [VrsteObavestenja.RokOvere] = ("Podsetnik za overu", "Pregled čeka overu duže od roka (sati radnih dana)."),
         [VrsteObavestenja.HitnaAkcija] = ("Hitna akcija", "Na pregledu je otvorena akcija sa hitnošću „Hitno“."),
         [VrsteObavestenja.RokAkcije] = ("Istekao rok akcije", "Jednom, kad akciji istekne rok."),

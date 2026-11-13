@@ -37,6 +37,17 @@ describe('PregledDetaljPage', () => {
     vi.mocked(api.get).mockImplementation(async (url: string) => (url === '/pregledi/5' ? odgovor(DETALJ) : odgovor([{ id: 'ana', ime: 'Ana' }])));
   });
 
+  it('PDF otvara izbor „Rezime“ / „Ceo pregled“ i preuzima izabrano (zamerka 62)', async () => {
+    renderDetalj();
+    await userEvent.click(await screen.findByRole('button', { name: 'PDF' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Rezime' }));
+    expect(api.get).toHaveBeenCalledWith('/pregledi/5/izvoz', expect.objectContaining({ params: { format: 'pdf', prikaz: 'rezime' } }));
+    expect(screen.queryByRole('menuitem', { name: 'Rezime' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Word' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Ceo pregled' }));
+    expect(api.get).toHaveBeenCalledWith('/pregledi/5/izvoz', expect.objectContaining({ params: { format: 'docx', prikaz: 'ceo' } }));
+  });
+
   it('kontrolor vidi vreme, upozorenja i rezime problematičnih, a „Overio“ šalje overu', async () => {
     vi.mocked(api.post).mockResolvedValue(odgovor({ ...DETALJ, status: 'overen', overio: 'Sup' }));
     renderDetalj();

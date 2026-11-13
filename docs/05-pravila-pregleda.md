@@ -58,7 +58,8 @@ Status na ekranu uređaja: „nije pregledan“ ako nema predatog pregleda ili j
 Posle **kraja radnog dana** (podešavanje, 15:00) današnji DP koji **nije ni započet** ide na sledeće mesto; **inženjeri ostaju na svojim danima**,
 pa svaki kasniji planirani DP ide jedno mesto napred i preuzima inženjera tog dana. Poslednji dobija sledeći dan za DP (radni dan koji
 nije neradni ni dan PZ-a, osim ako je uključeno „DP se radi i na dan PZ-a“) i inženjera po rotaciji. Započet a nepredat DP ostaje na svom
-danu i ništa se ne pomera (zamerka 58); kad ga inženjer preda posle tog dana, u ispunjenju plana se broji kao „kasnije“.
+danu i ništa se ne pomera (zamerka 58); kad ga inženjer preda posle tog dana, u ispunjenju plana se broji kao „kasnije“. Ako server
+nije radio u vreme kraja radnog dana, posle paljenja se obrade i propušteni dani (najviše 31 unazad, zamerka 59).
 
 | | Pon 9.11 | Uto 10.11 | Sre 11.11 | Čet 12.11 |
 |---|---|---|---|---|

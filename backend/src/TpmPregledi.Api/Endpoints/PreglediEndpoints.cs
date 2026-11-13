@@ -44,14 +44,16 @@ public static class PreglediEndpoints
             .WithSummary("Arhiva pregleda (filteri, stranice)");
         g.MapGet("/{id:int}", async (int id, IMediator m) => Results.Ok(await m.Send(new GetPregledQuery(id))))
             .WithSummary("Detalj pregleda: odgovori, slike, vreme, upozorenja, istorija");
-        g.MapGet("/{id:int}/izvoz", async (int id, [FromQuery] string? format, IMediator m, IIzvestajPregleda izv) =>
+        g.MapGet("/{id:int}/izvoz", async (int id, [FromQuery] string? format, [FromQuery] string? prikaz, IMediator m, IIzvestajPregleda izv) =>
             {
                 var p = await m.Send(new GetPregledQuery(id));
+                var rezime = prikaz == "rezime";
+                var ime = rezime ? $"{p.Broj}-rezime" : p.Broj;
                 return format == "docx"
-                    ? Results.File(izv.Docx(p), "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"{p.Broj}.docx")
-                    : Results.File(izv.Pdf(p), "application/pdf", $"{p.Broj}.pdf");
+                    ? Results.File(izv.Docx(p, rezime), "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"{ime}.docx")
+                    : Results.File(izv.Pdf(p, rezime), "application/pdf", $"{ime}.pdf");
             })
-            .WithSummary("Izveštaj pregleda (format=pdf|docx)");
+            .WithSummary("Izveštaj pregleda (format=pdf|docx, prikaz=ceo|rezime)");
 
         g.MapPost("/{id:int}/overi", async (int id, IMediator m) => Results.Ok(await m.Send(new OveriCommand(id))))
             .RequireAuthorization(overa).WithSummary("Overio");

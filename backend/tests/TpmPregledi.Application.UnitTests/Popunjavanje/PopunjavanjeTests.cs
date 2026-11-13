@@ -378,12 +378,20 @@ public class RadBezInternetaTests
         r.Odbijene.Should().ContainSingle();
         (await h.Db.SporniUnosi.SingleAsync()).KorisnikId.Should().Be(ana);
 
+        // Zamerka 60: obaveštenje novom inženjeru i samoj Ani; druga operacija istog dana ne pravi novo.
+        await new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana }, new FakeClock(FakeClock.PosleRasporeda), new FakeBrojac())
+            .Handle(new SinhronizacijaCommand("telefon-1", null, [Op(id, "zapocni", new { }, 5)]), default);
+        var sporni = await h.Db.Obavestenja.Where(o => o.Vrsta == VrsteObavestenja.SporanUnos).ToListAsync();
+        sporni.Should().HaveCount(2);
+        sporni.Single(o => o.KorisnikId == bora).Naslov.Should().StartWith("Sporni unosi:");
+        sporni.Single(o => o.KorisnikId == ana).Tekst.Should().Contain("dodeljen drugom inženjeru");
+
         // Zamerka 14: neko ko nikad nije bio na pregledu dobija samo odbijanje, bez spornog unosa.
         var ceca = await h.SeedUserAsync("ceca", "Inzenjer2026!", Roles.Inzenjer);
         var tudji = await new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ceca.Id }, new FakeClock(FakeClock.PosleRasporeda), new FakeBrojac())
             .Handle(new SinhronizacijaCommand("telefon-9", null, [Op(id, "zapocni", new { }, 1)]), default);
         tudji.Odbijene.Should().ContainSingle();
-        (await h.Db.SporniUnosi.CountAsync()).Should().Be(1);
+        (await h.Db.SporniUnosi.CountAsync()).Should().Be(2, "dva Anina unosa, Cecin ne");
     }
 
     [Fact]

@@ -506,7 +506,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
   - bez odobrenja ne može sam da menja predat pregled, a dok pregled nije poslat na server ne menja se;
   - vreme dorade ne ulazi u aktivno vreme pregleda.
 - **R6.7** Istorija promena beleži sve: dodelu, prebacivanje, overu, doradu, izmene odgovora (staro i novo) – ko, šta i kada. *[Z]*
-- **R6.8** Ako je, dok je inženjer bio bez interneta, pregled dodeljen drugom, urađeno se čuva, a Supervizor odlučuje šta važi. *[K]*
+- **R6.8** Ako je, dok je inženjer bio bez interneta, pregled dodeljen drugom, urađeno se čuva, a Supervizor odlučuje šta važi. Kad stigne sporan unos, obaveštenje dobijaju primaoci (podrazumevano Supervizor i Direktor), onaj ko je prebacio, novi inženjer i sam inženjer. *[K]* (zamerka 60)
 - **R6.9** Svaki pregled ima broj: tip, godina i redni broj u godini, posebno za svaki tip (npr. DP1-2026-0142). Dodeljuje se kad pregled uđe u raspored, pa postoji i bez interneta; ako se raspored pomeri, broj ide sa pregledom. Dorada ne menja broj, nego dodaje oznaku (npr. „dorada 1“). Broj se vidi svuda: liste, kalendar, Dashboard, PDF i Word, mejl i push obaveštenja, pretraga i izvoz. *[O]*
 - **R6.10** Pregled se ne briše. Umesto toga Supervizor ili Direktor može da ga poništi („Poništi pregled“) uz obavezan razlog: *[O]*
   - važi za pregled koji je u radu, čeka overu, overen ili vraćen na doradu; Supervizor ne može da poništi pregled koji je overio Direktor;
@@ -556,7 +556,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R9.1** Obaveštenja stižu na telefon (push) i mejlom. *[K]*
 - **R9.2** Ako DP nije započet do 13h, ide upozorenje; za PZ važi isto, sa posebnim vremenom. Oba vremena podešava Admin. *[Z]*
 - **R9.3** Inženjer dobija obaveštenje o dodeli, promeni dodele, vraćanju na doradu i ishodu svojih zahteva i predloga. *[Z]*
-- **R9.4** Primaoce obaveštenja (13h, rezime, podsetnik za overu, hitne akcije, istekao rok akcije, ponovljeni kvar, dugo van funkcije) Admin bira štikliranjem; podrazumevano Supervizor i Direktor. *[O]*
+- **R9.4** Dnevni rezime stiže svakog radnog dana (i kad pregleda nije bilo) i navodi preneti DP. Primaoce obaveštenja (13h, rezime, sporni unosi, podsetnik za overu, hitne akcije, istekao rok akcije, ponovljeni kvar, dugo van funkcije) Admin bira štikliranjem; podrazumevano Supervizor i Direktor. *[O]*
 - **R9.5** Bez interneta obaveštenja stižu kad se veza vrati. Upozorenje u 13h za pregled započet bez interneta je prihvatljivo. *[K]*
 
 ### A.10 Rad bez interneta i telefon
@@ -585,7 +585,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 ### A.11 Izvoz, štampa i čuvanje
 
 - **R11.1** Pregled može da se odštampa (vidi se i verzija šablona), ali se realno neće štampati; papirni obrazac sa potpisom se ukida. *[K]*
-- **R11.2** Pojedinačan pregled se izvozi u PDF i Word, a liste (arhiva, neispravnosti, akcije) u Excel. *[O]*
+- **R11.2** Pojedinačan pregled se izvozi u PDF i Word — po izboru rezime ili ceo pregled, neispravno crveno i podebljano — a liste (arhiva, neispravnosti, akcije) u Excel. *[O]* (zamerka 62)
 - **R11.3** Pregledi i fotografije se čuvaju trajno. *[K]*
 - **R11.4** Stari papirni pregledi se ne unose u aplikaciju. *[O]*
 
