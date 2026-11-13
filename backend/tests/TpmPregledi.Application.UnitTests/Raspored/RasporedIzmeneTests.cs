@@ -87,6 +87,31 @@ public class RasporedIzmeneTests
     }
 
     [Fact]
+    public async Task PZ_pomeren_sa_srede_na_utorak_pomera_samo_DP_iz_utorka_u_sredu_zamerka_43()
+    {
+        var (h, ana, bora, ceca) = await HarnessAsync();
+        await using var _ = h;
+        // Pon DP1, uto DP2, čet DP1, pet DP2; PZ u sredu (sredinom nedelje, posle njega ima DP-ova).
+        await Sut(h, Pon).Handle(new PotvrdiRasporedCommand([new StavkaRasporeda(Pon, "DP1", ana), new StavkaRasporeda(Pon.AddDays(1), "DP2", bora),
+            new StavkaRasporeda(Pon.AddDays(3), "DP1", ana), new StavkaRasporeda(Pon.AddDays(4), "DP2", bora)]), default);
+        var pz = await Sut(h, Pon).Handle(new ZakaziPzCommand(Pon.AddDays(2), null, ceca, null), default);
+        var preIds = (await h.Db.Pregledi.AsNoTracking().Where(p => p.Tip.StartsWith("DP")).OrderBy(p => p.PlaniraniDatum).Select(p => new { p.Id, p.PlaniraniDatum }).ToListAsync());
+
+        await Sut(h, Pon).Handle(new IzmeniDodeluCommand(pz.Id, null, Pon.AddDays(1)), default);
+
+        var posle = await h.Db.Pregledi.AsNoTracking().Where(p => p.Tip.StartsWith("DP")).ToDictionaryAsync(p => p.Id, p => p.PlaniraniDatum);
+        posle[preIds[1].Id].Should().Be(Pon.AddDays(2), "DP iz utorka ide u sredu koju je PZ oslobodio");
+        posle[preIds[2].Id].Should().Be(Pon.AddDays(3), "DP-ovi posle srede ostaju gde su");
+        posle[preIds[3].Id].Should().Be(Pon.AddDays(4));
+
+        // Nazad na sredu: DP iz srede ide u utorak, ostali ostaju.
+        await Sut(h, Pon).Handle(new IzmeniDodeluCommand(pz.Id, null, Pon.AddDays(2)), default);
+        posle = await h.Db.Pregledi.AsNoTracking().Where(p => p.Tip.StartsWith("DP")).ToDictionaryAsync(p => p.Id, p => p.PlaniraniDatum);
+        posle[preIds[1].Id].Should().Be(Pon.AddDays(1));
+        posle[preIds[2].Id].Should().Be(Pon.AddDays(3));
+    }
+
+    [Fact]
     public async Task Otkazan_DP_sa_zadrzanim_rasporedom_se_ponistava_a_zahtev_se_zatvara()
     {
         var (h, ana, bora, _) = await HarnessAsync();

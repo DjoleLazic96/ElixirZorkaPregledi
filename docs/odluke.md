@@ -15,7 +15,7 @@
 **Odluka:**
 - Sinhronizacija nikad ne vraća grešku za ceo paket zbog jedne operacije: predugačak tekst se odbija pojedinačno, a posle ponovljenih neuspeha upisa odbija se samo ta operacija (zamerka 38).
 - „Poništi pregled“ obaveštava inženjera, drugog inženjera PZ-a i onoga ko je overio; zahtevi na čekanju se zatvaraju (R6.10, zamerke 39–40). Poništen pregled se ne računa kao „prošli put“ (R4.6, zamerka 41).
-- Pomeranje PZ-a (izmena rasporeda, odobren raniji početak) radi kao zakazivanje: nezapočet DP tog dana i naredni idu dan napred; započet DP ostaje na svom danu (R3.9, zamerka 43).
+- Pomeranje PZ-a (izmena rasporeda, odobren raniji početak): pomeraju se samo DP-ovi između starog i novog dana PZ-a, za jedno mesto, pa dan PZ-a ostaje bez DP-a, a dan koji je PZ oslobodio ga dobija; ostali DP-ovi ostaju gde su. Zakazivanje novog PZ-a pomera DP tog dana i sve naredne. Započet DP ostaje na svom danu (R3.9, zamerka 43).
 - Pitanje „da li je akcija urađena“ samo za akcije iz ranijih pregleda; posle „Ne“ ne pita ponovo do kraja tog pregleda (R4.7, zamerka 46).
 - Inženjer otkazuje svoj zahtev dok čeka odluku (zamerka 47).
 - Zatvaranje akcije uvek nosi šta je urađeno, kada i ko; inženjer šalje zahtev, odlučuje Supervizor ili Direktor (pravo `akcije.zatvaranje`) (R7.5, R7.16, zamerka 49).

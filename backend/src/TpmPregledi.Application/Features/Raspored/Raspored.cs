@@ -344,7 +344,7 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
         await ObavestiOPromeniAsync(p, stariId, stariDatum, clock.UtcNow, ct);
         await db.SaveChangesAsync(ct);
         // Pomeren PZ radi isto kao zakazan (R3.9, zamerka 43): DP na novi dan i naredni idu dan napred — i popune dan koji je PZ oslobodio.
-        if (!p.JeDp && stariDatum != p.PlaniraniDatum && !k.DpNaDanPz) await PomeriDpOdAsync(db, clock, p.PlaniraniDatum, "pz", ct);
+        if (!p.JeDp && stariDatum != p.PlaniraniDatum) await PremestiDpZbogPzAsync(db, clock, stariDatum, p.PlaniraniDatum, ct);
         return Dto(p, k) with { SlobodanDan = stariDatum != p.PlaniraniDatum ? await SlobodanZaPovlacenjeAsync(stariDatum, ct) : null };
     }
 
@@ -413,6 +413,44 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
 
         var pomeranja = RasporedPravila.Prenesi(niz, k.SledeciDanZaDp, (d, posl) => k.SledeciInzenjer(d, posl) ?? posl ?? prvi.DodeljenId);
         if (razlog == "propusten") prvi.Propusten = true;
+        await PrimeniPomeranjaAsync(db, clock, k, pomeranja, razlog, ct);
+        return pomeranja.Count;
+    }
+
+    /// <summary>
+    /// PZ premešten sa <paramref name="stari"/> na <paramref name="novi"/> (R3.9, zamerka 43): pomeraju se samo DP-ovi između ta
+    /// dva dana, za jedno mesto, tako da dan PZ-a ostane bez DP-a, a dan koji je PZ oslobodio ga dobije. Ranije: DP-ovi od novog
+    /// do starog dana idu napred (kao prenos); kasnije: DP-ovi posle starog do novog dana idu unazad (kao povlačenje).
+    /// Kad na novom danu nema nezapočetog DP-a, ništa se ne pomera (oslobođen dan nudi „Povuci raspored“).
+    /// </summary>
+    internal static async Task PremestiDpZbogPzAsync(IAppDbContext db, IDateTimeProvider clock, DateOnly stari, DateOnly novi, CancellationToken ct)
+    {
+        var k = await RasporedKontekst.UcitajAsync(db, ct);
+        if (k.DpNaDanPz || stari == novi) return;
+        var (od, doDana) = novi < stari ? (novi, stari.AddDays(-1)) : (stari.AddDays(1), novi);
+        var deo = await db.Pregledi.Where(p => p.Tip.StartsWith("DP") && p.Status == StatusPregleda.Planiran && p.PlaniraniDatum >= od && p.PlaniraniDatum <= doDana)
+            .OrderBy(p => p.PlaniraniDatum).ToListAsync(ct);
+        if (!deo.Any(p => p.PlaniraniDatum == novi)) return;
+        if (!k.JeDanZaDp(stari))
+        {
+            await PomeriDpOdAsync(db, clock, novi, "pz", ct);   // stari dan nije za DP (npr. u međuvremenu neradan) — ceo niz napred
+            return;
+        }
+        IReadOnlyList<Pomeranje> pomeranja;
+        if (novi < stari)
+            pomeranja = RasporedPravila.Prenesi(deo, k.SledeciDanZaDp, (d, posl) => k.SledeciInzenjer(d, posl) ?? posl ?? deo[0].DodeljenId);
+        else
+        {
+            var pre = await db.Pregledi.AsNoTracking().Where(p => p.Tip.StartsWith("DP") && p.Status != StatusPregleda.Ponisten && p.PlaniraniDatum < stari)
+                .OrderByDescending(p => p.PlaniraniDatum).Select(p => p.DodeljenId).FirstOrDefaultAsync(ct);
+            pomeranja = RasporedPravila.Povuci(stari, k.SledeciInzenjer(stari, pre) ?? deo[0].DodeljenId, deo).Pomeranja;
+        }
+        await PrimeniPomeranjaAsync(db, clock, k, pomeranja, "pz", ct);
+    }
+
+    /// <summary>Upisuje pomeranja DP-ova: novi dan i inženjer, istorija „prenos“ i jedno obaveštenje po inženjeru.</summary>
+    private static async Task PrimeniPomeranjaAsync(IAppDbContext db, IDateTimeProvider clock, RasporedKontekst k, IReadOnlyList<Pomeranje> pomeranja, string razlog, CancellationToken ct)
+    {
         var sada = clock.UtcNow;
         var obavestenja = new List<(string Kome, string Tekst)>();
         foreach (var m in pomeranja)
@@ -427,7 +465,6 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
         foreach (var g in obavestenja.GroupBy(x => x.Kome))
             await Obavesti.DodajAsync(db, [g.Key], VrsteObavestenja.Dodela, "Raspored je pomeren", $"{string.Join("; ", g.Select(x => x.Tekst))}.", "/kalendar", null, sada, ct);
         await db.SaveChangesAsync(ct);
-        return pomeranja.Count;
     }
 
     private Task<Pregled?> PoslednjiDpAsync(DateOnly pre, CancellationToken ct) =>

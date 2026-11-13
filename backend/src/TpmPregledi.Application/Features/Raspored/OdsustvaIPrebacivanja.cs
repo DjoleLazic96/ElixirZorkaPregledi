@@ -501,6 +501,7 @@ public sealed class ZahteviPrebacivanjaHandler(IAppDbContext db, ICurrentUser cu
     private async Task<ZahtevPrebacivanjaDto> OdluciORanijemPocetkuAsync(ZahtevPrebacivanja z, Pregled p, RasporedKontekst k, bool odobreno, DateTime sada, CancellationToken ct)
     {
         var danas = clock.Today;
+        var bio = p.PlaniraniDatum;
         if (odobreno)
         {
             if (p.Status != StatusPregleda.Planiran) throw new BusinessRuleException(OdsustvaHandler.PorukaZapocet);
@@ -519,7 +520,7 @@ public sealed class ZahteviPrebacivanjaHandler(IAppDbContext db, ICurrentUser cu
             odobreno ? $"/pregled/{p.Id}/popuni" : "/kalendar", null, sada, ct);
         await db.SaveChangesAsync(ct);
         // PZ je sada danas: nezapočet DP danas i naredni idu dan napred, kao kod zakazivanja PZ-a (R3.9, zamerka 43).
-        if (odobreno && !k.DpNaDanPz) await RasporedHandler.PomeriDpOdAsync(db, clock, danas, "pz", ct);
+        if (odobreno) await RasporedHandler.PremestiDpZbogPzAsync(db, clock, bio, danas, ct);
         return Dto(z, p, k);
     }
 
