@@ -79,11 +79,13 @@ odmah može da ga započne; **Odbij** ostavlja zakazani datum. DP se ne radi ran
   inženjera u tom periodu sa predlogom zamene; **Prebaci sve na** postavlja istu zamenu svima. **Odobri i prebaci** / **Sačuvaj i prebaci**.
 - Preklapanje sa postojećim odsustvom nije dozvoljeno: „Za taj period već postoji odsustvo.“
 - **Sva odsustva**: **Raspored** → kartica **Odsustva** — tekuća i buduća odsustva svih inženjera; filter po inženjeru, a
-  **Prikaži i ranija** dodaje prošla, odbijena i otkazana. **Izmeni** menja period (npr. raniji povratak), **Otkaži** otkazuje odsustvo.
+  **Prikaži i ranija** dodaje prošla, odbijena i otkazana. **Izmeni** menja period (npr. raniji povratak), **Otkaži** otkazuje odsustvo. Ako su zbog odsustva pregledi bili prebačeni, a sada
+padaju na dane kad je inženjer tu, iskoči **Vrati preglede** (zamene i on dobijaju obaveštenje) ili **Ostavi zamenama**.
   Inženjer dobija obaveštenje. Pregledi koji su zbog odsustva prebačeni na zamenu ostaju zameni — vratite ih u rasporedu ako treba.
 
 ## 4.7 Neradni dani (Administrator, Direktor)
 
 Levi meni → **Neradni dani** → od, do, naziv, vrsta → **Dodaj**. DP se ne radi neradnim danima; PZ može ako je zakazan. Ako su u tom periodu već
 zakazani DP-ovi, pre unosa se vidi njihov spisak: **Unesi i pomeri DP-ove** ih pomera dalje u nizu (inženjeri dobijaju obaveštenje), a
-**Odustani** ne unosi ništa. DP koji ipak stoji na neradnom danu (npr. već započet) u kalendaru ima crvenu oznaku „na neradni dan“.
+**Odustani** ne unosi ništa. DP koji ipak stoji na neradnom danu (npr. već započet) u kalendaru ima crvenu oznaku „na neradni dan“. Kad se neradni dan
+obriše, a taj dan ostane bez DP-a usred niza, nudi se **Povuci raspored**.

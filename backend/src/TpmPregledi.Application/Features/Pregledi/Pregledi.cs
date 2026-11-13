@@ -330,6 +330,7 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
     {
         var p = await UcitajAsync(req.Id, ct);
         if (p.Status != StatusPregleda.CekaOveru) throw new BusinessRuleException("Overava se samo pregled koji čeka overu.");
+        await ZabraniSvojAsync(p, ct);
         p.Status = StatusPregleda.Overen;
         p.OverioId = currentUser.UserId;
         p.OverenoAt = clock.UtcNow;
@@ -346,6 +347,7 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
         if (p.Status is not (StatusPregleda.CekaOveru or StatusPregleda.Overen))
             throw new BusinessRuleException("Na doradu se vraća samo predat ili overen pregled.");
         ZastitiOveruDirektora(p);
+        await ZabraniSvojAsync(p, ct);
         var k = await RasporedKontekst.UcitajAsync(db, ct);
         k.ProveriInzenjera(req.InzenjerId);
         await VratiAsync(p, req.InzenjerId, req.Razlog.Trim(), "vracen_na_doradu", ct);
@@ -387,6 +389,7 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
         var p = await UcitajAsync(req.Id, ct);
         var z = await db.ZahteviDorade.FirstOrDefaultAsync(x => x.PregledId == p.Id && x.Status == "zahtev", ct)
                 ?? throw new BusinessRuleException("Nema zahteva za doradu koji čeka odluku.");
+        await ZabraniSvojAsync(p, ct);
         // Posle overe odlučuje onaj ko je overio ili Direktor (R6.6).
         if (p.Status == StatusPregleda.Overen && p.OverioId != currentUser.UserId && !JeDirektor)
             throw new BusinessRuleException("O doradi overenog pregleda odlučuje onaj ko ga je overio ili Direktor.");
@@ -500,6 +503,20 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
 
     private async Task<Pregled> UcitajAsync(int id, CancellationToken ct) =>
         await db.Pregledi.FirstOrDefaultAsync(p => p.Id == id, ct) ?? throw new NotFoundException("Pregled ne postoji.");
+
+    /// <summary>Poruka kad neko overava ili vraća na doradu sopstveni pregled.</summary>
+    public const string PorukaSvojPregled = "Svoj pregled ne možete da overite niti da vratite na doradu — to radi drugi Supervizor ili Direktor.";
+
+    /// <summary>
+    /// Overa i dorada sopstvenog pregleda nisu dozvoljene, bez obzira na prava (zamerka 57): i inženjer kome je Admin dodelio pravo
+    /// „overa“ ne overava pregled koji je sam radio (dodeljen ili drugi inženjer PZ-a).
+    /// </summary>
+    private async Task ZabraniSvojAsync(Pregled p, CancellationToken ct)
+    {
+        var ja = currentUser.UserId;
+        if (p.DodeljenId == ja || await db.Pregledi.Where(x => x.Id == p.Id).SelectMany(x => x.Ucesnici).AnyAsync(u => u.KorisnikId == ja, ct))
+            throw new BusinessRuleException(PorukaSvojPregled);
+    }
 
     private void ZastitiOveruDirektora(Pregled p)
     {

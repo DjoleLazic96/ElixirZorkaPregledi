@@ -19,7 +19,7 @@ Za planiran ili započet pregled Supervizor i Direktor ovde imaju i **Promeni u 
 
 ## 3.3 Odluke (Supervizor, Direktor)
 
-- **Overio** — pregled dobija status „Overen“; pamti se ko i kada.
+- **Overio** — pregled dobija status „Overen“; pamti se ko i kada. Svoj pregled niko ne overava niti vraća na doradu, ni kad ima to pravo — to radi drugi Supervizor ili Direktor.
 - **Vrati na doradu** — pre i posle overe; izaberite inženjera (predlaže se isti) i upišite razlog. Broj ostaje isti, dodaje se
   oznaka „dorada 1“; prethodna verzija ostaje u istoriji, a posle dorade pregled opet ide na overu.
 - **Poništi pregled** — uz razlog; pregled ostaje u arhivi kao „Poništen“. Inženjer i onaj ko je overio dobijaju obaveštenje, a zahtevi koji su čekali odluku se zatvaraju.

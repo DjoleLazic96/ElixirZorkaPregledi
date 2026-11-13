@@ -27,6 +27,8 @@ import {
 } from './hooks';
 import { KorisnikForm, type KorisnikFormResult } from './KorisnikForm';
 import { PravaDialog } from './PravaDialog';
+import { DeaktivacijaDijalog, type PregledZaPrebacivanje } from './DeaktivacijaDijalog';
+import { api } from '../../../api/client';
 import type { Pravo } from '../../../lib/permissions';
 
 /**
@@ -92,7 +94,28 @@ export function KorisniciPage() {
     }
   }
 
+  // Deaktivacija inženjera sa zakazanim pregledima nudi prebacivanje (zamerka 54).
+  const [zaDeaktivaciju, setZaDeaktivaciju] = useState<{ k: KorisnikDto; pregledi: PregledZaPrebacivanje[] } | null>(null);
+
+  async function deaktivirajSaPrebacivanjem(k: KorisnikDto, prebacivanja: { pregledId: number; zamenaId: string }[]) {
+    try {
+      await deaktiviraj.mutateAsync({ id: k.id, prebacivanja });
+      toast.success(prebacivanja.length ? `Korisnik je deaktiviran; prebačeno pregleda: ${prebacivanja.length}.` : 'Korisnik je deaktiviran.');
+      setZaDeaktivaciju(null);
+    } catch (err) {
+      toast.error(porukaGreske(err, 'Promena statusa nije uspela.'));
+    }
+  }
+
   async function promeniAktivnost(k: KorisnikDto) {
+    if (k.aktivan) {
+      try {
+        const pregledi = (await api.get<PregledZaPrebacivanje[]>(`/korisnici/${k.id}/planirani-pregledi`)).data;
+        if (pregledi.length > 0) return setZaDeaktivaciju({ k, pregledi });
+      } catch {
+        // Spisak nije učitan — ide obična potvrda.
+      }
+    }
     const ok = await confirm(
       k.aktivan
         ? {
@@ -110,7 +133,7 @@ export function KorisniciPage() {
     );
     if (!ok) return;
     try {
-      if (k.aktivan) await deaktiviraj.mutateAsync(k.id);
+      if (k.aktivan) await deaktiviraj.mutateAsync({ id: k.id });
       else await aktiviraj.mutateAsync(k.id);
       toast.success(k.aktivan ? 'Korisnik je deaktiviran.' : 'Korisnik je aktiviran.');
     } catch (err) {
@@ -250,6 +273,10 @@ export function KorisniciPage() {
           onSubmit={(p) => void sacuvajPrava(p)}
           onClose={() => setPravaZa(null)}
         />
+      )}
+      {zaDeaktivaciju && (
+        <DeaktivacijaDijalog korisnik={zaDeaktivaciju.k} pregledi={zaDeaktivaciju.pregledi} salje={deaktiviraj.isPending}
+          onPotvrdi={(p) => void deaktivirajSaPrebacivanjem(zaDeaktivaciju.k, p)} onClose={() => setZaDeaktivaciju(null)} />
       )}
     </Card>
   );

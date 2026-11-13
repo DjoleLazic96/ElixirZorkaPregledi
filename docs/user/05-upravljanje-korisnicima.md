@@ -41,6 +41,8 @@ Nova prava važe posle sledeće prijave korisnika, najkasnije za 15 minuta.
 
 Korisnici se nikad ne brišu — deaktiviraju se, da bi audit log sačuvao ko je šta radio.
 Kliknite **Deaktiviraj**, potvrdite. Deaktiviran korisnik ne može da se prijavi i odjavljen je sa svih uređaja. Vraćanje: **Aktiviraj**.
+Ako inženjer ima zakazane preglede, pre deaktivacije se vidi njihov spisak sa predlogom zamene (kao kod odsustva):
+**Deaktiviraj i prebaci** ih predaje izabranim inženjerima, a prazna zamena ostavlja pregled da se reši u rasporedu.
 Ako neko odlazi iz firme a treba novi nalog istog imena: otvorite novi nalog sa drugim korisničkim imenom.
 
 ## 5.5 Postavljanje nove lozinke

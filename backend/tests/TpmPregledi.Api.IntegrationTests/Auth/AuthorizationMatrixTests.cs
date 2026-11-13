@@ -44,6 +44,7 @@ public class AuthorizationMatrixTests(CustomWebAppFactory factory)
         ("PUT",  $"/api/v1/korisnici/{NemaId}",                Admin),
         ("POST", $"/api/v1/korisnici/{NemaId}/deaktiviraj",    Admin),
         ("POST", $"/api/v1/korisnici/{NemaId}/aktiviraj",      Admin),
+        ("GET",  $"/api/v1/korisnici/{NemaId}/planirani-pregledi", Admin),
         ("POST", $"/api/v1/korisnici/{NemaId}/reset-lozinka",  Admin),
 
         ("GET",  "/api/v1/audit",                              Admin),
@@ -88,6 +89,7 @@ public class AuthorizationMatrixTests(CustomWebAppFactory factory)
         ("POST", "/api/v1/odsustva/999999/odluka",             Supervizor),
         ("PUT",  "/api/v1/odsustva/999999",                    Supervizor),
         ("POST", "/api/v1/odsustva/999999/otkazi",             Korisnik),
+        ("POST", "/api/v1/odsustva/999999/vrati-preglede",     Supervizor),
         ("GET",  $"/api/v1/odsustva/{NemaId}/pregledi?od=2026-11-09&do=2026-11-15", Supervizor),
         ("GET",  "/api/v1/zahtevi-prebacivanja",               Korisnik),
         ("POST", "/api/v1/zahtevi-prebacivanja",               Inzenjer),

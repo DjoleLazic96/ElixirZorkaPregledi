@@ -9,6 +9,13 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-13 — Zamerke 54–57: deaktivacija, povratak sa odsustva, brisanje neradnog dana, overa svog pregleda (odobreno)
+
+**Kontekst:** dileme iz drugog kruga testiranja scenarija.
+**Odluka:** deaktivacija nudi prebacivanje planiranih pregleda (kao odsustvo); skraćeno ili otkazano odsustvo nudi „Vrati preglede“ za preglede prebačene zbog njega; brisanje neradnog dana nudi „Povuci raspored“ kad dan ostane prazan usred niza; sopstveni pregled (dodeljen ili drugi inženjer PZ-a) se ne overava, ne vraća na doradu i ne odlučuje se o njegovom zahtevu za doradu, bez obzira na prava.
+**Posledice:** nove rute `GET /korisnici/{id}/planirani-pregledi`, `POST /odsustva/{id}/vrati-preglede`; `DELETE /neradni-dani/{id}` vraća `slobodanDan`; `OdsustvoDto.zaVracanje`.
+**Odlučio:** vlasnik projekta (2026-11-13).
+
 ## 2026-11-13 — Zamerke 52–53: neradni dan i započet DP (odobreno)
 
 **Kontekst:** dileme iz testiranja scenarija.
