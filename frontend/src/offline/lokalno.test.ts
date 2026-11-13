@@ -22,11 +22,11 @@ describe('offline/lokalno — primena operacija bez interneta', () => {
     expect(P.status).toBe('planiran');
 
     p = primeniLokalno(p, { vrsta: 'odgovor', podaci: { stavkaId: 11, vrednost: 1, napomena: null } }, 'x');
-    expect(nedostaje(p)).toEqual({ odgovora: 1, napomena: 1 });
+    expect(nedostaje(p)).toEqual({ odgovora: 1, napomena: 1, polja: [] });
 
     p = primeniLokalno(p, { vrsta: 'van_funkcije', podaci: { uredjajId: 2, vanFunkcije: true } }, 'x');
     p = primeniLokalno(p, { vrsta: 'odgovor', podaci: { stavkaId: 11, vrednost: 1, napomena: '2 karike' } }, 'x');
-    expect(nedostaje(p)).toEqual({ odgovora: 0, napomena: 0 });
+    expect(nedostaje(p)).toEqual({ odgovora: 0, napomena: 0, polja: [] });
 
     p = primeniLokalno(p, { vrsta: 'van_funkcije', podaci: { uredjajId: 2, vanFunkcije: false } }, 'x');
     p = primeniLokalno(p, { vrsta: 'sve_ispravno', podaci: { sekcija: '10' } }, 'x');
@@ -34,5 +34,17 @@ describe('offline/lokalno — primena operacija bez interneta', () => {
     expect(p.sekcije[0].uredjaji[0].stavke[0].odgovor?.vrednost).toBe(1, );
 
     expect(primeniLokalno(p, { vrsta: 'predaja', podaci: {} }, 'x').status).toBe('predato_ceka');
+  });
+
+  it('broji i obavezna dodatna polja koja se vide uz odgovor (zamerka 13)', () => {
+    const p = structuredClone(P);
+    const st = p.sekcije[0].uredjaji[0].stavke[0];
+    st.polja = [{ id: 5, naziv: 'Temperatura', tip: 'broj', jedinica: '°C', oznake: [], prikaz: 'uz_neispravan', obavezno: true }];
+    st.odgovor = { vrednost: 0, napomena: null, polja: {} };
+    expect(nedostaje(p).polja).toEqual([]);
+    st.odgovor = { vrednost: 1, napomena: 'vruće', polja: {} };
+    expect(nedostaje(p).polja).toHaveLength(1);
+    st.odgovor = { vrednost: 1, napomena: 'vruće', polja: { '5': 82 } };
+    expect(nedostaje(p).polja).toEqual([]);
   });
 });

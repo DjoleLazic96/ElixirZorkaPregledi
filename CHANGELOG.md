@@ -46,6 +46,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - **Administracija → Podešavanja**: vremena upozorenja, kraj radnog dana, granica pauze, rok za overu i pragovi obaveštenja.
 
 ### Izmenjeno
+- Ekrani se učitavaju tek kad zatrebaju: prvi paket aplikacije je oko 40 % manji (rad bez interneta ostaje isti).
 - **Novi izgled po odobrenom mockup-u**: ElixirZorka logo i zelena linija u zaglavlju, zeleni levi meni sa ikonicama, sadržaj centriran, sva dugmad iste visine i isti razmaci, oznake statusa u boji po značenju (Planiran sivo, U radu žuto, Čeka overu zeleno, Overeno plavo, dorada crveno), stavke lista sa „›“, pretraga kao prozor, Početna sa pozdravom, popunjavanje sa zelenim zaglavljem pregleda i velikim tasterima odgovora.
 - Na telefonu su sva dugmad, padajuće liste i izbor datuma dovoljno veliki za prst (44 px), a pregledi uređaja, ispunjenje plana i istorijat šablona su kartice umesto tabela.
 - Arhiva pregleda na tabletu prikazuje kartice; zaglavlja i paginacija prelaze u novi red umesto da izlaze iz ekrana.
@@ -53,6 +54,13 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Uklonjen primer „Kategorije“ iz skeleta; početni ekran je **Početna**.
 
 ### Ispravljeno
+- Dorada ili kasna predaja starijeg pregleda više ne otvara ni ne zatvara kvar koji je noviji pregled već odredio.
+- Rok i broj akcije otvorene posle ponoći računaju se po beogradskom danu.
+- Obavezna dodatna polja se proveravaju pri predaji (i na telefonu, bez interneta).
+- Sporan unos nastaje samo za inženjera koji je bio na tom pregledu; ostalima se izmena samo odbija.
+- Brisanje slike briše i fajl; u doradi se brišu samo slike dodate u toj doradi.
+- Slanje slike proverava sekciju (PZ sa dva inženjera) i stvarni format fajla (JPG, PNG, WebP).
+- Pregled ne može da se zakaže ni pomeri na dan koji je prošao.
 - Neispravan zahtev za uvoz šablona (bez fajla) vraća 400 umesto 500.
 - Trajanje kvara i „van funkcije“ se ne prikazuje kao negativan broj dana.
 - Posle predaje pregleda Kalendar i Početna odmah pokazuju novi status.

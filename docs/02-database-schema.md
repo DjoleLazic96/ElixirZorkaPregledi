@@ -25,7 +25,7 @@
 | `odsustvo` | odsustva i zahtevi za odsustvo | `ToTable` |
 | `pregled`, `pregled_ucesnik`, `pregled_dogadjaj` | pregledi (DP/PZ), drugi inženjer na PZ-u, istorija | `ToTable` |
 | `zahtev_prebacivanja` | zahtevi inženjera: prebacivanje pregleda i raniji početak PZ-a | `ToTable` |
-| `odgovor`, `uredjaj_van_funkcije`, `fotografija` | odgovori na stavke, „nije u funkciji“, slike uz stavke | `ToTable` |
+| `odgovor`, `uredjaj_van_funkcije`, `fotografija` (uz `dorada` — dorada u kojoj je slika dodata, migracija `FotografijaDorada`) | odgovori na stavke, „nije u funkciji“, slike uz stavke | `ToTable` |
 | `sinhronizacija_operacija` | primljene operacije sa klijenta (idempotentnost po `op_id`) | `ToTable` |
 | `sporan_unos` | operacije stigle posle prebacivanja/poništavanja (R6.8) | `ToTable` |
 | `zahtev_dorade` | zahtevi inženjera za doradu (R6.6) | `ToTable` |

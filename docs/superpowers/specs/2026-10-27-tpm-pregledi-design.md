@@ -461,6 +461,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R3.24** Pregled se započinje najranije na planirani dan; pre toga inženjer vidi „Može da se započne od …“. DP se radi samo na svoj dan (ako inženjer tada nije tu, traži prebacivanje). Za PZ inženjer može da zatraži raniji početak (razlog obavezan); Supervizor ili Direktor odobrava ili odbija, a odobren PZ se pomera na današnji dan. *[O]* (odluka 2026-11-10)
 - **R3.25** Odobreno odsustvo Supervizor ili Direktor može da izmeni (od–do, npr. raniji povratak) ili otkaže; inženjer može da povuče svoj zahtev dok o njemu nije odlučeno. Otkazano odsustvo ostaje zapisano i ne računa se u rasporedu; pregledi prebačeni zbog njega ostaju zamenama dok ih Supervizor ili Direktor ne vrati. Na ekranu „Raspored“ je spisak svih odsustava (tekuća i buduća, uz filter po inženjeru i prikaz ranijih). *[O]* (odluka 2026-11-10)
 - **R3.26** Ručno izabran inženjer (Zakaži PZ, izmena rasporeda, drugi inženjer na PZ-u, zamena pri prebacivanju, potvrda predloga) ne sme biti odsutan tog dana; aplikacija to odbija uz ime, dan i vrstu odsustva. Planiran pregled koji je ostao odsutnom inženjeru je crveno označen i stoji Supervizoru i Direktoru u „Čeka moju odluku“ dok se ne prebaci. *[O]* (2026-11-10)
+- **R3.27** Pregled se ne zakazuje ni ne pomera na dan koji je prošao (potvrda predloga, Zakaži PZ, promena datuma); promena samo inženjera na starom pregledu je dozvoljena. *[O]* (odluka 2026-11-13)
 
 ### A.4 Popunjavanje pregleda
 

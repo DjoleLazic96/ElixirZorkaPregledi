@@ -39,8 +39,10 @@ public sealed record OdgovorDto(short Vrednost, string? Napomena, JsonElement Po
 /// <param name="AktivnostId">Aktivnost (za slike uputstva).</param>
 /// <param name="Uputstvo">Tekst uputstva (R2.4) — ide u paket, pa „?“ radi i bez interneta; null = nije uneto.</param>
 /// <param name="UputstvoSlika">Broj referentnih slika uputstva (učitavaju se sa interneta).</param>
+/// <param name="StareFotografije">Slike iz ranije predate verzije (pre ove dorade) — vide se, ali se ne brišu (zamerka 15).</param>
 public sealed record StavkaPopunjavanjaDto(int StavkaId, string Aktivnost, string OdgovorIspravan, string OdgovorNeispravan,
-    IReadOnlyList<PoljeDto> Polja, OdgovorDto? Odgovor, IReadOnlyList<long> Fotografije, int AktivnostId = 0, string? Uputstvo = null, int UputstvoSlika = 0);
+    IReadOnlyList<PoljeDto> Polja, OdgovorDto? Odgovor, IReadOnlyList<long> Fotografije, int AktivnostId = 0, string? Uputstvo = null, int UputstvoSlika = 0,
+    IReadOnlyList<long>? StareFotografije = null);
 
 /// <summary>Uređaj za popunjavanje.</summary>
 /// <param name="UredjajId">ID.</param>
@@ -128,7 +130,7 @@ public sealed record SinhronizacijaCommand(string? UredjajKlijenta, DateTime? Kl
 // ─── Handler ──────────────────────────────────────────────────────────────
 
 /// <summary>Popunjavanje pregleda: početak, čitanje i operacije.</summary>
-public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUser, IDateTimeProvider clock, IBrojacService brojac) :
+public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUser, IDateTimeProvider clock, IBrojacService brojac, IFajlSkladiste? skladiste = null) :
     IRequestHandler<ZapocniPregledCommand, PopunjavanjeDto>,
     IRequestHandler<GetPopunjavanjeQuery, PopunjavanjeDto>,
     IRequestHandler<SinhronizacijaCommand, SinhronizacijaRezultat>,
@@ -208,8 +210,9 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
         var stavke = await StavkeAsync(verzijaId.Value, ct);
         var odgovori = await db.Odgovori.AsNoTracking().Where(o => o.PregledId == p.Id && o.Dorada == p.Dorada).ToDictionaryAsync(o => o.StavkaId, ct);
         var van = (await db.UredjajiVanFunkcije.AsNoTracking().Where(v => v.PregledId == p.Id).Select(v => v.UredjajId).ToListAsync(ct)).ToHashSet();
-        var slike = (await db.Fotografije.AsNoTracking().Where(f => f.PregledId == p.Id).Select(f => new { f.StavkaId, f.Id }).ToListAsync(ct))
-            .ToLookup(f => f.StavkaId, f => f.Id);
+        var sveSlike = await db.Fotografije.AsNoTracking().Where(f => f.PregledId == p.Id).Select(f => new { f.StavkaId, f.Id, f.Dorada }).ToListAsync(ct);
+        var slike = sveSlike.ToLookup(f => f.StavkaId, f => f.Id);
+        var stareSlike = sveSlike.Where(f => f.Dorada < p.Dorada).ToLookup(f => f.StavkaId, f => f.Id);
         var uredjajIds = stavke.Select(s => s.UredjajId).Distinct().ToList();
         var prosli = await ProsliPutVanFunkcijeAsync(p, uredjajIds, ct);
         var akcije = (await db.Akcije.AsNoTracking().Where(a => a.Status == "otvorena" && uredjajIds.Contains(a.UredjajId))
@@ -224,7 +227,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 gu.Key, gu.First().Naziv, gu.First().Oznaka, van.Contains(gu.Key), prosli.Contains(gu.Key),
                 gu.Select(s => new StavkaPopunjavanjaDto(s.StavkaId, s.Aktivnost, s.Ok, s.Nok, s.Polja,
                     odgovori.TryGetValue(s.StavkaId, out var o) ? new OdgovorDto(o.Vrednost, o.Napomena, JsonDocument.Parse(o.Polja).RootElement.Clone()) : null,
-                    slike[s.StavkaId].ToList(), s.AktivnostId, s.Uputstvo, s.UputstvoSlika)).ToList(), akcije[gu.Key].ToList())).ToList());
+                    slike[s.StavkaId].ToList(), s.AktivnostId, s.Uputstvo, s.UputstvoSlika, stareSlike[s.StavkaId].ToList())).ToList(), akcije[gu.Key].ToList())).ToList());
         }).ToList();
 
         return new PopunjavanjeDto(p.Id, p.Broj, p.Tip, p.Status, p.PlaniraniDatum, p.ZapocetAt, verzijaId, sekcije);
@@ -252,6 +255,31 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
         return new SinhronizacijaRezultat(prihvacene, odbijene, clock.UtcNow);
     }
 
+    /// <summary>
+    /// Da li je korisnik ikad bio dodeljen pregledu ili njegov učesnik: sadašnja dodela, ili događaj u istoriji (dodela, prebacivanje,
+    /// izmena rasporeda, drugi inženjer). Noviji događaji nose ID (<c>inzenjerId</c>, <c>stariId</c>); stariji samo ime.
+    /// </summary>
+    private async Task<bool> BioNaPregleduAsync(int pregledId, string korisnikId, CancellationToken ct)
+    {
+        var p = await db.Pregledi.AsNoTracking().Include(x => x.Ucesnici).FirstOrDefaultAsync(x => x.Id == pregledId, ct);
+        if (p is null) return false;
+        if (p.DodeljenId == korisnikId || p.Ucesnici.Any(u => u.KorisnikId == korisnikId)) return true;
+        var ime = await db.Users.AsNoTracking().Where(u => u.Id == korisnikId).Select(u => u.FullName).FirstOrDefaultAsync(ct);
+        var dogadjaji = await db.PregledDogadjaji.AsNoTracking()
+            .Where(d => d.PregledId == pregledId && (d.Vrsta == "dodela" || d.Vrsta == "promena_pz" || d.Vrsta == "prebacivanje" || d.Vrsta == "izmena_rasporeda" || d.Vrsta == "ucesnik"))
+            .Select(d => d.Podaci).ToListAsync(ct);
+        return dogadjaji.Any(json =>
+        {
+            using var doc = JsonDocument.Parse(json);
+            var r = doc.RootElement;
+            bool Je(JsonElement e, string kId, string kIme) =>
+                (e.TryGetProperty(kId, out var v) && v.GetString() == korisnikId)
+                || (!string.IsNullOrEmpty(ime) && e.TryGetProperty(kIme, out var n) && n.ValueKind == JsonValueKind.String && n.GetString() == ime);
+            return Je(r, "inzenjerId", "inzenjer") || Je(r, "stariId", "stari") || Je(r, "noviId", "novi")
+                || (r.TryGetProperty("stari", out var st) && st.ValueKind == JsonValueKind.Object && Je(st, "inzenjerId", "inzenjer"));
+        });
+    }
+
     /// <summary>Poruka za operaciju čiji podaci nisu u očekivanom obliku (npr. stara verzija aplikacije).</summary>
     public const string PorukaNeispravnaOperacija = "Operacija ima neispravne podatke i nije primenjena.";
 
@@ -262,6 +290,9 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
     /// operaciju (inače bi telefon beskonačno ponavljao isti paket). Paralelni upis (isti <c>opId</c> sa drugog zahteva ili
     /// istovremena izmena pregleda) se ponavlja; ako je operacija u međuvremenu upisana, smatra se prihvaćenom.
     /// </summary>
+    /// <summary>Fajlovi slika obrisanih u ovoj operaciji; brišu se sa diska posle uspešnog upisa u bazu.</summary>
+    private readonly List<Fajl> _zaBrisanje = [];
+
     private async Task<string?> PrimeniJednuAsync(OperacijaInput op, CancellationToken ct)
     {
         for (var pokusaj = 1; ; pokusaj++)
@@ -274,15 +305,23 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                     OpId = op.OpId, PregledId = op.PregledId, Vrsta = op.Vrsta, KlijentAt = op.KlijentAt.ToUniversalTime(), PrimljenoAt = clock.UtcNow,
                 });
                 await db.SaveChangesAsync(ct);
+                foreach (var f in _zaBrisanje)
+                {
+                    try { skladiste?.Obrisi(f); }
+                    catch (IOException) { /* fajl ostaje na disku; zapis je već obrisan, pa se ne prikazuje */ }
+                }
+                _zaBrisanje.Clear();
                 return null;
             }
             catch (AppException ex)
             {
                 // Odbijena operacija ne zaustavlja ostale; klijent dobija razlog za korisnika.
+                _zaBrisanje.Clear();
                 db.ChangeTracker.Clear();
                 var razlog = ex is BusinessRuleException b ? string.Join(" ", b.Greske) : ex.Message;
                 // Pregled je u međuvremenu prebačen ili poništen: urađeno se čuva kao sporan unos (R6.8).
-                if ((ex is ForbiddenException || razlog == "Pregled je poništen.") && await db.Pregledi.AnyAsync(p => p.Id == op.PregledId, ct))
+                // Samo za onoga ko je bio dodeljen tom pregledu ili njegov učesnik (zamerka 14) — ostalima se izmena samo odbija.
+                if ((ex is ForbiddenException || razlog == "Pregled je poništen.") && await BioNaPregleduAsync(op.PregledId, currentUser.UserId!, ct))
                 {
                     db.SporniUnosi.Add(new SporanUnos
                     {
@@ -295,11 +334,13 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
             }
             catch (Exception ex) when (ex is KeyNotFoundException or InvalidOperationException or FormatException or JsonException or OverflowException)
             {
+                _zaBrisanje.Clear();
                 db.ChangeTracker.Clear();
                 return PorukaNeispravnaOperacija;
             }
             catch (DbUpdateException) when (pokusaj < NajvisePokusaja)
             {
+                _zaBrisanje.Clear();
                 db.ChangeTracker.Clear();
                 if (await db.SinhronizacijaOperacije.AnyAsync(o => o.OpId == op.OpId, ct)) return null;
             }
@@ -384,7 +425,15 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 if (f is null) break;
                 var s = stavke.FirstOrDefault(x => x.StavkaId == f.StavkaId) ?? throw new BusinessRuleException("Stavka nije u ovom pregledu.");
                 ProveriSekciju(p, s.Sekcija, k);
+                // Slika iz već predate verzije je dokaz uz napomenu; u doradi se brišu samo slike te dorade (zamerka 15).
+                if (f.Dorada < p.Dorada) throw new BusinessRuleException("U doradi se brišu samo slike dodate u ovoj doradi.");
                 db.Fotografije.Remove(f);
+                var fajl = await db.Fajlovi.FirstOrDefaultAsync(x => x.Id == f.FajlId, ct);
+                if (fajl is not null)
+                {
+                    db.Fajlovi.Remove(fajl);
+                    _zaBrisanje.Add(fajl);   // sa diska tek kad baza potvrdi brisanje
+                }
                 break;
             }
             case "van_funkcije":
@@ -430,7 +479,8 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 if (!AkcijaPravila.Vrste.Contains(vrsta)) throw new BusinessRuleException("Nepoznata vrsta akcije.");
                 if (!AkcijaPravila.Hitnosti.Contains(hitnost)) throw new BusinessRuleException("Nepoznata hitnost akcije.");
                 var opis = op.Podaci.TryGetProperty("opis", out var o) && o.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(o.GetString()) ? o.GetString()!.Trim() : null;
-                var danas = DateOnly.FromDateTime(klijentAt);
+                // Dan po beogradskom vremenu (zamerka 12): UTC posle ponoći je još jučerašnji datum.
+                var danas = AnalitikaPravila.LokalniDan(klijentAt);
                 var sledeciPz = await db.Pregledi.Where(x => x.Tip.StartsWith("PZ") && x.Status == StatusPregleda.Planiran && x.PlaniraniDatum >= danas)
                     .OrderBy(x => x.PlaniraniDatum).Select(x => (DateOnly?)x.PlaniraniDatum).FirstOrDefaultAsync(ct);
                 var a = new Akcija
@@ -513,8 +563,19 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
     {
         var uredjaji = stavke.Select(s => s.UredjajId).Distinct().ToList();
         var otvoreni = await db.Kvarovi.Where(x => x.Zatvoren == null && uredjaji.Contains(x.UredjajId)).ToListAsync(ct);
+        // Zamerka 11: stanje kvara određuje najnoviji predat pregled za stavku. Stariji pregled (dorada, kasna predaja sa telefona)
+        // ne otvara, ne zatvara i ne broji prijavu ako je za istu stavku već predat noviji — inače bi vratio staro stanje.
+        var mojaPredaja = p.PredatAt ?? DateTime.MaxValue;
+        var novije = (await (
+                from x in db.Pregledi
+                join st in db.SablonStavke on x.SablonVerzijaId equals st.VerzijaId
+                where x.Id != p.Id && x.PredatAt != null && x.Status != StatusPregleda.Ponisten && uredjaji.Contains(st.UredjajId)
+                      && (x.PlaniraniDatum > p.PlaniraniDatum || (x.PlaniraniDatum == p.PlaniraniDatum && x.PredatAt > mojaPredaja))
+                select new { st.UredjajId, st.AktivnostId })
+            .Distinct().ToListAsync(ct)).Select(x => (x.UredjajId, x.AktivnostId)).ToHashSet();
         foreach (var s in stavke.Where(s => !van.Contains(s.UredjajId) && odgovori.ContainsKey(s.StavkaId)))
         {
+            if (novije.Contains((s.UredjajId, s.AktivnostId))) continue;
             var o = odgovori[s.StavkaId];
             var kvar = otvoreni.FirstOrDefault(x => x.UredjajId == s.UredjajId && x.AktivnostId == s.AktivnostId);
             if (o.Vrednost == 1)
@@ -540,6 +601,29 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 foreach (var a in akcije) a.StavkaSadaIspravna = true;
             }
         }
+    }
+
+    /// <summary>
+    /// Obavezna dodatna polja koja se vide uz ovaj odgovor (zamerka 13): „uvek“, ili „uz neispravan“ kad je odgovor neispravan,
+    /// a vrednost je prazna. Vraća nazive polja.
+    /// </summary>
+    private static IEnumerable<string> NedostajucaPolja(StavkaInfo s, Odgovor o)
+    {
+        using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(o.Polja) ? "{}" : o.Polja);
+        var r = doc.RootElement;
+        var nedostaju = new List<string>();
+        foreach (var pd in s.Polja.Where(x => x.Obavezno && (x.Prikaz == "uvek" || o.Vrednost == 1)))
+        {
+            var ima = r.ValueKind == JsonValueKind.Object && r.TryGetProperty(pd.Id.ToString(), out var v) && v.ValueKind switch
+            {
+                JsonValueKind.String => !string.IsNullOrWhiteSpace(v.GetString()),
+                JsonValueKind.Array => v.GetArrayLength() > 0 && v.EnumerateArray().All(x => x.ValueKind != JsonValueKind.Null && !(x.ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(x.GetString()))),
+                JsonValueKind.Null or JsonValueKind.Undefined => false,
+                _ => true,
+            };
+            if (!ima) nedostaju.Add(pd.Naziv);
+        }
+        return nedostaju;
     }
 
     /// <summary>
@@ -593,6 +677,10 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
         }
         if (bezOdgovora.Count > 0 || bezNapomene > 0)
             throw new BusinessRuleException($"Pregled još nije potpun: nedostaje {bezOdgovora.Count} odgovora i {bezNapomene} obaveznih napomena.");
+        var bezPolja = potrebne.Where(s => odgovori.ContainsKey(s.StavkaId))
+            .SelectMany(s => NedostajucaPolja(s, odgovori[s.StavkaId]).Select(n => $"{n} – {s.Naziv} {s.Oznaka}".TrimEnd())).ToList();
+        if (bezPolja.Count > 0)
+            throw new BusinessRuleException($"Nedostaje {bezPolja.Count} {(bezPolja.Count == 1 ? "obavezno polje" : "obaveznih polja")} ({string.Join("; ", bezPolja.Take(5))}{(bezPolja.Count > 5 ? "; …" : "")}).");
 
         await ObradiKvaroveAsync(p, stavke, odgovori, van, ct);
         await PonovljeniKvarAsync(p, stavke, odgovori, van, ct);

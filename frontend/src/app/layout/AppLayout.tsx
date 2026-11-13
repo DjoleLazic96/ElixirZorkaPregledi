@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useToast } from '../providers/ToastProvider';
 import { ROLA_LABELE, imaPravo, type Rola } from '../../lib/permissions';
 import { obrisiLokalno, sinhronizuj, useStanjeSinhronizacije } from '../../offline/sinhronizacija';
@@ -9,6 +9,7 @@ import { PromenaLozinke } from '../../components/PromenaLozinke';
 import { AnchoredDropdown } from '../../components/ui/AnchoredDropdown';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Ucitavanje } from '../../components/ui/Spinner';
 import { Pretraga } from '../../features/analitika/Pretraga';
 import { iskljuciPush } from '../../features/obavestenja/hooks';
 import { PushDijalog, Zvono } from '../../features/obavestenja/Zvono';
@@ -138,7 +139,7 @@ export function AppLayout() {
             {/* `key` na putanji remount-uje omotač pri svakoj navigaciji, pa se
                 `animate-fade-in` ponovo okine (isključeno pri reduced-motion). */}
             <div key={location.pathname} className="animate-fade-in">
-              <Outlet />
+              <Suspense fallback={<Ucitavanje />}><Outlet /></Suspense>
             </div>
           </div>
         </main>

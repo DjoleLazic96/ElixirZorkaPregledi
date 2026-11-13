@@ -71,9 +71,9 @@ describe('AppRoutes — guardovi', () => {
     expect(screen.queryByText('AUDIT-EKRAN')).not.toBeInTheDocument();
   });
 
-  it('Admin na /admin dolazi na podstranu Korisnici (index redirect)', () => {
+  it('Admin na /admin dolazi na podstranu Korisnici (index redirect)', async () => {
     renderAt('/admin', ADMIN);
-    expect(screen.getByText('KORISNICI-EKRAN')).toBeInTheDocument();
+    expect(await screen.findByText('KORISNICI-EKRAN')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Korisnici' })).toHaveAttribute('aria-selected', 'true');
   });
 
@@ -82,9 +82,9 @@ describe('AppRoutes — guardovi', () => {
     expect(screen.getByText('POCETNA-EKRAN')).toBeInTheDocument();
   });
 
-  it('Admin vidi audit log i stanje servera', () => {
+  it('Admin vidi audit log i stanje servera', async () => {
     renderAt('/stanje-servera', ADMIN);
-    expect(screen.getByText('SERVER-EKRAN')).toBeInTheDocument();
+    expect(await screen.findByText('SERVER-EKRAN')).toBeInTheDocument();
   });
 
   it('nepoznata adresa daje 404 stranicu unutar layout-a, ne tihi redirect', () => {

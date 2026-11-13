@@ -182,6 +182,25 @@ public class PopunjavanjeTests
     }
 
     [Fact]
+    public async Task Predaja_trazi_obavezna_dodatna_polja()
+    {
+        var o = await PripremiAsync();
+        await using var _ = o.H;
+        foreach (var dp in await o.H.Db.DodatnaPolja.ToListAsync()) dp.Obavezno = true;
+        await o.H.Db.SaveChangesAsync();
+        var sut = Sut(o, o.Ana);
+        await sut.Handle(new ZapocniPregledCommand(o.PregledId), default);
+        var r = await sut.Handle(new SinhronizacijaCommand(null, null,
+        [
+            Op(o, "odgovor", new { stavkaId = o.Stavke[0], vrednost = 1, napomena = "pukao lanac" }, 0),
+            Op(o, "odgovor", new { stavkaId = o.Stavke[1], vrednost = 0 }, 1),
+            Op(o, "odgovor", new { stavkaId = o.Stavke[2], vrednost = 0 }, 2),
+            Op(o, "predaja", new { }, 3),
+        ]), default);
+        r.Odbijene.Single().Razlog.Should().Be("Nedostaje 1 obavezno polje (Broj nedostajućih / oštećenih komada – Redler 20-CR-05).");
+    }
+
+    [Fact]
     public async Task PZ_sa_dva_inzenjera_svako_upisuje_samo_u_svoje_sekcije()
     {
         var o = await PripremiAsync();
@@ -200,6 +219,28 @@ public class PopunjavanjeTests
         ana.Odbijene.Single().Razlog.Should().StartWith("PZ se predaje kad su sve sekcije gotove. Nedostaje: sekcija 20");
     }
 
+    private static readonly byte[] Jpeg = [0xFF, 0xD8, 0xFF, 0xE0, 1, 2];
+
+    [Fact]
+    public async Task Slika_mora_biti_prava_slika_i_u_svojoj_sekciji()
+    {
+        var o = await PripremiAsync();
+        await using var _ = o.H;
+        var p = await o.H.Db.Pregledi.Include(x => x.Ucesnici).SingleAsync();
+        p.Ucesnici.Add(new PregledUcesnik { KorisnikId = o.Bora, Sekcije = ["30"] });
+        await o.H.Db.SaveChangesAsync();
+        await Sut(o, o.Ana).Handle(new ZapocniPregledCommand(o.PregledId), default);
+        var ana = new FotografijeHandler(o.H.Db, new FakeSkladiste(), new FakeCurrentUser { UserId = o.Ana }, new FakeClock());
+
+        (await FluentActions.Awaiting(() => ana.Handle(new SacuvajFotografijuCommand(Guid.NewGuid(), o.PregledId, o.Stavke[0], "kamera", [0x3C, 0x68, 0x74, 0x6D], "image/jpeg"), default))
+            .Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal("Fajl nije slika (dozvoljeni su JPG, PNG i WebP).");
+        await FluentActions.Awaiting(() => ana.Handle(new SacuvajFotografijuCommand(Guid.NewGuid(), o.PregledId, o.Stavke[2], "kamera", Jpeg, "image/jpeg"), default))
+            .Should().ThrowAsync<BusinessRuleException>();   // sekcija 30 je Borina
+        (await ana.Handle(new SacuvajFotografijuCommand(Guid.NewGuid(), o.PregledId, o.Stavke[0], "kamera", Jpeg, "image/jpeg"), default)).Should().BePositive();
+        FotografijeHandler.JeSlika([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]).Should().BeTrue();
+        FotografijeHandler.JeSlika("RIFF0000WEBP"u8.ToArray()).Should().BeTrue();
+    }
+
     [Fact]
     public async Task Tudji_pregled_403_a_sesta_slika_422()
     {
@@ -210,9 +251,9 @@ public class PopunjavanjeTests
 
         var slike = new FotografijeHandler(o.H.Db, new FakeSkladiste(), new FakeCurrentUser { UserId = o.Ana }, new FakeClock());
         for (var i = 0; i < FotografijeHandler.NajviseSlika; i++)
-            await slike.Handle(new SacuvajFotografijuCommand(Guid.NewGuid(), o.PregledId, o.Stavke[0], "kamera", [1, 2], "image/jpeg"), default);
+            await slike.Handle(new SacuvajFotografijuCommand(Guid.NewGuid(), o.PregledId, o.Stavke[0], "kamera", Jpeg, "image/jpeg"), default);
         var ista = Guid.NewGuid();
-        var sesta = () => slike.Handle(new SacuvajFotografijuCommand(ista, o.PregledId, o.Stavke[0], "galerija", [1], "image/jpeg"), default);
+        var sesta = () => slike.Handle(new SacuvajFotografijuCommand(ista, o.PregledId, o.Stavke[0], "galerija", Jpeg, "image/jpeg"), default);
         (await sesta.Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal("Najviše 5 slika po stavci.");
         (await o.H.Db.Fotografije.CountAsync()).Should().Be(5);
 
@@ -223,6 +264,15 @@ public class PopunjavanjeTests
         (await o.H.Db.Fotografije.CountAsync()).Should().Be(4);
         (await Sut(o, o.Ana).Handle(new SinhronizacijaCommand(null, null, [Op(o, "obrisi_sliku", new { fotografijaId = prva, stavkaId = o.Stavke[0] }, 6)]), default))
             .Odbijene.Should().BeEmpty();
+        (await o.H.Db.Fajlovi.CountAsync()).Should().Be(4, "uz sliku se briše i zapis fajla (zamerka 15)");
+
+        // U doradi se ne briše slika iz predate verzije.
+        var pr = await o.H.Db.Pregledi.SingleAsync();
+        pr.Dorada = 1;
+        await o.H.Db.SaveChangesAsync();
+        var druga = await o.H.Db.Fotografije.Select(f => f.Id).FirstAsync();
+        (await Sut(o, o.Ana).Handle(new SinhronizacijaCommand(null, null, [Op(o, "obrisi_sliku", new { fotografijaId = druga, stavkaId = o.Stavke[0] }, 7)]), default))
+            .Odbijene.Single().Razlog.Should().Be("U doradi se brišu samo slike dodate u ovoj doradi.");
     }
 }
 
@@ -294,6 +344,7 @@ public class RadBezInternetaTests
         var (h, ana, bora, id) = await PripremiAsync();
         await using var _ = h;
         var p = await h.Db.Pregledi.SingleAsync();
+        TpmPregledi.Application.Features.Raspored.PregledIstorija.Dodaj(h.Db, p, "prebacivanje", new { stari = "Ana", stariId = ana, novi = "Bora", noviId = bora }, null, T0);
         p.DodeljenId = bora;
         await h.Db.SaveChangesAsync();
 
@@ -302,6 +353,13 @@ public class RadBezInternetaTests
 
         r.Odbijene.Should().ContainSingle();
         (await h.Db.SporniUnosi.SingleAsync()).KorisnikId.Should().Be(ana);
+
+        // Zamerka 14: neko ko nikad nije bio na pregledu dobija samo odbijanje, bez spornog unosa.
+        var ceca = await h.SeedUserAsync("ceca", "Inzenjer2026!", Roles.Inzenjer);
+        var tudji = await new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ceca.Id }, new FakeClock(FakeClock.PosleRasporeda), new FakeBrojac())
+            .Handle(new SinhronizacijaCommand("telefon-9", null, [Op(id, "zapocni", new { }, 1)]), default);
+        tudji.Odbijene.Should().ContainSingle();
+        (await h.Db.SporniUnosi.CountAsync()).Should().Be(1);
     }
 
     [Fact]

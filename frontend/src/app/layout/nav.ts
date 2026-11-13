@@ -10,7 +10,7 @@ export interface NavItem {
 }
 
 /** Redosled i ikonice prate mockup (`docs/mockup/index.html`, `NAV`); donji meni na telefonu uzima prve četiri vidljive. */
-export const NAV: NavItem[] = [
+const NAV: NavItem[] = [
   { to: '/', label: 'Početna', ikona: '🏠' },
   { to: '/pregledi', label: 'Pregledi', ikona: '📋' },
   {

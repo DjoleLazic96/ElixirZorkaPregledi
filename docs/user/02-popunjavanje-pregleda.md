@@ -19,7 +19,8 @@ Gore su sekcije (npr. **10 3/55** = popunjeno 3 od 55). Uz svaku aktivnost su dv
 - Uz neispravan odgovor napomena je obavezna (polje je crveno dok je prazno); uz ispravan je moguća (**Napomena**).
 - Kod nekih aktivnosti uz neispravan odgovor pojavi se dodatno polje (broj rolni koje ne okreću, temperatura ležaja, broj komada); nije obavezno.
 - **Fotografiši** ili **Iz galerije** dodaje sliku (najviše 5 po stavci); aplikacija je sama smanjuje. Dodate slike se vide kao sličice
-  ispod stavke: dodir otvara sliku, a **Obriši sliku** je briše (dok pregled nije predat, i bez interneta).
+  ispod stavke: dodir otvara sliku, a **Obriši sliku** je briše (dok pregled nije predat, i bez interneta). U doradi se brišu samo
+  slike dodate u toj doradi; slike iz predate verzije ostaju. Obavezna dodatna polja moraju biti popunjena pre predaje.
 - Na dnu sekcije su dugmad za prethodnu i sledeću sekciju; kad je sekcija gotova, dugme za sledeću je zeleno.
 - **Nije u funkciji** važi za ceo uređaj i samo za ovaj pregled; njegove aktivnosti se ne popunjavaju. Ako je uređaj prošli put bio
   van funkcije, piše „Prošli put: nije u funkciji“ uz dugme **I dalje nije u funkciji**.

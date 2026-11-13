@@ -55,6 +55,44 @@ public class AkcijeIKvaroviTests
     private static AkcijeIKvaroviHandler Ekran(Okr o) => new(o.H.Db, new FakeCurrentUser { UserId = o.Ana, Roles = [Roles.Supervizor] }, new FakeClock(FakeClock.PosleRasporeda.AddHours(1)));
 
     [Fact]
+    public async Task Kvar_menja_samo_najnoviji_predat_pregled_za_stavku()
+    {
+        var o = await PripremiAsync();
+        await using var _ = o.H;
+        // Noviji (13.11.) je predat prvi i kaže „ispravno“; stariji (11.11.) stiže kasnije sa „neispravno“ → kvar se ne otvara.
+        var novi = await NoviPregledAsync(o, "DP1-2026-0002", new DateOnly(2026, 11, 13));
+        await PosaljiAsync(o, novi, ("zapocni", new { }), ("odgovor", new { stavkaId = o.Stavke[0], vrednost = 0 }), ("odgovor", new { stavkaId = o.Stavke[1], vrednost = 0 }), ("predaja", new { }));
+        var stari = await NoviPregledAsync(o, "DP1-2026-0001", new DateOnly(2026, 11, 11));
+        (await PosaljiAsync(o, stari, ("zapocni", new { }), ("odgovor", new { stavkaId = o.Stavke[0], vrednost = 1, napomena = "ne okreće" }),
+            ("odgovor", new { stavkaId = o.Stavke[1], vrednost = 0 }), ("predaja", new { }))).Odbijene.Should().BeEmpty();
+        (await o.H.Db.Kvarovi.CountAsync()).Should().Be(0, "noviji pregled je već rekao da je stavka ispravna");
+
+        // Obrnuto: noviji (16.11.) otvara kvar; stariji (15.11.) sa „ispravno“ predat kasnije ga ne zatvara.
+        var p16 = await NoviPregledAsync(o, "DP1-2026-0004", new DateOnly(2026, 11, 16));
+        await PosaljiAsync(o, p16, ("zapocni", new { }), ("odgovor", new { stavkaId = o.Stavke[0], vrednost = 1, napomena = "ne okreće" }), ("odgovor", new { stavkaId = o.Stavke[1], vrednost = 0 }), ("predaja", new { }));
+        var p15 = await NoviPregledAsync(o, "DP1-2026-0003", new DateOnly(2026, 11, 15));
+        await PosaljiAsync(o, p15, ("zapocni", new { }), ("odgovor", new { stavkaId = o.Stavke[0], vrednost = 0 }), ("odgovor", new { stavkaId = o.Stavke[1], vrednost = 0 }), ("predaja", new { }));
+        var kvar = await o.H.Db.Kvarovi.SingleAsync();
+        kvar.Zatvoren.Should().BeNull();
+        kvar.Prijava.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Rok_akcije_posle_ponoci_racuna_se_po_beogradskom_danu()
+    {
+        var o = await PripremiAsync();
+        await using var _ = o.H;
+        var p = await NoviPregledAsync(o, "DP1-2026-0001", new DateOnly(2026, 11, 12));
+        await PosaljiAsync(o, p, ("zapocni", new { }));
+        var jo = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        // 12.11. u 23:30 UTC je 13.11. u 00:30 u Beogradu → „hitno“ ima rok 14.11. (zamerka 12).
+        await new PopunjavanjeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana }, new FakeClock(FakeClock.PosleRasporeda), o.Brojac).Handle(new SinhronizacijaCommand(null, null,
+            [new OperacijaInput(Guid.NewGuid(), "akcija", p, new DateTime(2026, 11, 12, 23, 30, 0, DateTimeKind.Utc),
+                JsonSerializer.SerializeToElement(new { stavkaId = o.Stavke[0], vrsta = "ostalo", hitnost = "hitno", opis = (string?)null }, jo))]), default);
+        (await o.H.Db.Akcije.SingleAsync()).Rok.Should().Be(new DateOnly(2026, 11, 14));
+    }
+
+    [Fact]
     public void Rok_iz_hitnosti()
     {
         var d = new DateOnly(2026, 11, 9);

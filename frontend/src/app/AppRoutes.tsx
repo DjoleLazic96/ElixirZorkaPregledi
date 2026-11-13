@@ -1,31 +1,38 @@
+import { lazy } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { adresaPovratka } from '../features/auth/povratak';
 import { NijePronadjeno } from '../components/NijePronadjeno';
 import { Ucitavanje } from '../components/ui/Spinner';
 import { Zasticeno } from '../components/Zasticeno';
 import { AdminLayout } from '../features/admin/AdminLayout';
-import { PodesavanjaPage } from '../features/admin/podesavanja/PodesavanjaPage';
-import { KorisniciPage } from '../features/admin/korisnici/KorisniciPage';
-import { AuditLogPage } from '../features/audit-log/AuditLogPage';
 import { useAuth } from '../features/auth/AuthProvider';
 import { LoginPage } from '../features/auth/LoginPage';
-import { AnalitikaPage } from '../features/analitika/AnalitikaPage';
 import { DashboardPage } from '../features/analitika/DashboardPage';
-import { QrPage } from '../features/analitika/Pretraga';
-import { UredjajEkranPage } from '../features/analitika/UredjajEkranPage';
-import { PopunjavanjePage } from '../features/popunjavanje/PopunjavanjePage';
-import { AkcijaPage, AkcijePage, KvarPage, NeispravnostiPage } from '../features/akcije/AkcijePages';
-import { PregledDetaljPage } from '../features/pregledi/PregledDetaljPage';
-import { PreglediPage } from '../features/pregledi/PreglediPage';
-import { KalendarPage } from '../features/raspored/KalendarPage';
-import { MojaOdsustvaPage, NeradniDaniPage } from '../features/raspored/OdsustvaINeradniPages';
-import { RasporedPage } from '../features/raspored/RasporedPage';
-import { NacrtPage } from '../features/sabloni/IzmenePages';
-import { SabloniPage } from '../features/sabloni/SabloniPage';
-import { UredjajiPage } from '../features/sabloni/UredjajiPage';
-import { StanjeServeraPage } from '../features/stanje-servera/StanjeServeraPage';
 import { canEditOprema, canSeeAdminSection, imaPravo, isAdmin, isKorisnik } from '../lib/permissions';
 import { AppLayout } from './layout/AppLayout';
+
+/** Ekrani se učitavaju tek kad zatrebaju (manji prvi paket na telefonu); PWA ih ionako sve čuva za rad bez interneta. */
+const PodesavanjaPage = lazy(() => import('../features/admin/podesavanja/PodesavanjaPage').then((x) => ({ default: x.PodesavanjaPage })));
+const KorisniciPage = lazy(() => import('../features/admin/korisnici/KorisniciPage').then((x) => ({ default: x.KorisniciPage })));
+const AuditLogPage = lazy(() => import('../features/audit-log/AuditLogPage').then((x) => ({ default: x.AuditLogPage })));
+const AnalitikaPage = lazy(() => import('../features/analitika/AnalitikaPage').then((x) => ({ default: x.AnalitikaPage })));
+const QrPage = lazy(() => import('../features/analitika/Pretraga').then((x) => ({ default: x.QrPage })));
+const UredjajEkranPage = lazy(() => import('../features/analitika/UredjajEkranPage').then((x) => ({ default: x.UredjajEkranPage })));
+const PopunjavanjePage = lazy(() => import('../features/popunjavanje/PopunjavanjePage').then((x) => ({ default: x.PopunjavanjePage })));
+const AkcijaPage = lazy(() => import('../features/akcije/AkcijePages').then((x) => ({ default: x.AkcijaPage })));
+const AkcijePage = lazy(() => import('../features/akcije/AkcijePages').then((x) => ({ default: x.AkcijePage })));
+const KvarPage = lazy(() => import('../features/akcije/AkcijePages').then((x) => ({ default: x.KvarPage })));
+const NeispravnostiPage = lazy(() => import('../features/akcije/AkcijePages').then((x) => ({ default: x.NeispravnostiPage })));
+const PregledDetaljPage = lazy(() => import('../features/pregledi/PregledDetaljPage').then((x) => ({ default: x.PregledDetaljPage })));
+const PreglediPage = lazy(() => import('../features/pregledi/PreglediPage').then((x) => ({ default: x.PreglediPage })));
+const KalendarPage = lazy(() => import('../features/raspored/KalendarPage').then((x) => ({ default: x.KalendarPage })));
+const MojaOdsustvaPage = lazy(() => import('../features/raspored/OdsustvaINeradniPages').then((x) => ({ default: x.MojaOdsustvaPage })));
+const NeradniDaniPage = lazy(() => import('../features/raspored/OdsustvaINeradniPages').then((x) => ({ default: x.NeradniDaniPage })));
+const RasporedPage = lazy(() => import('../features/raspored/RasporedPage').then((x) => ({ default: x.RasporedPage })));
+const NacrtPage = lazy(() => import('../features/sabloni/IzmenePages').then((x) => ({ default: x.NacrtPage })));
+const SabloniPage = lazy(() => import('../features/sabloni/SabloniPage').then((x) => ({ default: x.SabloniPage })));
+const UredjajiPage = lazy(() => import('../features/sabloni/UredjajiPage').then((x) => ({ default: x.UredjajiPage })));
+const StanjeServeraPage = lazy(() => import('../features/stanje-servera/StanjeServeraPage').then((x) => ({ default: x.StanjeServeraPage })));
 
 /**
  * Mapa ruta (blueprint 13 §4).

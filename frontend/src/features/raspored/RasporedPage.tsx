@@ -195,7 +195,7 @@ function PzModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal open title="Zakaži PZ" onClose={onClose}>
       <form onSubmit={potvrdi} className="space-y-4" noValidate>
-        <FormField label="Datum" htmlFor="pz-datum"><DatePicker id="pz-datum" value={datum} onChange={setDatum} clearable={false} /></FormField>
+        <FormField label="Datum" htmlFor="pz-datum"><DatePicker id="pz-datum" value={datum} onChange={setDatum} min={danasYmd()} clearable={false} /></FormField>
         <FormField label="PZ" htmlFor="pz-tip" hint={sledeci.data ? `Sledeći po redu: ${sledeci.data}. Drugi izbor je „Promeni PZ“.` : undefined}>
           <Select id="pz-tip" value={izabraniTip} onChange={setTip} options={['PZ1', 'PZ2', 'PZ3', 'PZ4'].map((t) => ({ value: t, label: t }))} />
         </FormField>

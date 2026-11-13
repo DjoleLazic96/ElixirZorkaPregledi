@@ -298,7 +298,7 @@ public sealed class OdsustvaHandler(IAppDbContext db, ICurrentUser currentUser, 
             if (p.Status != StatusPregleda.Planiran) throw new BusinessRuleException(PorukaZapocet);
             k.ProveriInzenjera(x.ZamenaId);
             k.ProveriDostupnost(x.ZamenaId, p.PlaniraniDatum);
-            PregledIstorija.Dodaj(db, p, "prebacivanje", new { razlog = "odsustvo", stari = k.Ime(p.DodeljenId), novi = k.Ime(x.ZamenaId) }, currentUser.UserId, sada);
+            PregledIstorija.Dodaj(db, p, "prebacivanje", new { razlog = "odsustvo", stari = k.Ime(p.DodeljenId), stariId = p.DodeljenId, novi = k.Ime(x.ZamenaId), noviId = x.ZamenaId }, currentUser.UserId, sada);
             await Obavesti.DodajAsync(db, [x.ZamenaId], VrsteObavestenja.Dodela, $"Dodeljen vam je {p.Broj}",
                 $"{p.Broj} za {p.PlaniraniDatum:dd.MM.yyyy} je sada vaš (zamena za {k.Ime(p.DodeljenId)}).", "/kalendar", null, sada, ct);
             p.DodeljenId = x.ZamenaId;
@@ -462,7 +462,7 @@ public sealed class ZahteviPrebacivanjaHandler(IAppDbContext db, ICurrentUser cu
                 p.Ucesnici.Add(new PregledUcesnik { KorisnikId = req.ZamenaId!, Sekcije = ucesnik.Sekcije });
             }
             else p.DodeljenId = req.ZamenaId!;
-            PregledIstorija.Dodaj(db, p, "prebacivanje", new { razlog = z.Razlog, stari = k.Ime(z.PodneoId), novi = k.Ime(req.ZamenaId) }, currentUser.UserId, sada);
+            PregledIstorija.Dodaj(db, p, "prebacivanje", new { razlog = z.Razlog, stari = k.Ime(z.PodneoId), stariId = z.PodneoId, novi = k.Ime(req.ZamenaId), noviId = req.ZamenaId }, currentUser.UserId, sada);
             z.ZamenaId = req.ZamenaId;
         }
         z.Status = req.Odobreno ? "odobreno" : "odbijeno";

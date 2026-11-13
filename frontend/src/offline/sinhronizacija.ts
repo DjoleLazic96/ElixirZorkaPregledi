@@ -73,23 +73,21 @@ export const db = new TpmDb();
 
 let korisnik: string | null = null;
 
-/** Prijavljeni korisnik čiji se red šalje; `null` posle odjave ili isteka sesije. */
-export function aktivniKorisnik(): string | null {
-  return korisnik;
-}
-
 /**
- * Poziva se pri prijavi, odjavi i isteku sesije. Stavke iz verzije bez `korisnikId` pripadaju prvom korisniku koji se
- * prijavi posle nadogradnje. Kad se prijavi drugi korisnik, briše se samo paket (pregledi i ETag) — tuđi red ostaje.
+ * Poziva se pri prijavi, odjavi i isteku sesije. Stavke iz verzije bez `korisnikId` pripadaju samo vlasniku paketa
+ * (zamerka 14). Kad se prijavi drugi korisnik, briše se samo paket (pregledi i ETag) — tuđi red ostaje.
  */
 export async function postaviKorisnika(id: string | null): Promise<void> {
   korisnik = id;
   if (id === null) return;
   await db.transaction('rw', [db.pregledi, db.red, db.slike, db.odbijene, db.meta], async () => {
-    await db.red.filter((x) => x.korisnikId === undefined).modify({ korisnikId: id });
-    await db.slike.filter((x) => x.korisnikId === undefined).modify({ korisnikId: id });
-    await db.odbijene.filter((x) => x.korisnikId === undefined).modify({ korisnikId: id });
     const vlasnik = (await db.meta.get('korisnikPaketa'))?.vrednost;
+    // Stavke stare verzije bez korisnika pripadaju samo vlasniku paketa — ne prvom ko se prijavi (zamerka 14).
+    if (vlasnik === id) {
+      await db.red.filter((x) => x.korisnikId === undefined).modify({ korisnikId: id });
+      await db.slike.filter((x) => x.korisnikId === undefined).modify({ korisnikId: id });
+      await db.odbijene.filter((x) => x.korisnikId === undefined).modify({ korisnikId: id });
+    }
     if (vlasnik !== id) {
       await db.pregledi.clear();
       await db.meta.bulkDelete(['etag', 'poslednjaSinhronizacija']);
@@ -104,7 +102,7 @@ function prijavljen(): string {
 }
 
 /** ID instalacije na ovom telefonu (R10.5). Nije tajna; ako storage nije dostupan, svaki start dobija novi. */
-export function uredjajKlijenta(): string {
+function uredjajKlijenta(): string {
   try {
     let id = localStorage.getItem('tpm.uredjajKlijenta');
     if (!id) {

@@ -31,6 +31,8 @@ export interface StavkaPopunjavanjaDto {
   polja: PoljeDto[];
   odgovor: OdgovorDto | null;
   fotografije: number[];
+  /** Slike iz ranije predate verzije (pre ove dorade): vide se, ali se ne brišu (zamerka 15). */
+  stareFotografije?: number[];
   /** Uputstvo aktivnosti (R2.4): tekst je u paketu, pa radi i bez interneta; slike se učitavaju sa servera. */
   aktivnostId: number;
   uputstvo: string | null;
