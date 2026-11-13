@@ -9,6 +9,19 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-13 — Playwright za testove kroz pregledač; odbijene slike na telefonu (odobreno)
+
+**Kontekst:** predlozi 19 i 20 posle pregleda koda: slika koju server trajno odbije ostajala je na telefonu bez ikakvog
+izlaza (nije se videla, nije mogla da se pošalje ponovo ni obriše), a ceo tok kroz pregledač (prijava, rad bez interneta,
+predaja) proveravao se samo ručno.
+**Odluka:** (1) odbijene slike se prikazuju na svakom ekranu inženjera sa razlogom, uz „Pošalji ponovo“ (dok se pregled još
+popunjava; prevelika slika se pre toga još jednom smanji), „Sačuvaj na telefon“ i „Odbaci“ (uz potvrdu). (2) Nova razvojna
+biblioteka `@playwright/test` 1.64.1 (samo za testove, ne ulazi u aplikaciju); CI posao „E2E (Playwright)“ pokreće API nad
+praznom bazom i produkcijski build fronta, sa nasumičnim lozinkama za svako pokretanje.
+**Posledice:** `frontend/e2e/`, `playwright.config.ts`, `npm run e2e`; komponenta `OdbijeneSlike`; odbijena slika čuva stavku
+i izvor. R10.11.
+**Odlučio:** vlasnik projekta (2026-11-13).
+
 ## 2026-11-13 — Kvar određuje najnoviji predat pregled; zakazivanje u prošlost zabranjeno (odobreno)
 
 **Kontekst:** testiranje 13.11. (zamerke 11 i 18): dorada ili kasna predaja starijeg pregleda je ponovo otvarala kvar koji je noviji pregled zatvorio, a pregled se mogao zakazati za prošli dan.

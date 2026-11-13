@@ -40,7 +40,9 @@ preglede za danas i narednih 7 dana. Bez interneta popunjavate isto kao inače; 
 slanje: N promena, M slika**, a predat pregled ima status **Predato – čeka slanje**. Kad se veza vrati, sve se šalje samo.
 Na ekranu pregleda piše **Poslednja sinhronizacija: HH:MM**. Odjava je moguća tek kad se sve pošalje.
 Započet pregled se nastavlja samo na telefonu na kom je započet.
-Slike pregleda se šalju pre predaje. Ako server sliku ipak ne primi, razlog piše na ekranu pregleda, a slika ostaje na telefonu.
+Slike pregleda se šalju pre predaje. Ako server sliku ipak ne primi, na vrhu svakog ekrana piše crveno koja slika i zašto, a
+slika ostaje na telefonu. Uz nju su dugmad **Pošalji ponovo** (dok se pregled još popunjava), **Sačuvaj na telefon** (npr. da je
+predate Supervizoru) i **Odbaci** (traži potvrdu; slika postoji samo na telefonu).
 
 Ako server odbije promene (npr. pregled je započet na drugom uređaju), na ekranu pregleda piše crveno **Neke promene nisu sačuvane
 na serveru** sa razlogom, a pregled se vraća na stanje sa servera. Pregled se radi na uređaju na kome je započet; ako je telefon

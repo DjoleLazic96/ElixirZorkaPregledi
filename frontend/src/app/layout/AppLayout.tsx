@@ -14,6 +14,7 @@ import { Pretraga } from '../../features/analitika/Pretraga';
 import { iskljuciPush } from '../../features/obavestenja/hooks';
 import { PushDijalog, Zvono } from '../../features/obavestenja/Zvono';
 import { DonjiMeni, Sidebar } from './Sidebar';
+import { OdbijeneSlike } from '../../features/popunjavanje/OdbijeneSlike';
 
 /**
  * Okvir aplikacije po mockup-u: zaglavlje preko cele širine, ispod zeleni levi meni i centriran sadržaj; na telefonu donji meni. `AppRoutes` garantuje da je korisnik ulogovan pre nego što se ovo mount-uje.
@@ -136,6 +137,7 @@ export function AppLayout() {
                 Bez interneta{inzenjer && ` — čeka slanje: ${sinh.promena} promena, ${sinh.slika} slika`}
               </div>
             )}
+            {inzenjer && <OdbijeneSlike korisnikId={me?.user.id} />}
             {/* `key` na putanji remount-uje omotač pri svakoj navigaciji, pa se
                 `animate-fade-in` ponovo okine (isključeno pri reduced-motion). */}
             <div key={location.pathname} className="animate-fade-in">

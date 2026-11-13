@@ -6,6 +6,8 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- Slika koju server ne primi vidi se na svakom ekranu inženjera sa razlogom: „Pošalji ponovo“ (dok se pregled popunjava), „Sačuvaj na telefon“ ili „Odbaci“.
+- Testovi kroz pravi pregledač (Playwright) u CI-ju: prijava, meni po rolama i ceo tok inženjera bez interneta.
 - Popunjavanje: sličice dodatih slika uz stavku; dodir otvara sliku, a iz nje se briše (i bez interneta).
 - Popunjavanje: dugmad za prethodnu i sledeću sekciju na dnu sekcije; „Sledeća“ je zelena kad je sekcija gotova.
 - Stranica pregleda: „Otključaj za drugi uređaj“ (Supervizor, Direktor) kad je telefon zamenjen ili je pregled započet u pogrešnom browseru.
@@ -54,6 +56,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Uklonjen primer „Kategorije“ iz skeleta; početni ekran je **Početna**.
 
 ### Ispravljeno
+- Greška pri prijavi se najavljuje čitaču ekrana.
 - Dorada ili kasna predaja starijeg pregleda više ne otvara ni ne zatvara kvar koji je noviji pregled već odredio.
 - Rok i broj akcije otvorene posle ponoći računaju se po beogradskom danu.
 - Obavezna dodatna polja se proveravaju pri predaji (i na telefonu, bez interneta).

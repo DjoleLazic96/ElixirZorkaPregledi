@@ -50,3 +50,63 @@ jobs:
       - run: npm run build
       - name: npm audit (High/Critical blokiraju)
         run: npm audit --audit-level=high
+
+  e2e:
+    # Testovi kroz pravi pregledač (zamerka 20): API nad praznom bazom + produkcijski build fronta + Playwright (Chromium).
+    # Lozinke su nasumične za svako pokretanje; baza postoji samo dok traje posao.
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16.15-alpine
+        env:
+          POSTGRES_DB: tpm_e2e
+          POSTGRES_USER: tpm_pregledi
+          POSTGRES_PASSWORD: e2e-ci-samo-za-test
+        ports: ["55434:5432"]
+        options: >-
+          --health-cmd "pg_isready -U tpm_pregledi -d tpm_e2e"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Nasumične lozinke za ovo pokretanje
+        run: |
+          echo "E2E_ADMIN_LOZINKA=A$(openssl rand -hex 12)a1!" >> "$GITHUB_ENV"
+          echo "E2E_LOZINKA=P$(openssl rand -hex 12)b2!" >> "$GITHUB_ENV"
+      - name: Build API
+        run: dotnet build backend/src/TpmPregledi.Api --configuration Release
+      - name: Pokreni API (Development, prazna baza)
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ConnectionStrings__Default: Host=localhost;Port=55434;Database=tpm_e2e;Username=tpm_pregledi;Password=e2e-ci-samo-za-test
+          Admin__InitialPassword: ${{ env.E2E_ADMIN_LOZINKA }}
+        run: |
+          nohup dotnet run --project backend/src/TpmPregledi.Api --configuration Release --no-build > api.log 2>&1 &
+          for i in $(seq 1 60); do
+            [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/v1/auth/me)" = "401" ] && exit 0
+            sleep 2
+          done
+          cat api.log; exit 1
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test
+        working-directory: frontend
+      - uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: e2e-izvestaj
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            api.log

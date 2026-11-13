@@ -106,7 +106,7 @@ export function usePopunjavanje(id: number) {
     return () => { ziv = false; };
   }, [id]);
   const korisnikId = useAuth().me?.user.id;
-  const odbijene = useLokalno(() => db.odbijene.where('pregledId').equals(id).filter((o) => o.korisnikId === korisnikId).toArray(), [id, korisnikId], []);
+  const odbijene = useLokalno(() => db.odbijene.where('pregledId').equals(id).filter((o) => o.korisnikId === korisnikId && o.slika === undefined).toArray(), [id, korisnikId], []);
   return { data: pregled, isLoading: ucitava && !pregled, isError: !pregled && greska !== null, error: greska, odbijene };
 }
 

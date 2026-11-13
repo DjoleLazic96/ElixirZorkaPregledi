@@ -54,6 +54,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // Playwright testovi (e2e/) se pokreću posebno: `npm run e2e`.
+    include: ['src/**/*.test.{ts,tsx}'],
   },
   build: {
     sourcemap: false, // produkcioni bundle bez source mapa (blueprint 12 #37)
