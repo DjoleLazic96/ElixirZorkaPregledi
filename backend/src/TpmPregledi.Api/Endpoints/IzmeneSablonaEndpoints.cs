@@ -33,12 +33,12 @@ public sealed record ObjavaInput(DateOnly VaziOd);
 /// <param name="StavkaId">Stavka.</param>
 /// <param name="Opis">Opis.</param>
 /// <param name="Razlog">Razlog.</param>
-public sealed record PredlogIzmeneInput(string Tip, string Vrsta, int? StavkaId, string Opis, string Razlog);
+public sealed record PredlogIzmeneInput(string Tip, string Vrsta, int? StavkaId, string Opis, string Razlog, int? PregledId = null);
 
 /// <summary>Odluka o predlogu.</summary>
 /// <param name="Odobren">Odluka.</param>
 /// <param name="Odgovor">Obrazloženje.</param>
-public sealed record OdlukaPredlogaInput(bool Odobren, string? Odgovor);
+public sealed record OdlukaPredlogaInput(bool Odobren, string? Odgovor, int? DuplikatOd = null);
 
 /// <summary>Tekst uputstva.</summary>
 /// <param name="Tekst">Tekst.</param>
@@ -80,12 +80,14 @@ public static class IzmeneSablonaEndpoints
             .WithSummary("Istorijat šablona (filteri)");
 
         var p = app.MapGroup("/api/v1/predlozi-izmena").WithTags("Šabloni").RequireAuthorization("RequireKorisnik");
-        p.MapGet("", async ([FromQuery] string? status, [FromQuery] string? tip, IMediator m) => Results.Ok(await m.Send(new GetPredloziQuery(status, tip))))
+        p.MapGet("", async ([FromQuery] string? status, [FromQuery] string? tip, [FromQuery] bool? moji, IMediator m) => Results.Ok(await m.Send(new GetPredloziQuery(status, tip, moji ?? false))))
             .WithSummary("Predlozi izmena");
-        p.MapPost("", async ([FromBody] PredlogIzmeneInput i, IMediator m) => Results.Ok(await m.Send(new PodnesiPredlogCommand(i.Tip, i.Vrsta, i.StavkaId, i.Opis, i.Razlog))))
+        p.MapPost("", async ([FromBody] PredlogIzmeneInput i, IMediator m) => Results.Ok(await m.Send(new PodnesiPredlogCommand(i.Tip, i.Vrsta, i.StavkaId, i.Opis, i.Razlog, i.PregledId))))
             .WithSummary("Predloži izmenu (razlog obavezan)");
-        p.MapPost("/{id:int}/odluka", async (int id, [FromBody] OdlukaPredlogaInput i, IMediator m) => Results.Ok(await m.Send(new OdluciOPredloguCommand(id, i.Odobren, i.Odgovor))))
-            .RequireAuthorization(nacrt).WithSummary("Odobri ili odbij predlog (Direktor, Admin)");
+        p.MapPost("/{id:int}/odluka", async (int id, [FromBody] OdlukaPredlogaInput i, IMediator m) => Results.Ok(await m.Send(new OdluciOPredloguCommand(id, i.Odobren, i.Odgovor, i.DuplikatOd))))
+            .RequireAuthorization(nacrt).WithSummary("Odobri, odbij ili označi kao duplikat (Direktor, Admin)");
+        p.MapPost("/{id:int}/slazem-se", async (int id, IMediator m) => Results.Ok(await m.Send(new SlazemSeSaPredlogomCommand(id))))
+            .WithSummary("Slažem se sa predlogom (umesto slanja istog)");
 
         var a = app.MapGroup("/api/v1/aktivnosti/{id:int}/uputstvo").WithTags("Aktivnosti").RequireAuthorization("RequireKorisnik");
         a.MapGet("", async (int id, IMediator m) => Results.Ok(await m.Send(new GetUputstvoQuery(id)))).WithSummary("Uputstvo aktivnosti");

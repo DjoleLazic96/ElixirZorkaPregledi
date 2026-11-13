@@ -158,13 +158,16 @@ public sealed class UredjajiHandler(IAppDbContext db) :
         await db.Uredjaji.Include(u => u.Sekcija).FirstOrDefaultAsync(u => u.Id == id, ct)
         ?? throw new NotFoundException("Uređaj ne postoji.");
 
-    /// <summary>Sekcija mora postojati; par (naziv, oznaka) mora biti jedinstven (422 sa gotovom rečenicom).</summary>
+    /// <summary>Sekcija mora postojati (i biti aktivna za nov uređaj); par (naziv, oznaka) mora biti jedinstven (422 sa gotovom rečenicom).</summary>
     private async Task<(string Naziv, string Oznaka)> ProveriAsync(UredjajInput input, int? id, CancellationToken ct)
     {
         var naziv = input.Naziv.Trim();
         var oznaka = (input.Oznaka ?? string.Empty).Trim();
-        if (!await db.Sekcije.AnyAsync(s => s.Id == input.SekcijaId, ct))
-            throw new BusinessRuleException("Izabrana sekcija ne postoji.");
+        var sekcija = await db.Sekcije.AsNoTracking().FirstOrDefaultAsync(s => s.Id == input.SekcijaId, ct)
+            ?? throw new BusinessRuleException("Izabrana sekcija ne postoji.");
+        // Neaktivna sekcija (zamerka 33) ostaje postojećim uređajima, ali se ne bira za nov uređaj ni pri premeštanju.
+        if (!sekcija.Aktivna && !await db.Uredjaji.AnyAsync(u => u.Id == id && u.SekcijaId == sekcija.Id, ct))
+            throw new BusinessRuleException($"Sekcija {sekcija.Sifra} nije aktivna.");
         if (await db.Uredjaji.AnyAsync(u => u.Naziv == naziv && u.Oznaka == oznaka && u.Id != id, ct))
             throw new BusinessRuleException(
                 $"Uređaj „{new Uredjaj { Naziv = naziv, Oznaka = oznaka }.Prikaz}“ već postoji u registru.");

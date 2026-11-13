@@ -116,6 +116,9 @@ public interface IAppDbContext
     /// <summary>Predlozi izmena šablona (R2.8).</summary>
     DbSet<PredlogIzmene> PredloziIzmena { get; }
 
+    /// <summary>„Slažem se sa predlogom“ (zamerka 37).</summary>
+    DbSet<PredlogSaglasnost> PredlogSaglasnosti { get; }
+
     /// <summary>Snima promene (audit interceptor radi u istoj transakciji).</summary>
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

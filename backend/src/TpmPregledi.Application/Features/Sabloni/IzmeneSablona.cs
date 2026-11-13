@@ -21,8 +21,19 @@ namespace TpmPregledi.Application.Features.Sabloni;
 public sealed record RazlikaDto(string Vrsta, string Sekcija, string Uredjaj, string Aktivnost, string? Bilo);
 
 /// <summary>Predlog izmene.</summary>
+/// <param name="PodneoId">Ko je predložio (filter „Samo moji“, zamerka 36).</param>
+/// <param name="PregledId">Pregled iz kog je predlog poslat (zamerka 34).</param>
+/// <param name="PregledBroj">Broj tog pregleda.</param>
+/// <param name="Saglasni">Ko se slaže sa predlogom (zamerka 37): ID i ime.</param>
+/// <param name="OriginalId">Za duplikat: predlog koji ponavlja.</param>
 public sealed record PredlogDto(int Id, string Sablon, string Vrsta, int? StavkaId, string? Stavka, string Opis, string Razlog, string Podneo, DateTime KreiranoAt,
-    string Status, string? Odlucio, string? Odgovor, int? Verzija);
+    string Status, string? Odlucio, string? Odgovor, int? Verzija, string PodneoId = "", int? PregledId = null, string? PregledBroj = null,
+    IReadOnlyList<SaglasanDto>? Saglasni = null, int? OriginalId = null);
+
+/// <summary>Korisnik koji se slaže sa predlogom.</summary>
+/// <param name="Id">ID.</param>
+/// <param name="Ime">Ime.</param>
+public sealed record SaglasanDto(string Id, string Ime);
 
 /// <summary>Nacrt: stavke kao šablon, razlike i odobreni predlozi koji čekaju sledeću verziju.</summary>
 /// <param name="Verzija">Nacrt (struktura kao šablon).</param>
@@ -83,19 +94,25 @@ public sealed record ObjaviNacrtCommand(string Tip, DateOnly VaziOd) : IRequest<
 /// <param name="Tip">Šablon.</param>
 public sealed record GetVerzijeQuery(string Tip) : IRequest<IReadOnlyList<VerzijaKratkoDto>>;
 
-/// <summary>Predlog izmene (R2.8).</summary>
-public sealed record PodnesiPredlogCommand(string Tip, string Vrsta, int? StavkaId, string Opis, string Razlog) : IRequest<PredlogDto>;
+/// <summary>Predlog izmene (R2.8); <paramref name="PregledId"/> kad je poslat tokom popunjavanja (zamerka 34).</summary>
+public sealed record PodnesiPredlogCommand(string Tip, string Vrsta, int? StavkaId, string Opis, string Razlog, int? PregledId = null) : IRequest<PredlogDto>;
 
-/// <summary>Predlozi (filter status, šablon).</summary>
+/// <summary>Predlozi (filter status, šablon, samo moji).</summary>
 /// <param name="Status">Status ili null.</param>
 /// <param name="Tip">Šablon ili null.</param>
-public sealed record GetPredloziQuery(string? Status, string? Tip) : IRequest<IReadOnlyList<PredlogDto>>;
+/// <param name="SamoMoji">Samo predlozi koje je korisnik poslao ili sa kojima se složio (zamerka 36).</param>
+public sealed record GetPredloziQuery(string? Status, string? Tip, bool SamoMoji = false) : IRequest<IReadOnlyList<PredlogDto>>;
 
 /// <summary>Odluka o predlogu (Direktor, Admin).</summary>
 /// <param name="Id">Predlog.</param>
 /// <param name="Odobren">Odluka.</param>
 /// <param name="Odgovor">Obrazloženje (opciono).</param>
-public sealed record OdluciOPredloguCommand(int Id, bool Odobren, string? Odgovor) : IRequest<PredlogDto>;
+/// <param name="DuplikatOd">Predlog je isti kao ovaj (zamerka 37): zatvara se kao duplikat, a odluka o originalu stiže i njegovom podnosiocu.</param>
+public sealed record OdluciOPredloguCommand(int Id, bool Odobren, string? Odgovor, int? DuplikatOd = null) : IRequest<PredlogDto>;
+
+/// <summary>„Slažem se sa predlogom“ (zamerka 37) umesto slanja istog predloga.</summary>
+/// <param name="Id">Predlog.</param>
+public sealed record SlazemSeSaPredlogomCommand(int Id) : IRequest<PredlogDto>;
 
 /// <summary>Istorijat šablona (R2.9).</summary>
 public sealed record GetIstorijatQuery(string? Tip, string? Vrsta, string? KorisnikId, DateOnly? Od, DateOnly? Do) : IRequest<IReadOnlyList<SablonDogadjajDto>>;
@@ -149,6 +166,7 @@ public sealed class IzmeneSablonaHandler(IAppDbContext db, ICurrentUser currentU
     IRequestHandler<PodnesiPredlogCommand, PredlogDto>,
     IRequestHandler<GetPredloziQuery, IReadOnlyList<PredlogDto>>,
     IRequestHandler<OdluciOPredloguCommand, PredlogDto>,
+    IRequestHandler<SlazemSeSaPredlogomCommand, PredlogDto>,
     IRequestHandler<GetIstorijatQuery, IReadOnlyList<SablonDogadjajDto>>
 {
     /// <summary>Vrste predloga za prikaz.</summary>
@@ -316,23 +334,42 @@ public sealed class IzmeneSablonaHandler(IAppDbContext db, ICurrentUser currentU
     /// <inheritdoc />
     public async Task<PredlogDto> Handle(PodnesiPredlogCommand req, CancellationToken ct)
     {
-        var s = await SablonAsync(req.Tip, ct);
-        if (req.StavkaId is { } sid && !await db.SablonStavke.AnyAsync(x => x.Id == sid && x.Verzija!.SablonId == s.Id, ct))
-            throw new BusinessRuleException("Stavka nije u ovom šablonu.");
-        var p = new PredlogIzmene
-        {
-            SablonId = s.Id, Vrsta = req.Vrsta, StavkaId = req.StavkaId, Opis = req.Opis.Trim(), Razlog = req.Razlog.Trim(),
-            PodneoId = currentUser.UserId!, KreiranoAt = clock.UtcNow,
-        };
-        db.PredloziIzmena.Add(p);
-        await db.SaveChangesAsync(ct);
-        await DogadjajAsync(s.Id, null, "predlog", $"Predlog ({VrstePredloga[p.Vrsta]}): {p.Opis}", ct, sacuvaj: false);
-        // Odlučuju Direktor i Admin (pravo sabloni.nacrt); predlog im stiže i u „Čeka moju odluku“.
-        var odlucuju = db.KorisnikPrava.Where(x => x.Pravo == Prava.SabloniNacrt).Select(x => x.KorisnikId);
-        var ids = await db.Users.Where(u => u.IsActive && odlucuju.Contains(u.Id) && u.Id != p.PodneoId).Select(u => u.Id).ToListAsync(ct);
-        await Obavesti.DodajAsync(db, ids, VrsteObavestenja.PredlogSablona, $"Predlog izmene {s.Tip}", $"{VrstePredloga[p.Vrsta]}: {p.Opis}", "/sabloni/predlozi", null, clock.UtcNow, ct);
+        var p = await NoviPredlogAsync(db, req.Tip, req.Vrsta, req.StavkaId, req.Opis, req.Razlog, req.PregledId, currentUser.UserId!, clock.UtcNow, ct);
         await db.SaveChangesAsync(ct);
         return (await DtoAsync([p], ct)).Single();
+    }
+
+    /// <summary>
+    /// Upis predloga sa događajem u istoriji šablona i obaveštenjem Direktoru i Adminu (pravo <c>sabloni.nacrt</c>). Zajedničko za
+    /// predlog sa ekrana Šabloni i predlog poslat tokom popunjavanja, i bez interneta kroz sinhronizaciju (zamerka 34).
+    /// Pozivalac snima.
+    /// </summary>
+    public static async Task<PredlogIzmene> NoviPredlogAsync(IAppDbContext db, string tip, string vrsta, int? stavkaId, string opis, string razlog,
+        int? pregledId, string podneoId, DateTime sada, CancellationToken ct)
+    {
+        tip = tip.ToUpperInvariant();
+        var s = await db.Sabloni.FirstOrDefaultAsync(x => x.Tip == tip, ct) ?? throw new NotFoundException("Šablon ne postoji.");
+        if (stavkaId is { } sid && !await db.SablonStavke.AnyAsync(x => x.Id == sid && x.Verzija!.SablonId == s.Id, ct))
+            throw new BusinessRuleException("Stavka nije u ovom šablonu.");
+        Pregled? pregled = null;
+        if (pregledId is { } pid)
+        {
+            pregled = await db.Pregledi.FirstOrDefaultAsync(x => x.Id == pid, ct) ?? throw new NotFoundException("Pregled ne postoji.");
+            if (pregled.Tip != tip) throw new BusinessRuleException("Predlog se odnosi na šablon tog pregleda.");
+        }
+        var p = new PredlogIzmene
+        {
+            SablonId = s.Id, Vrsta = vrsta, StavkaId = stavkaId, Opis = opis.Trim(), Razlog = razlog.Trim(), PodneoId = podneoId, KreiranoAt = sada, PregledId = pregledId,
+        };
+        db.PredloziIzmena.Add(p);
+        db.SablonDogadjaji.Add(new SablonDogadjaj { SablonId = s.Id, Vrsta = "predlog", KorisnikId = podneoId, At = sada, Opis = $"Predlog ({VrstePredloga[vrsta]}): {p.Opis}" });
+        if (pregled is not null) PregledIstorija.Dodaj(db, pregled, "predlog_izmene", new { vrsta, opis = p.Opis }, podneoId, sada);
+        // Odlučuju Direktor i Admin (pravo sabloni.nacrt); predlog im stiže i u „Čeka moju odluku“.
+        var odlucuju = db.KorisnikPrava.Where(x => x.Pravo == Prava.SabloniNacrt).Select(x => x.KorisnikId);
+        var ids = await db.Users.Where(u => u.IsActive && odlucuju.Contains(u.Id) && u.Id != podneoId).Select(u => u.Id).ToListAsync(ct);
+        await Obavesti.DodajAsync(db, ids, VrsteObavestenja.PredlogSablona, $"Predlog izmene {s.Tip}",
+            $"{VrstePredloga[vrsta]}: {p.Opis}{(pregled is null ? "" : $" (iz pregleda {pregled.Broj})")}", "/sabloni/predlozi", null, sada, ct);
+        return p;
     }
 
     /// <inheritdoc />
@@ -341,7 +378,24 @@ public sealed class IzmeneSablonaHandler(IAppDbContext db, ICurrentUser currentU
         var upit = db.PredloziIzmena.AsNoTracking().AsQueryable();
         if (!string.IsNullOrWhiteSpace(req.Status)) upit = upit.Where(p => p.Status == req.Status);
         if (!string.IsNullOrWhiteSpace(req.Tip)) upit = upit.Where(p => p.Sablon!.Tip == req.Tip);
+        if (req.SamoMoji)
+        {
+            var ja = currentUser.UserId;
+            upit = upit.Where(p => p.PodneoId == ja || p.Saglasnosti.Any(x => x.KorisnikId == ja));
+        }
         return await DtoAsync(await upit.OrderByDescending(p => p.KreiranoAt).ToListAsync(ct), ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<PredlogDto> Handle(SlazemSeSaPredlogomCommand req, CancellationToken ct)
+    {
+        var p = await db.PredloziIzmena.Include(x => x.Saglasnosti).FirstOrDefaultAsync(x => x.Id == req.Id, ct) ?? throw new NotFoundException("Predlog ne postoji.");
+        if (p.Status != "zahtev") throw new BusinessRuleException("O ovom predlogu je već odlučeno.");
+        var ja = currentUser.UserId!;
+        if (p.PodneoId == ja) throw new BusinessRuleException("Ovo je vaš predlog.");
+        if (p.Saglasnosti.All(x => x.KorisnikId != ja)) p.Saglasnosti.Add(new PredlogSaglasnost { PredlogId = p.Id, KorisnikId = ja, At = clock.UtcNow });
+        await db.SaveChangesAsync(ct);
+        return (await DtoAsync([p], ct)).Single();
     }
 
     /// <inheritdoc />
@@ -350,6 +404,7 @@ public sealed class IzmeneSablonaHandler(IAppDbContext db, ICurrentUser currentU
         var p = await db.PredloziIzmena.Include(x => x.Sablon).FirstOrDefaultAsync(x => x.Id == req.Id, ct) ?? throw new NotFoundException("Predlog ne postoji.");
         if (p.Status != "zahtev") throw new BusinessRuleException("O ovom predlogu je već odlučeno.");
         var sada = clock.UtcNow;
+        if (req.DuplikatOd is { } oid) return await OznaciDuplikatAsync(p, oid, sada, ct);
         p.Status = req.Odobren ? "odobren" : "odbijen";
         p.OdlucioId = currentUser.UserId;
         p.OdlucenoAt = sada;
@@ -359,8 +414,31 @@ public sealed class IzmeneSablonaHandler(IAppDbContext db, ICurrentUser currentU
             SablonId = p.SablonId, Vrsta = req.Odobren ? "predlog_odobren" : "predlog_odbijen", KorisnikId = currentUser.UserId, At = sada,
             Opis = $"Predlog {(req.Odobren ? "odobren" : "odbijen")}: {p.Opis}{(p.Odgovor is null ? "" : $" ({p.Odgovor})")}",
         });
-        await Obavesti.DodajAsync(db, [p.PodneoId], VrsteObavestenja.IshodZahteva, req.Odobren ? $"Predlog izmene {p.Sablon!.Tip} odobren" : $"Predlog izmene {p.Sablon!.Tip} odbijen",
-            req.Odobren ? $"„{p.Opis}“ ulazi u sledeću verziju šablona." : $"„{p.Opis}“ je odbijen{(p.Odgovor is null ? "" : $": {p.Odgovor}")}.", "/sabloni/predlozi", null, sada, ct);
+        // Odluka stiže podnosiocu, onima koji su se složili i podnosiocima predloga zatvorenih kao duplikat ovog (zamerka 37).
+        var primaoci = new List<string> { p.PodneoId };
+        primaoci.AddRange(await db.PredlogSaglasnosti.Where(x => x.PredlogId == p.Id).Select(x => x.KorisnikId).ToListAsync(ct));
+        primaoci.AddRange(await db.PredloziIzmena.Where(x => x.OriginalId == p.Id).Select(x => x.PodneoId).ToListAsync(ct));
+        await Obavesti.DodajAsync(db, primaoci.Distinct(), VrsteObavestenja.IshodZahteva, req.Odobren ? $"Predlog izmene {p.Sablon!.Tip} odobren" : $"Predlog izmene {p.Sablon!.Tip} odbijen",
+            req.Odobren ? $"„{p.Opis}“ ulazi u sledeću verziju šablona." : $"„{p.Opis}“ je odbijen{(p.Odgovor is null ? "" : $": {p.Odgovor}")}.", $"/sabloni/predlozi?predlog={p.Id}", null, sada, ct);
+        await db.SaveChangesAsync(ct);
+        return (await DtoAsync([p], ct)).Single();
+    }
+
+    /// <summary>Duplikat (zamerka 37): zatvara se sa vezom na original; podnosilac saznaje odluku kad se odluči o originalu.</summary>
+    private async Task<PredlogDto> OznaciDuplikatAsync(PredlogIzmene p, int originalId, DateTime sada, CancellationToken ct)
+    {
+        if (originalId == p.Id) throw new BusinessRuleException("Predlog ne može biti duplikat samog sebe.");
+        var o = await db.PredloziIzmena.FirstOrDefaultAsync(x => x.Id == originalId, ct) ?? throw new NotFoundException("Originalni predlog ne postoji.");
+        if (o.SablonId != p.SablonId) throw new BusinessRuleException("Original mora biti predlog za isti šablon.");
+        if (o.Status == "duplikat") throw new BusinessRuleException("Izaberite originalni predlog, ne drugi duplikat.");
+        p.Status = "duplikat";
+        p.OriginalId = o.Id;
+        p.OdlucioId = currentUser.UserId;
+        p.OdlucenoAt = sada;
+        var tekst = o.Status == "zahtev"
+            ? $"„{p.Opis}“ je isto što i ranije poslat predlog „{o.Opis}“. Obavestićemo vas o odluci."
+            : $"„{p.Opis}“ je isto što i predlog „{o.Opis}“, koji je već {(o.Status == "odobren" ? "odobren" : "odbijen")}.";
+        await Obavesti.DodajAsync(db, [p.PodneoId], VrsteObavestenja.IshodZahteva, "Predlog izmene je duplikat", tekst, $"/sabloni/predlozi?predlog={o.Id}", null, sada, ct);
         await db.SaveChangesAsync(ct);
         return (await DtoAsync([p], ct)).Single();
     }
@@ -476,8 +554,14 @@ public sealed class IzmeneSablonaHandler(IAppDbContext db, ICurrentUser currentU
             .ToDictionary(s => s.Id, s => $"{s.Naziv} {s.Oznaka} · {s.Aktivnost}".Replace("  ", " "));
         var vIds = predlozi.Where(p => p.VerzijaId != null).Select(p => p.VerzijaId!.Value).Distinct().ToList();
         var verzije = await db.SablonVerzije.Where(v => vIds.Contains(v.Id)).ToDictionaryAsync(v => v.Id, v => v.Broj, ct);
+        var pIds = predlozi.Where(p => p.PregledId != null).Select(p => p.PregledId!.Value).Distinct().ToList();
+        var brojevi = await db.Pregledi.AsNoTracking().Where(x => pIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.Broj, ct);
+        var ids = predlozi.Select(p => p.Id).ToList();
+        var saglasni = (await db.PredlogSaglasnosti.AsNoTracking().Where(x => ids.Contains(x.PredlogId)).OrderBy(x => x.At).ToListAsync(ct))
+            .GroupBy(x => x.PredlogId).ToDictionary(g => g.Key, g => (IReadOnlyList<SaglasanDto>)g.Select(x => new SaglasanDto(x.KorisnikId, k.Ime(x.KorisnikId))).ToList());
         return predlozi.Select(p => new PredlogDto(p.Id, tipovi.GetValueOrDefault(p.SablonId, ""), p.Vrsta, p.StavkaId, p.StavkaId is { } s ? stavke.GetValueOrDefault(s) : null,
             p.Opis, p.Razlog, k.Ime(p.PodneoId), p.KreiranoAt, p.Status, p.OdlucioId is null ? null : k.Ime(p.OdlucioId), p.Odgovor,
-            p.VerzijaId is { } v ? verzije.GetValueOrDefault(v) : null)).ToList();
+            p.VerzijaId is { } v ? verzije.GetValueOrDefault(v) : null, p.PodneoId, p.PregledId, p.PregledId is { } pr ? brojevi.GetValueOrDefault(pr) : null,
+            saglasni.GetValueOrDefault(p.Id, []), p.OriginalId)).ToList();
     }
 }

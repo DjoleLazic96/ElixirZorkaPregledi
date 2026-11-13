@@ -12,6 +12,10 @@ import { Modal } from './ui/Modal';
 interface PromenaLozinkeProps {
   open: boolean;
   onClose: () => void;
+  /** Obavezna promena posle reseta (zamerka 23): objašnjenje iznad forme, „Odustani“ postaje „Odjavi se“. */
+  obavezna?: boolean;
+  /** Posle uspešne promene (umesto samo zatvaranja). */
+  onUspeh?: () => void;
 }
 
 interface Greske {
@@ -29,7 +33,7 @@ const MIN_DUZINA = 8;
  * Roditelj ga renderuje uslovno (`{open && …}`), pa se stanje resetuje pri
  * svakom otvaranju bez sync-effect-a.
  */
-export function PromenaLozinke({ open, onClose }: PromenaLozinkeProps) {
+export function PromenaLozinke({ open, onClose, obavezna = false, onUspeh }: PromenaLozinkeProps) {
   const toast = useToast();
   const [trenutna, setTrenutna] = useState('');
   const [nova, setNova] = useState('');
@@ -40,8 +44,8 @@ export function PromenaLozinke({ open, onClose }: PromenaLozinkeProps) {
     // Eksplicitan omotač: TanStack prosleđuje i drugi (context) argument, koji API poziv ne očekuje.
     mutationFn: (input: PromenaLozinkeInput) => promeniLozinku(input),
     onSuccess: () => {
-      toast.success('Lozinka je promenjena.');
-      onClose();
+      toast.success(obavezna ? 'Lozinka je promenjena. Prijavite se novom lozinkom.' : 'Lozinka je promenjena.');
+      (onUspeh ?? onClose)();
     },
     onError: (err) => {
       // 400 nosi `errors.currentPassword|newPassword` → mapiraj na polja; sve
@@ -69,6 +73,11 @@ export function PromenaLozinke({ open, onClose }: PromenaLozinkeProps) {
   return (
     <Modal open={open} title="Promena lozinke" onClose={onClose}>
       <form onSubmit={submit} className="space-y-4" noValidate>
+        {obavezna && (
+          <p role="status" className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            Lozinku vam je postavio administrator. Pre nastavka izaberite svoju novu lozinku.
+          </p>
+        )}
         <FormField label="Trenutna lozinka" htmlFor="lozinka-trenutna" error={greske.trenutna}>
           <Input
             id="lozinka-trenutna"
@@ -111,7 +120,7 @@ export function PromenaLozinke({ open, onClose }: PromenaLozinkeProps) {
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose} disabled={mutacija.isPending}>
-            Odustani
+            {obavezna ? 'Odjavi se' : 'Odustani'}
           </Button>
           <Button type="submit" disabled={mutacija.isPending}>
             {mutacija.isPending ? 'Čuvanje…' : 'Sačuvaj'}

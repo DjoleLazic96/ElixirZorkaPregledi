@@ -43,7 +43,11 @@ setup('priprema: nalozi, šabloni, PZ za danas i prijava svake role', async () =
   const danas = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Belgrade' }).format(new Date());
   const pz = await sup.ctx.post('/api/v1/raspored/pz', { headers: sa(sup.token), data: { datum: danas, tip: null, inzenjerId: inz!.id, napomena: 'E2E' } });
   expect(pz.status(), `zakazivanje PZ-a: ${await pz.text()}`).toBe(200);
-  writeFileSync(PREGLED, JSON.stringify({ id: (await pz.json()).id }));
+  // Drugi PZ (sutra) služi za otkazivanje planiranog pregleda (zamerka 27).
+  const sutra = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Belgrade' }).format(new Date(Date.now() + 86_400_000));
+  const pz2 = await sup.ctx.post('/api/v1/raspored/pz', { headers: sa(sup.token), data: { datum: sutra, tip: null, inzenjerId: inz!.id, napomena: 'E2E otkazivanje' } });
+  expect(pz2.status(), `zakazivanje drugog PZ-a: ${await pz2.text()}`).toBe(200);
+  writeFileSync(PREGLED, JSON.stringify({ id: (await pz.json()).id, zaOtkazivanje: (await pz2.json()).id }));
 
   const sacuvaj = async (rola: Rola, ctx: APIRequestContext) => {
     await ctx.storageState({ path: stanje(rola) });

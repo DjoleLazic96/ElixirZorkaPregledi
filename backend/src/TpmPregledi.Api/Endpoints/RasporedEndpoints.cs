@@ -75,7 +75,22 @@ public sealed record PredlogInput(DateOnly Od);
 
 /// <summary>Telo potvrde.</summary>
 /// <param name="Stavke">Dani rasporeda.</param>
-public sealed record PotvrdaInput(IReadOnlyList<StavkaRasporeda> Stavke);
+/// <param name="Uskladi">Rupe usred niza popuniti povlačenjem niza (zamerka 30).</param>
+public sealed record PotvrdaInput(IReadOnlyList<StavkaRasporeda> Stavke, bool Uskladi = false);
+
+/// <summary>Telo otkazivanja (zamerka 27).</summary>
+/// <param name="Razlog">Razlog.</param>
+/// <param name="Pomeri">Samo DP: pomeri raspored umesto poništavanja.</param>
+public sealed record OtkazivanjeInput(string Razlog, bool Pomeri);
+
+/// <summary>Telo povlačenja rasporeda (zamerka 29).</summary>
+/// <param name="Datum">Oslobođen dan.</param>
+public sealed record PovlacenjeInput(DateOnly Datum);
+
+/// <summary>Telo promene tipa DP-a (zamerka 31).</summary>
+/// <param name="Tip">DP1 ili DP2.</param>
+/// <param name="Uskladi">Uskladiti naredne planirane DP-ove.</param>
+public sealed record TipDpInput(string Tip, bool Uskladi);
 
 /// <summary>Telo zakazivanja PZ-a.</summary>
 /// <param name="Datum">Dan.</param>
@@ -106,7 +121,7 @@ public static class RasporedEndpoints
             .WithSummary("Inženjeri u rotaciji (za izbor u rasporedu)");
         r.MapPost("/predlog", async ([FromBody] PredlogInput i, IMediator m) => Results.Ok(await m.Send(new PredlogRasporedaQuery(i.Od))))
             .RequireAuthorization(raspored).WithSummary("Predlog DP-a za nedelju (ne upisuje)");
-        r.MapPost("/potvrdi", async ([FromBody] PotvrdaInput i, IMediator m) => Results.Ok(await m.Send(new PotvrdiRasporedCommand(i.Stavke))))
+        r.MapPost("/potvrdi", async ([FromBody] PotvrdaInput i, IMediator m) => Results.Ok(await m.Send(new PotvrdiRasporedCommand(i.Stavke, i.Uskladi))))
             .RequireAuthorization(raspored).WithSummary("Potvrda rasporeda: pravi preglede sa brojevima");
         r.MapGet("/pz/sledeci", async (IMediator m) => Results.Ok(new { tip = await m.Send(new SledeciPzQuery()) }))
             .RequireAuthorization(raspored).WithSummary("Sledeći PZ po redu");
@@ -116,6 +131,8 @@ public static class RasporedEndpoints
         r.MapPost("/prenesi", async (IMediator m, IDateTimeProvider clock) =>
                 Results.Ok(new { pomereno = await m.Send(new PrenesiCommand(clock.Today)) }))
             .RequireAuthorization(raspored).WithSummary("Ručni prenos današnjeg nezapočetog DP-a");
+        r.MapPost("/povuci", async ([FromBody] PovlacenjeInput i, IMediator m) => Results.Ok(new { pomereno = await m.Send(new PovuciRasporedCommand(i.Datum)) }))
+            .RequireAuthorization(raspored).WithSummary("Povuci raspored: oslobođen dan preuzima prvi kasniji DP, ostali idu dan unazad");
 
         var p = app.MapGroup("/api/v1/pregledi").WithTags("Pregledi").RequireAuthorization(raspored);
         p.MapPut("/{id:int}/dodela", async (int id, [FromBody] DodelaInput i, IMediator m) =>
@@ -124,6 +141,12 @@ public static class RasporedEndpoints
         p.MapPost("/{id:int}/ucesnici", async (int id, [FromBody] UcesnikInput i, IMediator m) =>
                 Results.Ok(await m.Send(new PostaviUcesnikaCommand(id, i.KorisnikId, i.Sekcije))))
             .WithSummary("Dodaj inženjera na PZ sa sekcijama");
+        p.MapPost("/{id:int}/otkazi", async (int id, [FromBody] OtkazivanjeInput i, IMediator m) =>
+                Results.Ok(await m.Send(new OtkaziPregledCommand(id, i.Razlog, i.Pomeri))))
+            .WithSummary("Otkazivanje planiranog pregleda (DP: pomeri raspored ili zadrži)");
+        p.MapPut("/{id:int}/tip", async (int id, [FromBody] TipDpInput i, IMediator m) =>
+                Results.Ok(await m.Send(new PromeniTipDpCommand(id, i.Tip, i.Uskladi))))
+            .WithSummary("Promeni DP: drugi tip planiranog DP-a, uz usklađivanje narednih");
 
         var n = app.MapGroup("/api/v1/neradni-dani").WithTags("Neradni dani").RequireAuthorization("RequireKorisnik");
         n.MapGet("", async ([FromQuery] int godina, IMediator m) => Results.Ok(await m.Send(new GetNeradniDaniQuery(godina))))

@@ -69,6 +69,12 @@ public sealed class ChangePasswordHandler(
             throw new ValidationFailedException(greske);
         }
 
+        if (user.MoraPromenitiLozinku)
+        {
+            user.MoraPromenitiLozinku = false;
+            await userManager.UpdateAsync(user);
+        }
+
         await jwt.RevokeAllAsync(user.Id, ct);
 
         return Unit.Value;

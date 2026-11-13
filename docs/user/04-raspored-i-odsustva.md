@@ -11,9 +11,30 @@ Levi meni → **Kalendar**. Na računaru je mesec, na telefonu spisak dana sa pr
 
 ## 4.2 Raspored za nedelju (Supervizor, Direktor)
 
-Levi meni → **Raspored** → izaberite nedelju → **Predloži raspored**. Aplikacija ponudi DP1/DP2 naizmenično i inženjere redom,
-preskačući neradne dane, dan PZ-a i odsutne. Inženjera možete promeniti, pa **Potvrdi raspored** — pregledi dobijaju brojeve
-(npr. DP1-2026-0142) koji se više ne menjaju.
+Levi meni → **Raspored** → izaberite nedelju → **Predloži raspored**. Aplikacija ponudi dane od danas do petka (prošli dani se ne nude),
+DP1/DP2 naizmenično i inženjere redom, preskačući neradne dane, dan PZ-a i odsutne. DP-ovi su jedan niz preko nedelja: posle DP1 u
+petak, u ponedeljak ide DP2. Inženjera možete promeniti, a dan koji ne želite da zakažete odštiklirajte (**Zakaži**) — tipovi ostalih se
+preračunaju. **Potvrdi raspored** — pregledi dobijaju brojeve (npr. DP1-2026-0142).
+
+Ako je dan koji zakazujete usred već zakazanog niza, aplikacija pita: **Umetni i pomeri naredne** (preporučeno — taj dan preuzima sledeći
+DP iz rasporeda, naredni idu dan unazad, a kraj nedelje dobija nov DP) ili **Ostavi kako jeste**.
+
+**Podsetnik.** Četvrtkom i petkom posle kraja radnog dana Supervizor i Direktor dobijaju „Raspored za sledeću nedelju“ ako neki dan
+sledeće nedelje nema DP (u poruci su ti dani).
+
+**Otkazivanje.** Kartica pregleda (ili stranica pregleda) → **Otkaži pregled** → razlog. Za DP birate:
+- **Pomeri raspored** — DP se ne gubi: prelazi na sledeći radni dan, a ceo raspored DP-a se pomera za dan;
+- **Otkaži, zadrži raspored** — DP se poništava (ostaje u arhivi, broj se ne koristi ponovo), naredni ostaju gde su.
+
+PZ se samo otkazuje; sledeći PZ po redu se računa bez njega. Inženjer dobija obaveštenje, a otkazan pregled se ne računa u ispunjenje
+plana. Započet pregled se ne otkazuje nego poništava (stranica pregleda → **Poništi pregled**).
+
+**Povuci raspored.** Kad posle izmene dan ostane bez DP-a usred niza (npr. PZ je pomeren ili otkazan), aplikacija pita: **Povuci
+raspored** (naredni DP-ovi idu dan unazad, redosled i inženjeri po danima ostaju, a poslednji zakazani dan ostaje slobodan za sledeći
+predlog) ili **Ostavi prazno**.
+
+**Promeni DP.** Kartica planiranog DP-a → **Promeni DP**: DP1 postaje DP2 (ili obrnuto) i dobija nov broj. **Da, uskladi naredne**
+preokreće i naredne planirane DP-ove da smena ostane ispravna; **Ne, samo ovaj** menja samo taj dan.
 
 ## 4.3 PZ
 
@@ -34,6 +55,7 @@ inženjera uklanjate na istom mestu (**Drugi inženjer**).
 Ako DP do kraja radnog dana (podešavanje) nije ni započet, aplikacija ga sama prenosi na sledeći radni dan, a ceo raspored DP-a
 se pomera. Inženjeri ostaju na svojim danima: propušten DP1 sa ponedeljka u utorak radi inženjer raspoređen za utorak. Započet
 pregled završava isti inženjer sledećeg radnog dana. Raspored posle toga možete ručno menjati (kartica pregleda → **Promeni u rasporedu**).
+U kalendaru propušten pregled na prvobitnom danu ima crvenu oznaku „nije urađen – prenet na …“, a ručno pomeren sivu „pomeren na …“.
 
 ## 4.5 Prebacivanje
 

@@ -4,6 +4,7 @@ import { adresaPovratka } from '../features/auth/povratak';
 import { NijePronadjeno } from '../components/NijePronadjeno';
 import { Ucitavanje } from '../components/ui/Spinner';
 import { Zasticeno } from '../components/Zasticeno';
+import { PromenaLozinke } from '../components/PromenaLozinke';
 import { AdminLayout } from '../features/admin/AdminLayout';
 import { useAuth } from '../features/auth/AuthProvider';
 import { LoginPage } from '../features/auth/LoginPage';
@@ -12,6 +13,7 @@ import { canEditOprema, canSeeAdminSection, imaPravo, isAdmin, isKorisnik } from
 import { AppLayout } from './layout/AppLayout';
 
 /** Ekrani se učitavaju tek kad zatrebaju (manji prvi paket na telefonu); PWA ih ionako sve čuva za rad bez interneta. */
+const SekcijePage = lazy(() => import('../features/admin/sekcije/SekcijePage').then((x) => ({ default: x.SekcijePage })));
 const PodesavanjaPage = lazy(() => import('../features/admin/podesavanja/PodesavanjaPage').then((x) => ({ default: x.PodesavanjaPage })));
 const KorisniciPage = lazy(() => import('../features/admin/korisnici/KorisniciPage').then((x) => ({ default: x.KorisniciPage })));
 const AuditLogPage = lazy(() => import('../features/audit-log/AuditLogPage').then((x) => ({ default: x.AuditLogPage })));
@@ -53,7 +55,7 @@ function SaPrijave() {
 }
 
 export function AppRoutes() {
-  const { me, initializing } = useAuth();
+  const { me, initializing, logout } = useAuth();
 
   if (initializing) return <Ucitavanje fullScreen />;
 
@@ -65,6 +67,9 @@ export function AppRoutes() {
       </Routes>
     );
   }
+
+  // Posle reseta lozinke (zamerka 23) korisnik prvo bira svoju lozinku; promena odjavljuje sve sesije, pa sledi nova prijava.
+  if (me.user.moraPromenitiLozinku) return <ObaveznaPromenaLozinke onOdjava={() => void logout()} />;
 
   const landing = '/';
 
@@ -161,6 +166,14 @@ export function AppRoutes() {
             }
           />
           <Route
+            path="sekcije"
+            element={
+              <Zasticeno allowed={isAdmin(me)} landing={landing}>
+                <SekcijePage />
+              </Zasticeno>
+            }
+          />
+          <Route
             path="podesavanja"
             element={
               <Zasticeno allowed={imaPravo(me, 'podesavanja')} landing={landing}>
@@ -191,5 +204,13 @@ export function AppRoutes() {
         <Route path="*" element={<NijePronadjeno />} />
       </Route>
     </Routes>
+  );
+}
+
+function ObaveznaPromenaLozinke({ onOdjava }: { onOdjava: () => void }) {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <PromenaLozinke open obavezna onClose={onOdjava} onUspeh={onOdjava} />
+    </div>
   );
 }

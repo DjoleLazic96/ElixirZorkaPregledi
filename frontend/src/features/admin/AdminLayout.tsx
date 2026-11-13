@@ -1,5 +1,5 @@
 import { useAuth } from '../auth/AuthProvider';
-import { imaPravo } from '../../lib/permissions';
+import { imaPravo, isAdmin } from '../../lib/permissions';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Tabs } from '../../components/ui/Tabs';
 
@@ -13,6 +13,8 @@ import { Tabs } from '../../components/ui/Tabs';
 const SVI_TABOVI = [
   { key: 'korisnici', label: 'Korisnici', pravo: 'korisnici' },
   { key: 'podesavanja', label: 'Podešavanja', pravo: 'podesavanja' },
+  // Sekcije uređuje samo Admin (zamerka 33) — rola, ne pravo.
+  { key: 'sekcije', label: 'Sekcije', pravo: 'admin' },
 ] as const;
 
 type TabKljuc = (typeof SVI_TABOVI)[number]['key'];
@@ -22,7 +24,7 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const { me } = useAuth();
   // Tab se vidi samo uz pravo; ruta je dodatno zaštićena u AppRoutes.
-  const TABOVI = SVI_TABOVI.filter((t) => me && imaPravo(me, t.pravo));
+  const TABOVI = SVI_TABOVI.filter((t) => me && (t.pravo === 'admin' ? isAdmin(me) : imaPravo(me, t.pravo)));
 
   // Aktivan tab = drugi segment putanje (/admin/<tab>); nepoznat → prvi tab.
   const segment = location.pathname.split('/')[2];

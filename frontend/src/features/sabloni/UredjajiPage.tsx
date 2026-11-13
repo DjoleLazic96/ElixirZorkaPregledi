@@ -57,6 +57,10 @@ export function UredjajiPage() {
   }
 
   const opcijeSekcija = (sekcije.data ?? []).map((s) => ({ value: s.id, label: `Sekcija ${s.sifra}` }));
+  // Za nov uređaj samo aktivne sekcije (zamerka 33); postojeći zadržava svoju i kad je neaktivna.
+  const sekcijeZaFormu = (sekcije.data ?? [])
+    .filter((s) => s.aktivna !== false || (forma !== null && forma !== 'novi' && forma.sekcijaId === s.id))
+    .map((s) => ({ value: s.id, label: `Sekcija ${s.sifra}` }));
 
   return (
     <div className="space-y-4">
@@ -181,7 +185,7 @@ export function UredjajiPage() {
         <UredjajForma
           key={forma === 'novi' ? 'novi' : forma.id}
           uredjaj={forma === 'novi' ? null : forma}
-          opcijeSekcija={opcijeSekcija}
+          opcijeSekcija={sekcijeZaFormu}
           saving={sacuvaj.isPending}
           greska={greska}
           onSubmit={(input) => void potvrdi(forma === 'novi' ? null : forma.id, input)}
@@ -199,12 +203,14 @@ interface UredjajFormaProps {
   greska: string | null;
   onSubmit: (input: UredjajInput) => void;
   onClose: () => void;
+  /** Sekcija izabrana unapred za nov uređaj (npr. iz „Dodaj stavku“ u nacrtu). */
+  pocetnaSekcija?: number | null;
 }
 
-export function UredjajForma({ uredjaj, opcijeSekcija, saving, greska, onSubmit, onClose }: UredjajFormaProps) {
+export function UredjajForma({ uredjaj, opcijeSekcija, saving, greska, onSubmit, onClose, pocetnaSekcija = null }: UredjajFormaProps) {
   const [naziv, setNaziv] = useState(uredjaj?.naziv ?? '');
   const [oznaka, setOznaka] = useState(uredjaj?.oznaka ?? '');
-  const [sekcijaId, setSekcijaId] = useState<number | null>(uredjaj?.sekcijaId ?? null);
+  const [sekcijaId, setSekcijaId] = useState<number | null>(uredjaj?.sekcijaId ?? pocetnaSekcija);
   const [vrsta, setVrsta] = useState(uredjaj?.vrsta ?? '');
 
   const potvrdi = (e: FormEvent) => {

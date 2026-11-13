@@ -44,6 +44,9 @@ export function primeniLokalno(p: PopunjavanjeDto, op: Operacija, sada: string):
           for (const st of u.stavke)
             if (st.stavkaId === op.podaci.stavkaId) st.fotografije = st.fotografije.filter((x) => x !== op.podaci.fotografijaId);
       return kopija;
+    case 'predlog_izmene':
+      // Predlog izmene šablona (zamerka 34) ne menja pregled; samo čeka slanje.
+      return kopija;
     case 'predaja':
       // „Predato – čeka slanje“ postoji samo na telefonu (spec §6.4); dok se ne pošalje, pregled se ne menja.
       kopija.status = 'predato_ceka';

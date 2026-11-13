@@ -26,6 +26,10 @@ export interface PregledKalendarDto {
   inzenjerOdsutan?: boolean;
   /** Zahtev inženjera koji čeka odluku (zamerke 9 i 10). */
   zahtevNaCekanju?: 'prebacivanje' | 'raniji_pocetak' | null;
+  /** Propušten i automatski prenet (crveno „nije urađen – prenet“); inače ručno pomeren (sivo, zamerka 29). */
+  propusten?: boolean;
+  /** Posle izmene: dan koji je ostao bez DP-a usred niza — nudi se „Povuci raspored“ (zamerka 29). */
+  slobodanDan?: string | null;
 }
 
 export interface RasporedDto {
@@ -39,6 +43,11 @@ export interface PredlogStavka {
   tip: string;
   inzenjerId: string | null;
   inzenjer: string;
+  /** Posle ovog dana već postoje planirani DP-ovi — dan je rupa usred niza (zamerka 30). */
+  rupa?: boolean;
+  /** Poslednji postojeći DP pre ovog dana (za preračun tipa kad se dan odštiklira). */
+  datumPre?: string | null;
+  tipPre?: string | null;
 }
 
 export interface InzenjerDto {
@@ -139,9 +148,46 @@ export function usePredlog() {
 export function usePotvrdi() {
   const inv = useInvalidiraj();
   return useMutation({
-    mutationFn: async (stavke: { datum: string; tip: string; inzenjerId: string | null }[]) =>
-      (await api.post<PregledKalendarDto[]>('/raspored/potvrdi', { stavke })).data,
+    mutationFn: async (v: { stavke: { datum: string; tip: string; inzenjerId: string | null }[]; uskladi: boolean }) =>
+      (await api.post<PregledKalendarDto[]>('/raspored/potvrdi', v)).data,
     onSuccess: inv,
+  });
+}
+
+/** Otkazivanje planiranog pregleda (zamerka 27); za DP `pomeri` = „Pomeri raspored“ umesto poništavanja. */
+export function useOtkaziPregled() {
+  const inv = useInvalidiraj();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { id: number; razlog: string; pomeri: boolean }) =>
+      (await api.post<PregledKalendarDto>(`/pregledi/${v.id}/otkazi`, { razlog: v.razlog, pomeri: v.pomeri })).data,
+    onSuccess: () => {
+      inv();
+      void qc.invalidateQueries({ queryKey: ['pregledi'] });
+    },
+  });
+}
+
+/** „Povuci raspored“ u oslobođen dan (zamerka 29). */
+export function usePovuci() {
+  const inv = useInvalidiraj();
+  return useMutation({
+    mutationFn: async (datum: string) => (await api.post<{ pomereno: number }>('/raspored/povuci', { datum })).data,
+    onSuccess: inv,
+  });
+}
+
+/** „Promeni DP“ (zamerka 31): drugi tip planiranog DP-a, uz usklađivanje narednih. */
+export function usePromeniTipDp() {
+  const inv = useInvalidiraj();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { id: number; tip: string; uskladi: boolean }) =>
+      (await api.put<PregledKalendarDto>(`/pregledi/${v.id}/tip`, { tip: v.tip, uskladi: v.uskladi })).data,
+    onSuccess: () => {
+      inv();
+      void qc.invalidateQueries({ queryKey: ['pregledi'] });
+    },
   });
 }
 

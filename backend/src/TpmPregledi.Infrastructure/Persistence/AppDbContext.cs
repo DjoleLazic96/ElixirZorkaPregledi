@@ -82,6 +82,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<PredlogIzmene> PredloziIzmena => Set<PredlogIzmene>();
 
     /// <inheritdoc />
+    public DbSet<PredlogSaglasnost> PredlogSaglasnosti => Set<PredlogSaglasnost>();
+
+    /// <inheritdoc />
     public DbSet<Fajl> Fajlovi => Set<Fajl>();
 
     /// <inheritdoc />
@@ -592,6 +595,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasOne<Sablon>().WithMany().HasForeignKey(x => x.SablonId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        b.Entity<PredlogSaglasnost>(e =>
+        {
+            e.ToTable("predlog_saglasnost");
+            e.HasKey(x => new { x.PredlogId, x.KorisnikId });
+            e.Property(x => x.KorisnikId).HasMaxLength(64);
+        });
+
         b.Entity<PredlogIzmene>(e =>
         {
             e.ToTable("predlog_izmene");
@@ -607,6 +617,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasOne(x => x.Sablon).WithMany().HasForeignKey(x => x.SablonId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<SablonStavka>().WithMany().HasForeignKey(x => x.StavkaId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne<SablonVerzija>().WithMany().HasForeignKey(x => x.VerzijaId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne<Pregled>().WithMany().HasForeignKey(x => x.PregledId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne<PredlogIzmene>().WithMany().HasForeignKey(x => x.OriginalId).OnDelete(DeleteBehavior.SetNull);
+            e.HasMany(x => x.Saglasnosti).WithOne().HasForeignKey(x => x.PredlogId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<Fajl>(e =>

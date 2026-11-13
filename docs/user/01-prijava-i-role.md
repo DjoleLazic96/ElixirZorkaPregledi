@@ -35,7 +35,8 @@ prijava sa porukom „Sesija je istekla. Prijavite se ponovo." Dok aktivno radit
 
 Nova lozinka mora imati najmanje 8 znakova, bar jednu cifru, bar jedno veliko i jedno malo slovo. Posle promene, drugi uređaji na kojima ste bili prijavljeni biće odjavljeni.
 
-Ako ste zaboravili lozinku, obratite se administratoru — on može da postavi novu.
+Ako ste zaboravili lozinku, na ekranu za prijavu kliknite **Zaboravili ste lozinku?**: obratite se administratoru, koji će vam
+postaviti novu. Pri prvoj prijavi sa tom lozinkom aplikacija traži da odmah izaberete svoju (**Odjavi se** prekida i vraća na prijavu).
 
 ## 1.4 Šta vidi koja rola
 
@@ -52,8 +53,12 @@ Ako ne vidite stavku, nemate pravo za tu funkciju. Kad Vam administrator promeni
 
 ## 1.5 O aplikaciji
 
-Kliknite na svoje ime, pa **O aplikaciji**. Prikazuje se verzija aplikacije, verzija servera, datum izrade i okruženje. Ako piše
-„Učitana je starija verzija. Osvežite stranicu (Ctrl+F5).", pritisnite Ctrl+F5. Verzija je i na dnu levog menija (npr. `v0.1.0`).
+Kliknite na svoje ime, pa **O aplikaciji**. Prikazuju se naziv i verzija aplikacije; Administrator vidi i verziju servera, datum
+izrade, okruženje i Git oznake. Ako piše „Učitana je starija verzija. Osvežite stranicu (Ctrl+F5).", pritisnite Ctrl+F5. Verzija je i na
+dnu levog menija (npr. `v0.1.0`).
+
+Kad je na serveru nova verzija, na vrhu ekrana piše **Dostupna je nova verzija aplikacije** sa dugmetom **Osveži**. Pre osvežavanja se
+pošalje sve što čeka na telefonu; ako nema veze, aplikacija javi da sačekate da se pošalje.
 
 ## 1.6 Najčešći problemi
 

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace TpmPregledi.Application.Features.Korisnici.Commands;
 
-/// <summary>Admin postavlja novu lozinku korisniku bez znanja stare (nema „zaboravljena lozinka“ mejla).</summary>
+/// <summary>Admin postavlja novu lozinku korisniku bez znanja stare (nema „zaboravljena lozinka“ mejla); korisnik je menja pri prvoj prijavi.</summary>
 /// <param name="Id">GUID korisnika.</param>
 /// <param name="NovaLozinka">Nova lozinka.</param>
 public sealed record ResetujLozinkuCommand(string Id, string NovaLozinka) : IRequest<Unit>;
@@ -42,6 +42,8 @@ public sealed class ResetujLozinkuHandler(
         var user = await userManager.FindByIdAsync(req.Id)
             ?? throw new NotFoundException("Korisnik ne postoji.");
 
+        // Upisuje se zajedno sa novom lozinkom (ResetPasswordAsync snima korisnika).
+        user.MoraPromenitiLozinku = true;
         var token  = await userManager.GeneratePasswordResetTokenAsync(user);
         var result = await userManager.ResetPasswordAsync(user, token, req.NovaLozinka);
         if (!result.Succeeded)

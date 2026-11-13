@@ -151,7 +151,7 @@ public sealed class ObavestenjaHandler(IAppDbContext db, ICurrentUser currentUse
         [VrsteObavestenja.RokAkcije] = ("Istekao rok akcije", "Jednom, kad akciji istekne rok."),
         [VrsteObavestenja.PonovljeniKvar] = ("Ponovljeni kvar", "Ista stavka neispravna onoliko puta u periodu koliko je podešeno."),
         [VrsteObavestenja.VanFunkcije] = ("Dugo van funkcije", "Uređaj van funkcije duže od granice; ponavlja se na isti broj dana."),
-        [VrsteObavestenja.PredlogRasporeda] = ("Raspored za sledeću nedelju", "Četvrtkom, ako DP za sledeću nedelju nije potvrđen."),
+        [VrsteObavestenja.PredlogRasporeda] = ("Raspored za sledeću nedelju", "Četvrtkom i petkom, ako neki dan sledeće nedelje nema DP."),
     };
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);

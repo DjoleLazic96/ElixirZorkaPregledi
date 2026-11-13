@@ -1064,11 +1064,19 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("opis");
 
+                    b.Property<int?>("OriginalId")
+                        .HasColumnType("integer")
+                        .HasColumnName("original_id");
+
                     b.Property<string>("PodneoId")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("podneo_id");
+
+                    b.Property<int?>("PregledId")
+                        .HasColumnType("integer")
+                        .HasColumnName("pregled_id");
 
                     b.Property<string>("Razlog")
                         .IsRequired()
@@ -1103,6 +1111,12 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_predlog_izmene");
 
+                    b.HasIndex("OriginalId")
+                        .HasDatabaseName("ix_predlog_izmene_original_id");
+
+                    b.HasIndex("PregledId")
+                        .HasDatabaseName("ix_predlog_izmene_pregled_id");
+
                     b.HasIndex("StavkaId")
                         .HasDatabaseName("ix_predlog_izmene_stavka_id");
 
@@ -1113,6 +1127,27 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_predlog_izmene_sablon_id_status");
 
                     b.ToTable("predlog_izmene", (string)null);
+                });
+
+            modelBuilder.Entity("TpmPregledi.Domain.Entities.PredlogSaglasnost", b =>
+                {
+                    b.Property<int>("PredlogId")
+                        .HasColumnType("integer")
+                        .HasColumnName("predlog_id");
+
+                    b.Property<string>("KorisnikId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("korisnik_id");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.HasKey("PredlogId", "KorisnikId")
+                        .HasName("pk_predlog_saglasnost");
+
+                    b.ToTable("predlog_saglasnost", (string)null);
                 });
 
             modelBuilder.Entity("TpmPregledi.Domain.Entities.Pregled", b =>
@@ -1187,6 +1222,10 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("PredatAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("predat_at");
+
+                    b.Property<bool>("Propusten")
+                        .HasColumnType("boolean")
+                        .HasColumnName("propusten");
 
                     b.Property<DateOnly>("PrvobitniDatum")
                         .HasColumnType("date")
@@ -1604,6 +1643,10 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("Aktivna")
+                        .HasColumnType("boolean")
+                        .HasColumnName("aktivna");
+
                     b.Property<string>("Naziv")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1633,6 +1676,7 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 1,
+                            Aktivna = true,
                             Naziv = "Sekcija 10",
                             Redosled = 1,
                             Sifra = "10"
@@ -1640,6 +1684,7 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 2,
+                            Aktivna = true,
                             Naziv = "Sekcija 20",
                             Redosled = 2,
                             Sifra = "20"
@@ -1647,6 +1692,7 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 3,
+                            Aktivna = true,
                             Naziv = "Sekcija 21",
                             Redosled = 3,
                             Sifra = "21"
@@ -1654,6 +1700,7 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 4,
+                            Aktivna = true,
                             Naziv = "Sekcija 30",
                             Redosled = 4,
                             Sifra = "30"
@@ -1661,6 +1708,7 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 5,
+                            Aktivna = true,
                             Naziv = "Sekcija 40",
                             Redosled = 5,
                             Sifra = "40"
@@ -1668,6 +1716,7 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 6,
+                            Aktivna = true,
                             Naziv = "Sekcija 50",
                             Redosled = 6,
                             Sifra = "50"
@@ -1675,6 +1724,7 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 7,
+                            Aktivna = true,
                             Naziv = "Sekcija 60",
                             Redosled = 7,
                             Sifra = "60"
@@ -1682,6 +1732,7 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 8,
+                            Aktivna = true,
                             Naziv = "Sekcija 70",
                             Redosled = 8,
                             Sifra = "70"
@@ -2083,6 +2134,10 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lockout_end");
 
+                    b.Property<bool>("MoraPromenitiLozinku")
+                        .HasColumnType("boolean")
+                        .HasColumnName("mora_promeniti_lozinku");
+
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
@@ -2375,6 +2430,18 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("TpmPregledi.Domain.Entities.PredlogIzmene", b =>
                 {
+                    b.HasOne("TpmPregledi.Domain.Entities.PredlogIzmene", null)
+                        .WithMany()
+                        .HasForeignKey("OriginalId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_predlog_izmene_predlog_izmene_original_id");
+
+                    b.HasOne("TpmPregledi.Domain.Entities.Pregled", null)
+                        .WithMany()
+                        .HasForeignKey("PregledId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_predlog_izmene_pregledi_pregled_id");
+
                     b.HasOne("TpmPregledi.Domain.Entities.Sablon", "Sablon")
                         .WithMany()
                         .HasForeignKey("SablonId")
@@ -2395,6 +2462,16 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_predlog_izmene_sablon_verzija_verzija_id");
 
                     b.Navigation("Sablon");
+                });
+
+            modelBuilder.Entity("TpmPregledi.Domain.Entities.PredlogSaglasnost", b =>
+                {
+                    b.HasOne("TpmPregledi.Domain.Entities.PredlogIzmene", null)
+                        .WithMany("Saglasnosti")
+                        .HasForeignKey("PredlogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_predlog_saglasnost_predlog_izmene_predlog_id");
                 });
 
             modelBuilder.Entity("TpmPregledi.Domain.Entities.Pregled", b =>
@@ -2609,6 +2686,11 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_refresh_token_asp_net_users_user_id");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TpmPregledi.Domain.Entities.PredlogIzmene", b =>
+                {
+                    b.Navigation("Saglasnosti");
                 });
 
             modelBuilder.Entity("TpmPregledi.Domain.Entities.Pregled", b =>

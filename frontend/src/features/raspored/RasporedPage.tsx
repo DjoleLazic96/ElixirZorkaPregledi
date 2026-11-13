@@ -24,7 +24,7 @@ import {
   type OdsustvoDto, type PredlogStavka, type PregledKalendarDto, type ZahtevPrebacivanjaDto,
 } from './hooks';
 import { PregledKartica } from './KalendarPage';
-import { bojaPregleda, ivicaPregleda, oznakaPregleda, stavkeDana } from './kalendar';
+import { bojaPregleda, ivicaPregleda, oznakaPomeranja, oznakaPregleda, preracunajTipove, stavkeDana } from './kalendar';
 
 /**
  * „Raspored“ (Supervizor, Direktor): nedelja, predlog i potvrda DP-a (R3.10), zakazivanje PZ-a (R3.7, R3.8),
@@ -48,7 +48,7 @@ export function RasporedPage() {
   async function predlozi() {
     try {
       const p = await traziPredlog.mutateAsync(nedelja);
-      if (p.length === 0) toast.success('Svi radni dani ove nedelje već imaju DP.');
+      if (p.length === 0) toast.success('Za ovu nedelju nema dana bez DP-a od danas.');
       else setPredlog(p);
     } catch (err) {
       toast.error(porukaGreske(err, 'Predlog nije napravljen.'));
@@ -96,7 +96,7 @@ export function RasporedPage() {
                         </button>
                       ))}
                       {s.preneti.map((p) => (
-                        <p key={`p${p.id}`} className="text-xs text-red-700">{p.broj} prenet na {formatirajDatum(p.planiraniDatum)}</p>
+                        <p key={`p${p.id}`} className={cn('rounded px-1 text-xs', oznakaPomeranja(p).boja)}>{p.broj} {oznakaPomeranja(p).tekst} {formatirajDatum(p.planiraniDatum)}</p>
                       ))}
                       {s.odsutni.map((o) => <p key={o.korisnikId} className="truncate text-xs text-gray-500">odsutan: {o.ime}</p>)}
                     </div>
@@ -129,29 +129,55 @@ function PredlogModal({ predlog, onClose }: { predlog: PredlogStavka[]; onClose:
   const potvrdi = usePotvrdi();
   const toast = useToast();
   const [stavke, setStavke] = useState(predlog);
+  // Kvačica „Zakaži“ uz svaki dan, podrazumevano uključena (zamerka 30); tipovi se preračunavaju bez odštikliranih dana.
+  const [zakazi, setZakazi] = useState(() => predlog.map(() => true));
+  const [pitaj, setPitaj] = useState(false);
   const [greska, setGreska] = useState<string | null>(null);
   const opcije = (inzenjeri.data ?? []).map((i) => ({ value: i.id, label: i.ime }));
+  const tipovi = preracunajTipove(stavke, zakazi);
+  const izabrane = stavke.map((s, i) => ({ ...s, tip: tipovi[i] })).filter((_, i) => zakazi[i]);
+  const imaRupu = izabrane.some((s) => s.rupa);
 
-  async function sacuvaj() {
+  async function sacuvaj(uskladi: boolean) {
     setGreska(null);
     try {
-      const novi = await potvrdi.mutateAsync(stavke.map((s) => ({ datum: s.datum, tip: s.tip, inzenjerId: s.inzenjerId })));
-      toast.success(`Raspored je potvrđen: ${novi.map((n) => n.broj).join(', ')}.`);
+      await potvrdi.mutateAsync({ stavke: izabrane.map((s) => ({ datum: s.datum, tip: s.tip, inzenjerId: s.inzenjerId })), uskladi });
+      toast.success(uskladi ? 'Raspored je potvrđen, a naredni DP-ovi su usklađeni.' : 'Raspored je potvrđen.');
       onClose();
     } catch (err) {
+      setPitaj(false);
       setGreska(porukaGreske(err, 'Raspored nije potvrđen.'));
     }
   }
 
+  if (pitaj)
+    return (
+      <Modal open title="Dan usred rasporeda" onClose={() => setPitaj(false)} widthClass="max-w-xl">
+        <div className="space-y-3 text-sm">
+          <p>Posle {izabrane.filter((s) => s.rupa).map((s) => formatirajDatum(s.datum)).join(', ')} već postoje zakazani DP-ovi.</p>
+          <ul className="space-y-1 text-gray-700">
+            <li><b>Umetni i pomeri naredne</b> (preporučeno) — taj dan preuzima sledeći DP iz rasporeda, a naredni idu dan unazad, pa smena DP1/DP2 ostaje ispravna.</li>
+            <li><b>Ostavi kako jeste</b> — taj dan dobija nov DP, a naredni ostaju gde su (smena DP1/DP2 može da se ponovi).</li>
+          </ul>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="ghost" onClick={() => setPitaj(false)} disabled={potvrdi.isPending}>Nazad</Button>
+            <Button variant="secondary" onClick={() => void sacuvaj(false)} disabled={potvrdi.isPending}>Ostavi kako jeste</Button>
+            <Button onClick={() => void sacuvaj(true)} disabled={potvrdi.isPending}>Umetni i pomeri naredne</Button>
+          </div>
+        </div>
+      </Modal>
+    );
+
   return (
     <Modal open title="Predlog rasporeda" onClose={onClose} widthClass="max-w-xl">
-      <p className="mb-3 text-sm text-gray-600">DP se dodeljuje redom aktivnim inženjerima, a odsutni se preskaču. Inženjera možete promeniti pre potvrde.</p>
+      <p className="mb-3 text-sm text-gray-600">DP se dodeljuje redom aktivnim inženjerima, a odsutni se preskaču. Inženjera možete promeniti, a dan koji ne želite da zakažete odštiklirajte.</p>
       <ul className="space-y-2">
         {stavke.map((s, i) => (
-          <li key={s.datum} className="flex flex-wrap items-center gap-2">
-            <span className="w-32 shrink-0 text-sm">{kratakDan(s.datum)}, {formatirajDatum(s.datum)}</span>
-            <span className="w-10 text-sm font-semibold">{s.tip}</span>
-            <Select className="min-w-0 flex-1" aria-label={`Inženjer za ${formatirajDatum(s.datum)}`} value={s.inzenjerId} options={opcije}
+          <li key={s.datum} className="flex flex-wrap items-center gap-2 border-b border-gray-100 pb-2 sm:border-0 sm:pb-0">
+            <Checkbox label="Zakaži" checked={zakazi[i]} onChange={() => setZakazi(zakazi.map((z, j) => (j === i ? !z : z)))} />
+            <span className={cn('w-32 shrink-0 text-sm', !zakazi[i] && 'text-gray-400')}>{kratakDan(s.datum)}, {formatirajDatum(s.datum)}</span>
+            <span className="w-10 text-sm font-semibold">{tipovi[i]}</span>
+            <Select className="w-full min-w-0 sm:w-auto sm:flex-1" aria-label={`Inženjer za ${formatirajDatum(s.datum)}`} value={s.inzenjerId} options={opcije} disabled={!zakazi[i]}
               onChange={(v) => setStavke(stavke.map((x, j) => (j === i ? { ...x, inzenjerId: v } : x)))} />
           </li>
         ))}
@@ -159,7 +185,9 @@ function PredlogModal({ predlog, onClose }: { predlog: PredlogStavka[]; onClose:
       {greska && <p role="alert" className="mt-3 text-sm text-red-600">{greska}</p>}
       <div className="flex justify-end gap-2 pt-4">
         <Button variant="ghost" onClick={onClose} disabled={potvrdi.isPending}>Odustani</Button>
-        <Button onClick={() => void sacuvaj()} disabled={potvrdi.isPending}>{potvrdi.isPending ? 'Čuvanje…' : 'Potvrdi raspored'}</Button>
+        <Button onClick={() => (imaRupu ? setPitaj(true) : void sacuvaj(false))} disabled={potvrdi.isPending || izabrane.length === 0}>
+          {potvrdi.isPending ? 'Čuvanje…' : 'Potvrdi raspored'}
+        </Button>
       </div>
     </Modal>
   );

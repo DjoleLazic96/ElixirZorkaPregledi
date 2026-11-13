@@ -6,6 +6,17 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- Otkazivanje planiranog pregleda uz razlog; za DP „Pomeri raspored“ ili „Otkaži, zadrži raspored“. Otkazan pregled se ne računa u ispunjenje plana.
+- „Povuci raspored“ kad dan ostane bez DP-a usred niza (npr. pomeren ili otkazan PZ).
+- Predlog rasporeda: kvačica „Zakaži“ uz svaki dan i „Umetni i pomeri naredne“ za dan usred niza.
+- „Promeni DP“ (DP1 ↔ DP2) uz usklađivanje narednih.
+- Rezime pre predaje pregleda; „Pogledaj pregled“ kod predatog; u arhivi inženjer vidi svoje preglede.
+- „Nešto fali u šablonu? Predloži izmenu“ tokom popunjavanja (i bez interneta).
+- Predlozi: „Samo moji“, „Slažem se sa predlogom“, zatvaranje kao duplikat.
+- U nacrtu: „+ Nova aktivnost“ i „+ Novi uređaj“ iz prozora „Dodaj stavku“.
+- Sekcije u Administraciji (dodavanje, naziv, redosled, neaktivna).
+- „Zaboravili ste lozinku?“ na prijavi; obavezna promena lozinke posle reseta.
+- „Dostupna je nova verzija“ sa dugmetom „Osveži“.
 - Slika koju server ne primi vidi se na svakom ekranu inženjera sa razlogom: „Pošalji ponovo“ (dok se pregled popunjava), „Sačuvaj na telefon“ ili „Odbaci“.
 - Testovi kroz pravi pregledač (Playwright) u CI-ju: prijava, meni po rolama i ceo tok inženjera bez interneta.
 - Popunjavanje: sličice dodatih slika uz stavku; dodir otvara sliku, a iz nje se briše (i bez interneta).
@@ -48,6 +59,9 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - **Administracija → Podešavanja**: vremena upozorenja, kraj radnog dana, granica pauze, rok za overu i pragovi obaveštenja.
 
 ### Izmenjeno
+- „O aplikaciji“: tehnički podaci samo za Administratora.
+- Podsetnik za raspored stiže četvrtkom i petkom i navodi dane sledeće nedelje bez DP-a.
+- Ručno pomeren pregled ima sivu oznaku „pomeren na“; crveno „nije urađen“ samo za propušten.
 - Ekrani se učitavaju tek kad zatrebaju: prvi paket aplikacije je oko 40 % manji (rad bez interneta ostaje isti).
 - **Novi izgled po odobrenom mockup-u**: ElixirZorka logo i zelena linija u zaglavlju, zeleni levi meni sa ikonicama, sadržaj centriran, sva dugmad iste visine i isti razmaci, oznake statusa u boji po značenju (Planiran sivo, U radu žuto, Čeka overu zeleno, Overeno plavo, dorada crveno), stavke lista sa „›“, pretraga kao prozor, Početna sa pozdravom, popunjavanje sa zelenim zaglavljem pregleda i velikim tasterima odgovora.
 - Na telefonu su sva dugmad, padajuće liste i izbor datuma dovoljno veliki za prst (44 px), a pregledi uređaja, ispunjenje plana i istorijat šablona su kartice umesto tabela.
@@ -56,6 +70,8 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Uklonjen primer „Kategorije“ iz skeleta; početni ekran je **Početna**.
 
 ### Ispravljeno
+- „Predloži raspored“ više ne nudi dane koji su prošli.
+- Predlog rasporeda računa DP1/DP2 od DP-a dan pre (nisu mogla da nastanu dva ista zaredom).
 - Greška pri prijavi se najavljuje čitaču ekrana.
 - Dorada ili kasna predaja starijeg pregleda više ne otvara ni ne zatvara kvar koji je noviji pregled već odredio.
 - Rok i broj akcije otvorene posle ponoći računaju se po beogradskom danu.

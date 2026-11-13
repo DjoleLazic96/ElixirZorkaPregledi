@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useToast } from '../providers/ToastProvider';
-import { ROLA_LABELE, imaPravo, type Rola } from '../../lib/permissions';
+import { ROLA_LABELE, imaPravo, isAdmin, type Rola } from '../../lib/permissions';
 import { obrisiLokalno, sinhronizuj, useStanjeSinhronizacije } from '../../offline/sinhronizacija';
 import { BellRing, Info, KeyRound, LogOut } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
@@ -15,6 +15,7 @@ import { iskljuciPush } from '../../features/obavestenja/hooks';
 import { PushDijalog, Zvono } from '../../features/obavestenja/Zvono';
 import { DonjiMeni, Sidebar } from './Sidebar';
 import { OdbijeneSlike } from '../../features/popunjavanje/OdbijeneSlike';
+import { NovaVerzija } from '../../components/NovaVerzija';
 
 /**
  * Okvir aplikacije po mockup-u: zaglavlje preko cele širine, ispod zeleni levi meni i centriran sadržaj; na telefonu donji meni. `AppRoutes` garantuje da je korisnik ulogovan pre nego što se ovo mount-uje.
@@ -137,6 +138,7 @@ export function AppLayout() {
                 Bez interneta{inzenjer && ` — čeka slanje: ${sinh.promena} promena, ${sinh.slika} slika`}
               </div>
             )}
+            <NovaVerzija />
             {inzenjer && <OdbijeneSlike korisnikId={me?.user.id} />}
             {/* `key` na putanji remount-uje omotač pri svakoj navigaciji, pa se
                 `animate-fade-in` ponovo okine (isključeno pri reduced-motion). */}
@@ -148,7 +150,7 @@ export function AppLayout() {
       </div>
       <DonjiMeni pristup={me} />
 
-      <OAplikaciji open={oAplikacijiOtvoren} onClose={() => setOAplikacijiOtvoren(false)} />
+      <OAplikaciji open={oAplikacijiOtvoren} onClose={() => setOAplikacijiOtvoren(false)} tehnicki={me ? isAdmin(me) : false} />
       {/* Uslovno renderovanje resetuje polja forme pri svakom otvaranju. */}
       {promenaLozinkeOtvorena && (
         <PromenaLozinke open onClose={() => setPromenaLozinkeOtvorena(false)} />

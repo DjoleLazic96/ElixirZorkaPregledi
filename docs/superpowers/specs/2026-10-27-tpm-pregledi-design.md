@@ -411,6 +411,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R1.10** Kad inženjer ode iz firme, Admin mu deaktivira nalog (ne briše ga): ne može da se prijavi, ispada iz rotacije, a njegovi pregledi, napomene i akcije ostaju pod njegovim imenom. *[O]*
 - **R1.11** Prijava ima „Zapamti me na ovom uređaju“ (ostaje prijavljen do odjave; na službenom telefonu obavezno zbog rada bez interneta) i dugme „oko“ uz lozinku: klik prikazuje lozinku dok se ponovo ne klikne. Važi za sva polja za lozinku. *[O]*
 - **R1.12** Svaki korisnik sam menja lozinku („Moj nalog“, klik na ime u zaglavlju): trenutna, nova (najmanje 8 znakova) i ponovljena; na ostalim uređajima treba nova prijava. Zaboravljenu lozinku resetuje Admin. *[O]*
+- **R1.13** „Zaboravili ste lozinku?“ upućuje na administratora (bez linka mejlom); lozinku koju postavi administrator korisnik menja pri prvoj prijavi. „O aplikaciji“ svima pokazuje naziv i verziju, a tehničke podatke samo Administratoru. *[O]* (odluka 2026-11-13)
 
 ### A.2 Šabloni i registar opreme
 
@@ -432,6 +433,8 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R2.13** Admin u aplikaciji može da doda novo polje ovog tipa na aktivnost: naziv, tip (broj, merenje sa jedinicom, da/ne) i da li je obavezno. *[O]*
 - **R2.14** Početni šabloni su papirni obrasci sa poslednjim datumom. Pre uvoza ažurne verzije sprovode se ručne ispravke sa obrazaca („Sautelma“ umesto „ATM“, „redler“ umesto „Transporter“, izbacivanje aktivnosti koje uređaj nema) i ostale nedoslednosti iz dokumenta od 20.10. *[O]*
 - **R2.15** Šabloni se prvi put unose uvozom; posle toga se menjaju u aplikaciji. *[Z]*
+- **R2.16** U nacrtu se nova aktivnost i nov uređaj dodaju iz prozora „Dodaj stavku“ (upisuju se u katalog i registar). Sekcije dodaje, preimenuje, ređa i deaktivira Administrator; neaktivna se ne nudi za nove uređaje, ne briše se. *[O]* (odluka 2026-11-13)
+- **R2.17** Predlog izmene šablona može da se pošalje i tokom popunjavanja (i bez interneta) i pamti pregled. Pre slanja se vide isti predlozi koji čekaju odluku („Slažem se sa predlogom“); Direktor ili Administrator može predlog da zatvori kao duplikat drugog — odluka o originalu stiže i podnosiocu duplikata i onima koji se slažu. Inženjer podrazumevano vidi svoje predloge. *[O]* (odluka 2026-11-13)
 
 ### A.3 Raspored i kalendar
 
@@ -462,6 +465,11 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R3.25** Odobreno odsustvo Supervizor ili Direktor može da izmeni (od–do, npr. raniji povratak) ili otkaže; inženjer može da povuče svoj zahtev dok o njemu nije odlučeno. Otkazano odsustvo ostaje zapisano i ne računa se u rasporedu; pregledi prebačeni zbog njega ostaju zamenama dok ih Supervizor ili Direktor ne vrati. Na ekranu „Raspored“ je spisak svih odsustava (tekuća i buduća, uz filter po inženjeru i prikaz ranijih). *[O]* (odluka 2026-11-10)
 - **R3.26** Ručno izabran inženjer (Zakaži PZ, izmena rasporeda, drugi inženjer na PZ-u, zamena pri prebacivanju, potvrda predloga) ne sme biti odsutan tog dana; aplikacija to odbija uz ime, dan i vrstu odsustva. Planiran pregled koji je ostao odsutnom inženjeru je crveno označen i stoji Supervizoru i Direktoru u „Čeka moju odluku“ dok se ne prebaci. *[O]* (2026-11-10)
 - **R3.27** Pregled se ne zakazuje ni ne pomera na dan koji je prošao (potvrda predloga, Zakaži PZ, promena datuma); promena samo inženjera na starom pregledu je dozvoljena. *[O]* (odluka 2026-11-13)
+- **R3.28** Supervizor i Direktor otkazuju planirani pregled uz razlog; inženjer dobija obaveštenje, zahtev koji čeka odluku se zatvara, a otkazan pregled se ne računa u ispunjenje plana. Za DP se bira „Pomeri raspored“ (DP i ceo niz idu dan napred, kao kod propuštenog) ili „Otkaži, zadrži raspored“ (poništava se, naredni ostaju). PZ se poništava; sledeći PZ po redu se računa bez njega. *[O]* (odluka 2026-11-13)
+- **R3.29** DP-ovi su jedan niz radnih dana; smena DP1/DP2 ide redom kroz ceo niz, preko nedelja. Predlog nudi dane od danas, a tip računa od DP-a dan pre. Kad se u nizu otvori rupa (npr. pomeren ili otkazan PZ), nudi se „Povuci raspored“: naredni planirani DP-ovi idu dan unazad (inženjeri ostaju na danima), a poslednji dan niza ostaje slobodan. Ručno pomeren pregled ima sivu oznaku „pomeren na“; crveno „nije urađen – prenet na“ je samo za propušten. *[O]* (odluka 2026-11-13)
+- **R3.30** U predlogu rasporeda svaki dan ima kvačicu „Zakaži“ (podrazumevano uključena); odštiklirani dan ostaje slobodan, a tipovi se preračunavaju. Kad se popunjava dan usred niza, bira se „Umetni i pomeri naredne“ (niz se povuče u taj dan, kraj nedelje dobija nov DP) ili „Ostavi kako jeste“. *[O]* (odluka 2026-11-13)
+- **R3.31** „Promeni DP“: planiranom DP-u se menja tip (DP1 ↔ DP2), uz izbor da li se naredni planirani DP-ovi usklade; promenjeni dobijaju nove brojeve, stari se ne koriste ponovo. *[O]* (odluka 2026-11-13)
+- **R3.32** Podsetnik „Raspored za sledeću nedelju“ stiže četvrtkom i petkom posle kraja radnog dana ako sledeće nedelje postoji dan za DP bez DP-a, sa spiskom tih dana. *[O]* (odluka 2026-11-13)
 
 ### A.4 Popunjavanje pregleda
 
@@ -472,6 +480,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R4.5** Slika: „Fotografiši“ ili „Iz galerije“, nije obavezna i nema poseban komentar (ide uz napomenu stavke). Aplikacija je smanjuje na oko 1–2 MB; najviše 5 slika po stavci. Slika pamti pregled, tip, verziju šablona, sekciju, uređaj, stavku, ko ju je dodao i kada, i da li je iz kamere ili galerije. *[Z]*
 - **R4.6** „Nije u funkciji“ se označava za ceo uređaj i važi samo za taj pregled; klikne se svaki put. Ako je uređaj prošli put bio van funkcije, piše „Prošli put: nije u funkciji“ uz dugme „I dalje nije u funkciji“. Pregled može da se preda, a takvi uređaji se posle predaje prikazuju posebno. *[K]*
 - **R4.7** Kad inženjer dođe do uređaja sa otvorenom potrebnom akcijom, iskače pop-up: da li je akcija urađena (da / ne). *[K]*
+- **R4.8** „Predaj pregled“ prvo prikazuje rezime (ispravne i neispravne stavke, uređaji van funkcije, otvorene akcije, slike, spisak neispravnih) sa „Predaj“ i „Vrati se“. Predat pregled ima „Pogledaj pregled“; u arhivi inženjer podrazumevano vidi svoje preglede. *[O]* (odluka 2026-11-13)
 
 ### A.5 Merenje vremena i kontrola
 
@@ -559,6 +568,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R10.6** Aplikacija se instalira na početni ekran telefona kroz Chrome (Android), čime rade push obaveštenja i ne gube se neposlati podaci. *[K]*
 - **R10.10** Kad server odbije promene sa telefona (npr. pregled je vezan za drugi uređaj ili predaja nije potpuna), telefon odmah prikazuje razlog i vraća pregled na stanje sa servera; Supervizor ili Direktor može da otključa pregled za drugi uređaj. Inženjer briše svoju sliku dok pregled nije predat, i bez interneta. *[O]* (2026-11-10)
 - **R10.11** Slika koju server trajno odbije ostaje na telefonu i vidi se na svakom ekranu inženjera sa razlogom; inženjer je šalje ponovo (dok se pregled još popunjava), čuva na telefon ili odbacuje uz potvrdu. *[O]* (odluka 2026-11-13)
+- **R10.12** Kad je na serveru nova verzija, aplikacija prikazuje „Dostupna je nova verzija“ sa „Osveži“; pre osvežavanja se šalje sve što čeka na telefonu, a ako ne može, osvežavanje čeka. *[O]* (odluka 2026-11-13)
 - **R10.7** Prva prijava je sa internetom; posle toga inženjer ostaje prijavljen i radi bez interneta. *[Z]*
 - **R10.8** Aplikacija je responzivna za telefon, tablet, laptop i veliki monitor: na telefonu donji meni, kartice umesto tabela, jedan uređaj u fokusu i velika dugmad; na većim ekranima bočni meni i pune tabele. *[Z]*
 - **R10.9** Osnovna pravila prikaza (važe za sve ekrane): *[O]*

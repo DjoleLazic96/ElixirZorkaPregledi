@@ -21,10 +21,12 @@ namespace TpmPregledi.Application.Features.Raspored;
 /// <param name="Napomena">Napomena (npr. uz promenu PZ-a).</param>
 /// <param name="InzenjerOdsutan">Planiran pregled je ostao inženjeru koji je tog dana odsutan (zamerka 3).</param>
 /// <param name="ZahtevNaCekanju">Vrsta zahteva inženjera koji čeka odluku (<c>prebacivanje</c>, <c>raniji_pocetak</c>) ili null.</param>
+/// <param name="Propusten">Propušten i automatski prenet (crveno „nije urađen – prenet“); inače je pomeranje ručno (sivo).</param>
+/// <param name="SlobodanDan">Posle izmene: dan koji je ostao bez DP-a usred niza — UI nudi „Povuci raspored“ (zamerka 29).</param>
 public sealed record PregledKalendarDto(
     int Id, string Broj, string Tip, DateOnly PlaniraniDatum, DateOnly PrvobitniDatum, string Status,
     string DodeljenId, string Dodeljen, IReadOnlyList<UcesnikDto> Ucesnici, string? Napomena,
-    bool InzenjerOdsutan = false, string? ZahtevNaCekanju = null);
+    bool InzenjerOdsutan = false, string? ZahtevNaCekanju = null, bool Propusten = false, DateOnly? SlobodanDan = null);
 
 /// <summary>Učesnik PZ-a.</summary>
 /// <param name="KorisnikId">ID.</param>
@@ -62,20 +64,24 @@ public sealed record StavkaRasporeda(DateOnly Datum, string Tip, string? Inzenje
 /// <param name="Tip">DP1 ili DP2.</param>
 /// <param name="InzenjerId">Predloženi inženjer.</param>
 /// <param name="Inzenjer">Ime.</param>
-public sealed record PredlogStavkaDto(DateOnly Datum, string Tip, string? InzenjerId, string Inzenjer);
+/// <param name="Rupa">Posle ovog dana već postoje planirani DP-ovi (dan je rupa usred niza, zamerka 30).</param>
+/// <param name="DatumPre">Dan poslednjeg postojećeg DP-a pre ovog dana (za preračun tipa kad se dan odštiklira).</param>
+/// <param name="TipPre">Tip tog DP-a.</param>
+public sealed record PredlogStavkaDto(DateOnly Datum, string Tip, string? InzenjerId, string Inzenjer, bool Rupa = false, DateOnly? DatumPre = null, string? TipPre = null);
 
 /// <summary>Kalendar i raspored za period (R3.22).</summary>
 /// <param name="Od">Prvi dan.</param>
 /// <param name="Do">Poslednji dan.</param>
 public sealed record GetRasporedQuery(DateOnly Od, DateOnly Do) : IRequest<RasporedDto>;
 
-/// <summary>Predlog DP-a za dane od <paramref name="Od"/> do kraja te nedelje (R3.10); ništa ne upisuje.</summary>
+/// <summary>Predlog DP-a za dane od <paramref name="Od"/> (a najranije od danas, zamerka 26) do kraja te nedelje (R3.10); ništa ne upisuje.</summary>
 /// <param name="Od">Prvi dan (obično ponedeljak).</param>
 public sealed record PredlogRasporedaQuery(DateOnly Od) : IRequest<IReadOnlyList<PredlogStavkaDto>>;
 
 /// <summary>Potvrda rasporeda: pravi preglede sa brojevima (R6.9).</summary>
-/// <param name="Stavke">Dani, tipovi i inženjeri.</param>
-public sealed record PotvrdiRasporedCommand(IReadOnlyList<StavkaRasporeda> Stavke) : IRequest<IReadOnlyList<PregledKalendarDto>>;
+/// <param name="Stavke">Dani i inženjeri (tip računa server od DP-a dan pre, zamerka 29).</param>
+/// <param name="Uskladi">Dan koji je rupa usred niza ne dobija nov DP nego se niz povuče u njega („Umetni i pomeri naredne“, zamerka 30).</param>
+public sealed record PotvrdiRasporedCommand(IReadOnlyList<StavkaRasporeda> Stavke, bool Uskladi = false) : IRequest<IReadOnlyList<PregledKalendarDto>>;
 
 /// <summary>Inženjer za izbor u rasporedu.</summary>
 /// <param name="Id">ID.</param>
@@ -135,7 +141,7 @@ public sealed class PotvrdiRasporedValidator : AbstractValidator<PotvrdiRaspored
 }
 
 /// <summary>Raspored, PZ, prenos i ručne izmene.</summary>
-public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICurrentUser currentUser, IDateTimeProvider clock) :
+public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICurrentUser currentUser, IDateTimeProvider clock) :
     IRequestHandler<GetRasporedQuery, RasporedDto>,
     IRequestHandler<PredlogRasporedaQuery, IReadOnlyList<PredlogStavkaDto>>,
     IRequestHandler<PotvrdiRasporedCommand, IReadOnlyList<PregledKalendarDto>>,
@@ -164,21 +170,32 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
     public async Task<IReadOnlyList<PredlogStavkaDto>> Handle(PredlogRasporedaQuery req, CancellationToken ct)
     {
         var k = await RasporedKontekst.UcitajAsync(db, ct);
-        // Do petka te nedelje (subota/nedelja kao početak → petak sledeće).
+        // Do petka te nedelje (subota/nedelja kao početak → petak sledeće); dani koji su prošli se ne nude (zamerka 26).
         var kraj = req.Od.AddDays(((int)DayOfWeek.Friday - (int)req.Od.DayOfWeek + 7) % 7);
-        var poslednji = await PoslednjiDpAsync(req.Od, ct);
-        var zauzeti = (await db.Pregledi.AsNoTracking()
-            .Where(p => p.Tip.StartsWith("DP") && p.Status != StatusPregleda.Ponisten && p.PlaniraniDatum >= req.Od && p.PlaniraniDatum <= kraj)
-            .Select(p => p.PlaniraniDatum).ToListAsync(ct)).ToHashSet();
+        var od = req.Od < clock.Today ? clock.Today : req.Od;
+        var poslednji = await PoslednjiDpAsync(od, ct);
+        var postojeci = (await db.Pregledi.AsNoTracking()
+            .Where(p => p.Tip.StartsWith("DP") && p.Status != StatusPregleda.Ponisten && p.PlaniraniDatum >= od && p.PlaniraniDatum <= kraj)
+            .ToListAsync(ct)).ToDictionary(p => p.PlaniraniDatum);
+        var poslednjiPlaniran = await db.Pregledi.AsNoTracking().Where(p => p.Tip.StartsWith("DP") && p.Status == StatusPregleda.Planiran)
+            .MaxAsync(p => (DateOnly?)p.PlaniraniDatum, ct);
 
+        // Tip i rotacija idu od DP-a dan pre — i kad je taj DP u istoj nedelji — da ne nastanu dva ista zaredom (zamerka 29).
         string? tip = poslednji?.Tip, inz = poslednji?.DodeljenId;
+        DateOnly? datumPre = poslednji?.PlaniraniDatum;
+        string? tipPre = poslednji?.Tip;
         var predlog = new List<PredlogStavkaDto>();
-        for (var d = req.Od; d <= kraj; d = d.AddDays(1))
+        for (var d = od; d <= kraj; d = d.AddDays(1))
         {
-            if (!k.JeDanZaDp(d) || zauzeti.Contains(d)) continue;
+            if (postojeci.TryGetValue(d, out var p))
+            {
+                (tip, inz, datumPre, tipPre) = (p.Tip, p.DodeljenId, d, p.Tip);
+                continue;
+            }
+            if (!k.JeDanZaDp(d)) continue;
             tip = RasporedPravila.SledeciDp(tip);
             inz = k.SledeciInzenjer(d, inz);
-            predlog.Add(new PredlogStavkaDto(d, tip, inz, k.Ime(inz)));
+            predlog.Add(new PredlogStavkaDto(d, tip, inz, k.Ime(inz), poslednjiPlaniran > d, datumPre, tipPre));
         }
         return predlog;
     }
@@ -206,20 +223,41 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
         var novi = new List<Pregled>();
         foreach (var s in req.Stavke.OrderBy(s => s.Datum))
         {
-            var p = new Pregled
+            if (req.Uskladi && await db.Pregledi.AnyAsync(p => p.Tip.StartsWith("DP") && p.Status == StatusPregleda.Planiran && p.PlaniraniDatum > s.Datum, ct))
             {
-                Broj = await brojac.SledeciAsync(s.Tip, s.Datum.Year, ct), Tip = s.Tip, PlaniraniDatum = s.Datum,
-                PrvobitniDatum = s.Datum, DodeljenId = s.InzenjerId!, KreiranoAt = sada,
-            };
-            db.Pregledi.Add(p);
-            PregledIstorija.Dodaj(db, p, "dodela", new { inzenjer = k.Ime(p.DodeljenId), inzenjerId = p.DodeljenId, datum = p.PlaniraniDatum }, currentUser.UserId, sada);
-            novi.Add(p);
+                // Rupa usred niza: niz se povuče u nju, a dan koji ostane slobodan na kraju dobija nov DP samo ako je u istoj nedelji.
+                var kraj = s.Datum.AddDays(((int)DayOfWeek.Friday - (int)s.Datum.DayOfWeek + 7) % 7);
+                var (oslobodjen, inzenjer) = await PovuciAsync(s.Datum, s.InzenjerId!, "umetanje", k, ct);
+                if (oslobodjen is { } f && f <= kraj && inzenjer is not null) novi.Add(await NoviDpAsync(f, inzenjer, k, sada, ct));
+                await db.SaveChangesAsync(ct);
+                continue;
+            }
+            novi.Add(await NoviDpAsync(s.Datum, s.InzenjerId!, k, sada, ct));
+            // Sledeća rupa traži niz iz baze, pa i ovaj DP mora biti upisan.
+            if (req.Uskladi) await db.SaveChangesAsync(ct);
         }
         foreach (var g in novi.GroupBy(p => p.DodeljenId))
             await Obavesti.DodajAsync(db, [g.Key], VrsteObavestenja.Dodela, "Novi pregledi u rasporedu",
                 $"Dodeljeni su vam: {string.Join(", ", g.Select(p => $"{p.Broj} ({p.PlaniraniDatum:dd.MM.yyyy})"))}.", "/kalendar", null, sada, ct);
         await db.SaveChangesAsync(ct);
         return novi.Select(p => Dto(p, k)).ToList();
+    }
+
+    /// <summary>Nov DP za dan; tip je sledeći posle poslednjeg DP-a pre tog dana (i onih upravo napravljenih).</summary>
+    private async Task<Pregled> NoviDpAsync(DateOnly d, string inzenjerId, RasporedKontekst k, DateTime sada, CancellationToken ct)
+    {
+        var pre = db.Pregledi.Local.Where(p => p.JeDp && p.Status != StatusPregleda.Ponisten && p.PlaniraniDatum < d)
+            .OrderByDescending(p => p.PlaniraniDatum).FirstOrDefault();
+        var izBaze = await PoslednjiDpAsync(d, ct);
+        if (pre is null || (izBaze is not null && izBaze.PlaniraniDatum > pre.PlaniraniDatum)) pre = izBaze;
+        var tip = RasporedPravila.SledeciDp(pre?.Tip);
+        var p = new Pregled
+        {
+            Broj = await brojac.SledeciAsync(tip, d.Year, ct), Tip = tip, PlaniraniDatum = d, PrvobitniDatum = d, DodeljenId = inzenjerId, KreiranoAt = sada,
+        };
+        db.Pregledi.Add(p);
+        PregledIstorija.Dodaj(db, p, "dodela", new { inzenjer = k.Ime(p.DodeljenId), inzenjerId = p.DodeljenId, datum = p.PlaniraniDatum }, currentUser.UserId, sada);
+        return p;
     }
 
     /// <inheritdoc />
@@ -304,7 +342,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
         PregledIstorija.Dodaj(db, p, "izmena_rasporeda", new { stari, novi = new { inzenjer = k.Ime(p.DodeljenId), datum = p.PlaniraniDatum } }, currentUser.UserId, clock.UtcNow);
         await ObavestiOPromeniAsync(p, stariId, stariDatum, clock.UtcNow, ct);
         await db.SaveChangesAsync(ct);
-        return Dto(p, k);
+        return Dto(p, k) with { SlobodanDan = stariDatum != p.PlaniraniDatum ? await SlobodanZaPovlacenjeAsync(stariDatum, ct) : null };
     }
 
     /// <inheritdoc />
@@ -365,6 +403,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
         niz.AddRange(kasniji);
 
         var pomeranja = RasporedPravila.Prenesi(niz, k.SledeciDanZaDp, (d, posl) => k.SledeciInzenjer(d, posl) ?? posl ?? prvi.DodeljenId);
+        if (razlog == "propusten") prvi.Propusten = true;
         var sada = clock.UtcNow;
         var obavestenja = new List<(string Kome, string Tekst)>();
         foreach (var m in pomeranja)
@@ -394,5 +433,5 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
     public static PregledKalendarDto Dto(Pregled p, RasporedKontekst k) =>
         new(p.Id, p.Broj, p.Tip, p.PlaniraniDatum, p.PrvobitniDatum, p.Status, p.DodeljenId, k.Ime(p.DodeljenId),
             p.Ucesnici.Select(u => new UcesnikDto(u.KorisnikId, k.Ime(u.KorisnikId), u.Sekcije)).ToList(), p.Napomena,
-            p.Status == StatusPregleda.Planiran && k.JeOdsutan(p.DodeljenId, p.PlaniraniDatum), k.ZahteviNaCekanju.GetValueOrDefault(p.Id));
+            p.Status == StatusPregleda.Planiran && k.JeOdsutan(p.DodeljenId, p.PlaniraniDatum), k.ZahteviNaCekanju.GetValueOrDefault(p.Id), p.Propusten);
 }

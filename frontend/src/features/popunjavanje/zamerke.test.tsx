@@ -5,9 +5,10 @@ import { renderSaProviderima } from '../../test/utils';
 import { brojSlika } from '../../lib/broj';
 import { ivicaPregleda, oznakaPregleda } from '../raspored/kalendar';
 import type { PopunjavanjeDto } from './hooks';
-import { NavigacijaSekcija } from './PopunjavanjePage';
+import { NavigacijaSekcija, PredlogIzPregleda, RezimePredaje } from './PopunjavanjePage';
 
 vi.mock('../../api/client', () => ({ api: { get: vi.fn(), post: vi.fn() } }));
+vi.mock('../auth/AuthProvider', () => ({ useAuth: () => ({ me: { user: { id: 'ana' }, roles: ['Inzenjer'], prava: ['pregledi.popunjavanje'] } }) }));
 
 const sekcija = (sifra: string, odgovoreno: boolean) => ({
   sifra, moja: true, radi: 'Ana', uredjaji: [{
@@ -44,5 +45,30 @@ describe('Zamerke 6, 7, 3, 10', () => {
     expect(ivicaPregleda({ zahtevNaCekanju: 'prebacivanje' })).toContain('border-dashed');
     expect(oznakaPregleda({ zahtevNaCekanju: 'raniji_pocetak' })?.tekst).toBe('čeka raniji početak');
     expect(oznakaPregleda({})).toBeNull();
+  });
+});
+
+describe('Zamerke 34 i 35', () => {
+  it('rezime pre predaje broji stavke i nabraja neispravne; „Vrati se“ ne predaje', async () => {
+    const neispravna = sekcija('20', false);
+    (neispravna.uredjaji[0].stavke[0] as { odgovor: unknown }).odgovor = { vrednost: 1, napomena: 'curi', polja: {} };
+    const p = { ...P, sekcije: [sekcija('10', true), neispravna] } as unknown as PopunjavanjeDto;
+    const predaj = vi.fn();
+    const nazad = vi.fn();
+    renderSaProviderima(<RezimePredaje p={p} saljem={false} onPredaj={predaj} onNazad={nazad} />);
+    expect(screen.getByText('Neispravne stavke')).toBeInTheDocument();
+    expect(screen.getByText(/20 · Elevator 10-C-13 · A/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Vrati se' }));
+    expect(nazad).toHaveBeenCalled();
+    expect(predaj).not.toHaveBeenCalled();
+  });
+
+  it('predlog iz pregleda upisuje sekciju u opis i ide kao operacija pregleda', async () => {
+    const posalji = vi.fn().mockResolvedValue(true);
+    renderSaProviderima(<PredlogIzPregleda tip="PZ1" sekcija="30" onClose={() => {}} onPosalji={posalji} />);
+    await userEvent.type(screen.getByLabelText('Šta treba promeniti'), 'Fali ventilator 30-B-05');
+    await userEvent.type(screen.getByLabelText('Razlog'), 'Ugrađen prošle nedelje');
+    await userEvent.click(screen.getByRole('button', { name: 'Pošalji predlog' }));
+    expect(posalji).toHaveBeenCalledWith({ vrsta: 'dodavanje', opis: 'Sekcija 30: Fali ventilator 30-B-05', razlog: 'Ugrađen prošle nedelje' });
   });
 });

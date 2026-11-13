@@ -43,7 +43,7 @@ public sealed class ZakazaneProvereHandler(IAppDbContext db, IDateTimeProvider c
         if (sat >= p.KrajRadnogDana)
         {
             broj += await RezimeAsync(danas, sada, ct);
-            if (lokalno.DayOfWeek == DayOfWeek.Thursday) broj += await PredlogRasporedaAsync(danas, sada, ct);
+            if (lokalno.DayOfWeek is DayOfWeek.Thursday or DayOfWeek.Friday) broj += await PredlogRasporedaAsync(danas, k, sada, ct);
         }
         await db.SaveChangesAsync(ct);
         return broj;
@@ -113,15 +113,23 @@ public sealed class ZakazaneProvereHandler(IAppDbContext db, IDateTimeProvider c
             "/", $"rezime:{danas:yyyy-MM-dd}", sada, ct);
     }
 
-    /// <summary>Četvrtkom: ako DP za sledeću nedelju nije potvrđen, podsetnik da je predlog spreman (spec §5.2).</summary>
-    private async Task<int> PredlogRasporedaAsync(DateOnly danas, DateTime sada, CancellationToken ct)
+    /// <summary>
+    /// Četvrtkom i petkom (zamerka 28): ako sledeće nedelje postoji dan za DP bez DP-a, podsetnik da je predlog spreman
+    /// (spec §5.2). Proverava se svaki dan, ne samo da li postoji bilo koji DP — npr. petkov DP prenet na ponedeljak ne
+    /// znači da je nedelja isplanirana. Ključ je po danu slanja, pa petak šalje drugi put ako je nedelja i dalje nepotpuna.
+    /// </summary>
+    private async Task<int> PredlogRasporedaAsync(DateOnly danas, RasporedKontekst k, DateTime sada, CancellationToken ct)
     {
         var doPonedeljka = ((int)DayOfWeek.Monday - (int)danas.DayOfWeek + 7) % 7;
         var ponedeljak = danas.AddDays(doPonedeljka == 0 ? 7 : doPonedeljka);
-        var potvrdjen = await db.Pregledi.AnyAsync(x => x.Tip.StartsWith("DP") && x.PlaniraniDatum >= ponedeljak && x.PlaniraniDatum <= ponedeljak.AddDays(6), ct);
-        if (potvrdjen) return 0;
+        var zauzeti = (await db.Pregledi.AsNoTracking()
+            .Where(x => x.Tip.StartsWith("DP") && x.Status != StatusPregleda.Ponisten && x.PlaniraniDatum >= ponedeljak && x.PlaniraniDatum <= ponedeljak.AddDays(6))
+            .Select(x => x.PlaniraniDatum).ToListAsync(ct)).ToHashSet();
+        var slobodni = Enumerable.Range(0, 5).Select(ponedeljak.AddDays).Where(d => k.JeDanZaDp(d) && !zauzeti.Contains(d)).ToList();
+        if (slobodni.Count == 0) return 0;
         return await Obavesti.PrimaocimaAsync(db, VrsteObavestenja.PredlogRasporeda, "Raspored za sledeću nedelju",
-            $"DP za nedelju od {ponedeljak:dd.MM.yyyy} još nije potvrđen; predlog po rotaciji je spreman.", "/raspored", $"predlog_rasporeda:{ponedeljak:yyyy-MM-dd}", sada, ct);
+            $"Za nedelju od {ponedeljak:dd.MM.yyyy} DP nije potvrđen za: {string.Join(", ", slobodni.Select(d => d.ToString("dd.MM.")))}; predlog po rotaciji je spreman.",
+            "/raspored", $"predlog_rasporeda:{ponedeljak:yyyy-MM-dd}:{danas:yyyy-MM-dd}", sada, ct);
     }
 }
 

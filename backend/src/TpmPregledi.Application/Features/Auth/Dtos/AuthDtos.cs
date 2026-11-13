@@ -21,8 +21,10 @@ public sealed record LoginResponse(
 /// <param name="UserName">Korisničko ime.</param>
 /// <param name="FullName">Puno ime.</param>
 /// <param name="Email">E-mail (opciono).</param>
+/// <param name="MoraPromenitiLozinku">Admin je postavio lozinku — UI traži promenu pre rada (zamerka 23).</param>
 public sealed record UserDto(
     string Id,
     string UserName,
     string FullName,
-    string? Email);
+    string? Email,
+    bool MoraPromenitiLozinku = false);

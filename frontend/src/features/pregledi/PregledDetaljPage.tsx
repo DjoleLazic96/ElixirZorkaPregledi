@@ -20,9 +20,10 @@ import { useAuth } from '../auth/AuthProvider';
 import { useQueryClient } from '@tanstack/react-query';
 import { useInzenjeri, type PregledKalendarDto } from '../raspored/hooks';
 import { IzmenaForma, UcesnikForma } from '../raspored/KalendarPage';
+import { OtkazivanjeForma, PovlacenjeDijalog, TipDpForma } from '../raspored/IzmeneRasporeda';
 import { statusLabela, tonStatusa, useOdluka, usePregled, type PregledDetaljDto } from './hooks';
 
-type Dijalog = null | 'vrati' | 'ponisti' | 'zatrazi' | 'raspored' | 'ucesnik';
+type Dijalog = null | 'vrati' | 'ponisti' | 'zatrazi' | 'raspored' | 'ucesnik' | 'otkazi' | 'tip';
 
 /**
  * Detalj pregleda (R6.x, R5.3–R5.4): vreme i upozorenja za kontrolora, rezime problematičnih stavki, ceo pregled sa
@@ -40,6 +41,7 @@ export function PregledDetaljPage() {
   const toast = useToast();
   const qc = useQueryClient();
   const [dijalog, setDijalog] = useState<Dijalog>(null);
+  const [slobodan, setSlobodan] = useState<string | null>(null);
 
   async function posalji(putanja: string, telo: object | undefined, uspeh: string) {
     try {
@@ -67,9 +69,11 @@ export function PregledDetaljPage() {
     id: p.id, broj: p.broj, tip: p.tip, planiraniDatum: p.planiraniDatum, prvobitniDatum: p.prvobitniDatum,
     status: p.status as PregledKalendarDto['status'], dodeljenId: p.dodeljenId, dodeljen: p.inzenjer, ucesnici: p.ucesnici, napomena: null,
   };
-  const posleRasporeda = () => {
+  const posleRasporeda = (r?: PregledKalendarDto) => {
     setDijalog(null);
     void qc.invalidateQueries({ queryKey: ['pregledi'] });
+    // Dan ostao bez DP-a usred niza → „Povuci raspored“ (zamerka 29).
+    if (r?.slobodanDan) setSlobodan(r.slobodanDan);
   };
   const izdvojen = p.sekcije.flatMap((s) => s.uredjaji.map((u) => ({ s: s.sifra, u }))).find((x) => x.u.uredjajId === izdvojenId);
 
@@ -118,6 +122,8 @@ export function PregledDetaljPage() {
             )}
             {moj && (p.status === 'vracen_na_doradu' || p.status === 'u_radu') && <Button onClick={() => navigate(`/pregled/${p.id}/popuni`)}>Popuni pregled</Button>}
             {raspored && <Button variant="secondary" onClick={() => setDijalog('raspored')}>Promeni u rasporedu</Button>}
+            {raspored && nezapocet && p.tip.startsWith('DP') && <Button variant="secondary" onClick={() => setDijalog('tip')}>Promeni DP</Button>}
+            {raspored && nezapocet && <Button variant="ghost" onClick={() => setDijalog('otkazi')}>Otkaži pregled</Button>}
             {overa && p.vezanZaUredjaj && (
               <Button variant="ghost" disabled={odluka.isPending}
                 onClick={() => void posalji('otkljucaj', undefined, 'Pregled je otključan; inženjer može da nastavi na drugom uređaju.')}>Otključaj za drugi uređaj</Button>
@@ -209,6 +215,17 @@ export function PregledDetaljPage() {
           <IzmenaForma pregled={zaRaspored} onDone={posleRasporeda} onBack={() => setDijalog(null)} />
         </Modal>
       )}
+      {dijalog === 'otkazi' && (
+        <Modal open title={`Otkaži pregled — ${p.broj}`} onClose={() => setDijalog(null)}>
+          <OtkazivanjeForma pregled={zaRaspored} onDone={posleRasporeda} onBack={() => setDijalog(null)} />
+        </Modal>
+      )}
+      {dijalog === 'tip' && (
+        <Modal open title={`Promeni DP — ${p.broj}`} onClose={() => setDijalog(null)}>
+          <TipDpForma pregled={zaRaspored} onDone={() => posleRasporeda()} onBack={() => setDijalog(null)} />
+        </Modal>
+      )}
+      {slobodan && <PovlacenjeDijalog datum={slobodan} onClose={() => setSlobodan(null)} />}
       {dijalog === 'ucesnik' && (
         <Modal open title={`Drugi inženjer — ${p.broj}`} onClose={() => setDijalog(null)}>
           <UcesnikForma pregled={zaRaspored} onDone={posleRasporeda} onBack={() => setDijalog(null)} />

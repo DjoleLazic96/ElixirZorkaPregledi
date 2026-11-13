@@ -86,6 +86,24 @@ public static class RasporedPravila
         return rez;
     }
 
+    /// <summary>
+    /// Povlačenje niza unazad (zamerka 29, obrnuto od <see cref="Prenesi"/>): oslobođen dan <paramref name="dan"/> preuzima
+    /// prvi kasniji planirani DP, svaki sledeći ide na mesto prethodnog, a poslednji dan niza ostaje slobodan. Inženjeri ostaju
+    /// na svojim danima (R3.4): pregled preuzima inženjera dana na koji dolazi; oslobođen dan dobija <paramref name="inzenjerZaDan"/>.
+    /// Vraća pomeranja, oslobođen poslednji dan i inženjera koji je bio na njemu.
+    /// </summary>
+    public static (IReadOnlyList<Pomeranje> Pomeranja, DateOnly? Oslobodjen, string? InzenjerOslobodjenog) Povuci(
+        DateOnly dan, string inzenjerZaDan, IReadOnlyList<Pregled> dpPosle)
+    {
+        if (dpPosle.Count == 0) return ([], null, null);
+        var rez = new List<Pomeranje>(dpPosle.Count);
+        for (var i = 0; i < dpPosle.Count; i++)
+            rez.Add(i == 0
+                ? new Pomeranje(dpPosle[0], dan, inzenjerZaDan)
+                : new Pomeranje(dpPosle[i], dpPosle[i - 1].PlaniraniDatum, dpPosle[i - 1].DodeljenId));
+        return (rez, dpPosle[^1].PlaniraniDatum, dpPosle[^1].DodeljenId);
+    }
+
     private static int IndexOf(IReadOnlyList<string> l, string v)
     {
         for (var i = 0; i < l.Count; i++) if (l[i] == v) return i;

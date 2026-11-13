@@ -22,7 +22,8 @@ import { useSablonVerzija } from '../sabloni/hooks';
 import {
   useInzenjeri, useIzmeniDodelu, usePostaviUcesnika, usePodnesiPrebacivanje, useRaspored, type PregledKalendarDto, type RasporedDto,
 } from './hooks';
-import { STATUS_LABELA, bojaPregleda, ivicaPregleda, oznakaPregleda, stavkeDana } from './kalendar';
+import { STATUS_LABELA, bojaPregleda, ivicaPregleda, oznakaPomeranja, oznakaPregleda, stavkeDana } from './kalendar';
+import { OtkazivanjeForma, PovlacenjeDijalog, TipDpForma } from './IzmeneRasporeda';
 
 /**
  * Kalendar (R3.22, R3.23). Računar: mesec; telefon: spisak po danima. Klik na pregled otvara karticu sa brojem,
@@ -151,8 +152,8 @@ function Dan({ dan, r, danas, uMesecu, onPregled, spisak }: DanProps) {
           </button>
         ))}
         {s.preneti.map((p) => (
-          <p key={`p${p.id}`} className="rounded-[5px] bg-red-50 px-[5px] py-0.5 text-[11px] text-red-700">
-            <span className="whitespace-nowrap font-semibold">{p.broj}</span> nije urađen – prenet na {formatirajDatum(p.planiraniDatum)}
+          <p key={`p${p.id}`} className={cn('rounded-[5px] px-[5px] py-0.5 text-[11px]', oznakaPomeranja(p).boja)}>
+            <span className="whitespace-nowrap font-semibold">{p.broj}</span> {oznakaPomeranja(p).tekst} {formatirajDatum(p.planiraniDatum)}
           </p>
         ))}
         {s.odsutni.length > 0 && <p className="truncate text-[11px] text-gray-500">odsutni: {s.odsutni.map((o) => o.ime).join(', ')}</p>}
@@ -165,10 +166,16 @@ function Dan({ dan, r, danas, uMesecu, onPregled, spisak }: DanProps) {
 export function PregledKartica({ pregled, onClose }: { pregled: PregledKalendarDto; onClose: () => void }) {
   const { me } = useAuth();
   const pristup = me ?? { roles: [], prava: [] };
-  const [mod, setMod] = useState<'kartica' | 'prebacivanje' | 'izmena' | 'ucesnik'>('kartica');
+  const [mod, setMod] = useState<'kartica' | 'prebacivanje' | 'izmena' | 'ucesnik' | 'otkazivanje' | 'tip'>('kartica');
+  // Posle izmene koja je ostavila dan bez DP-a usred niza nudi se „Povuci raspored“ (zamerka 29).
+  const [slobodan, setSlobodan] = useState<string | null>(null);
   const navigate = useNavigate();
   const moj = me?.user.id === pregled.dodeljenId || pregled.ucesnici.some((u) => u.korisnikId === me?.user.id);
   const planiran = pregled.status === 'planiran';
+  const smeRaspored = imaPravo(pristup, 'raspored.uredjivanje');
+  const posleIzmene = (r?: PregledKalendarDto) => (r?.slobodanDan ? setSlobodan(r.slobodanDan) : onClose());
+
+  if (slobodan) return <PovlacenjeDijalog datum={slobodan} onClose={onClose} />;
 
   return (
     <Modal open title={pregled.broj} onClose={onClose}>
@@ -176,7 +183,7 @@ export function PregledKartica({ pregled, onClose }: { pregled: PregledKalendarD
         <div className="space-y-3 text-sm">
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
             <dt className="text-gray-500">Datum</dt>
-            <dd>{formatirajDatum(pregled.planiraniDatum)}{pregled.prvobitniDatum !== pregled.planiraniDatum && ` (prenet sa ${formatirajDatum(pregled.prvobitniDatum)})`}</dd>
+            <dd>{formatirajDatum(pregled.planiraniDatum)}{pregled.prvobitniDatum !== pregled.planiraniDatum && ` (${pregled.propusten ? 'prenet' : 'pomeren'} sa ${formatirajDatum(pregled.prvobitniDatum)})`}</dd>
             <dt className="text-gray-500">Inženjer</dt>
             <dd>{pregled.dodeljen}</dd>
             {pregled.ucesnici.map((u) => (
@@ -196,20 +203,26 @@ export function PregledKartica({ pregled, onClose }: { pregled: PregledKalendarD
             {moj && planiran && imaPravo(pristup, 'pregledi.popunjavanje') && (pregled.zahtevNaCekanju
               ? <span className="self-center text-sm font-semibold text-amber-800">Zahtev poslat — čeka odluku</span>
               : <Button variant="secondary" onClick={() => setMod('prebacivanje')}>Zatraži prebacivanje</Button>)}
-            {imaPravo(pristup, 'raspored.uredjivanje') && (planiran || pregled.status === 'u_radu') && (
+            {smeRaspored && (planiran || pregled.status === 'u_radu') && (
               <Button variant="secondary" onClick={() => setMod('izmena')}>Promeni u rasporedu</Button>
             )}
-            {imaPravo(pristup, 'raspored.uredjivanje') && pregled.tip.startsWith('PZ') && (planiran || pregled.status === 'u_radu') && (
+            {smeRaspored && pregled.tip.startsWith('PZ') && (planiran || pregled.status === 'u_radu') && (
               <Button variant="secondary" onClick={() => setMod('ucesnik')}>{pregled.ucesnici.length ? 'Drugi inženjer' : 'Dodaj inženjera'}</Button>
             )}
+            {smeRaspored && planiran && pregled.tip.startsWith('DP') && (
+              <Button variant="secondary" onClick={() => setMod('tip')}>Promeni DP</Button>
+            )}
+            {smeRaspored && planiran && <Button variant="ghost" onClick={() => setMod('otkazivanje')}>Otkaži pregled</Button>}
             {pregled.status !== 'planiran' && <Button variant="secondary" onClick={() => navigate(`/pregledi/${pregled.id}`)}>Otvori pregled</Button>}
             <Button variant="ghost" onClick={onClose}>Zatvori</Button>
           </div>
         </div>
       )}
       {mod === 'prebacivanje' && <PrebacivanjeForma pregled={pregled} onDone={onClose} onBack={() => setMod('kartica')} />}
-      {mod === 'izmena' && <IzmenaForma pregled={pregled} onDone={onClose} onBack={() => setMod('kartica')} />}
+      {mod === 'izmena' && <IzmenaForma pregled={pregled} onDone={posleIzmene} onBack={() => setMod('kartica')} />}
       {mod === 'ucesnik' && <UcesnikForma pregled={pregled} onDone={onClose} onBack={() => setMod('kartica')} />}
+      {mod === 'otkazivanje' && <OtkazivanjeForma pregled={pregled} onDone={posleIzmene} onBack={() => setMod('kartica')} />}
+      {mod === 'tip' && <TipDpForma pregled={pregled} onDone={onClose} onBack={() => setMod('kartica')} />}
     </Modal>
   );
 }
@@ -253,7 +266,7 @@ function PrebacivanjeForma({ pregled, onDone, onBack }: { pregled: PregledKalend
   );
 }
 
-export function IzmenaForma({ pregled, onDone, onBack }: { pregled: PregledKalendarDto; onDone: () => void; onBack: () => void }) {
+export function IzmenaForma({ pregled, onDone, onBack }: { pregled: PregledKalendarDto; onDone: (r?: PregledKalendarDto) => void; onBack: () => void }) {
   const inzenjeri = useInzenjeri();
   const izmeni = useIzmeniDodelu();
   const toast = useToast();
@@ -264,13 +277,13 @@ export function IzmenaForma({ pregled, onDone, onBack }: { pregled: PregledKalen
   async function potvrdi(e: FormEvent) {
     e.preventDefault();
     try {
-      await izmeni.mutateAsync({
+      const r = await izmeni.mutateAsync({
         id: pregled.id,
         inzenjerId: inz !== pregled.dodeljenId ? inz : null,
         datum: datum !== pregled.planiraniDatum ? datum : null,
       });
       toast.success('Raspored je izmenjen.');
-      onDone();
+      onDone(r);
     } catch (err) {
       setGreska(porukaGreske(err, 'Izmena nije sačuvana.'));
     }

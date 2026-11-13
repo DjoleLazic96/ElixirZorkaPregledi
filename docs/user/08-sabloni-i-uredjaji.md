@@ -29,6 +29,9 @@ Levi meni → **Uređaji**. Svaki uređaj postoji jednom; šabloni pokazuju na n
 - **Nova aktivnost / Izmeni** u katalogu: naziv i dva odgovora. Odgovori aktivnosti koja je u važećem šablonu se ne menjaju
   (promenilo bi značenje već datih odgovora) — tada se pravi nova aktivnost i menja kroz nacrt šablona.
 
+- U nacrtu, u prozoru **Dodaj stavku**, uređaj ili aktivnost koja fali dodaje se odmah (**+ Novi uređaj**, **+ Nova aktivnost**): upiše
+  se u registar ili katalog i odmah izabere.
+
 - **Uputstvo**: u prozoru uputstva (**?**) → **Unesi uputstvo** / **Izmeni uputstvo** i **Dodaj sliku** (najviše 3). Važi u svim šablonima
   i ne pravi novu verziju.
 
@@ -55,8 +58,15 @@ Izbačen uređaj ostaje u registru i u istoriji; ako nije ni u jednom šablonu, 
 
 Svako može da predloži izmenu: **Šabloni** → **Predloži izmenu** → vrsta (dodavanje, izbacivanje, ispravka teksta), stavka, šta treba
 promeniti i **razlog** (obavezan). Direktor i Administrator predlog vide u zvonu i na Početnoj, a na kartici **Predlozi izmena**
-ga **odobre** ili **odbiju** (uz obrazloženje). Podnosilac dobija obaveštenje. Odobren predlog se pojavljuje u nacrtu, a posle objave
-piše „u verziji N“.
+ga **odobre**, **odbiju** (uz obrazloženje) ili označe kao **Duplikat** drugog predloga. Podnosilac dobija obaveštenje. Odobren predlog
+se pojavljuje u nacrtu (uređaj i stavku dodaje Direktor), a posle objave piše „u verziji N“.
+
+- Pre slanja prozor pokazuje predloge za isti šablon koji čekaju odluku. Ako je isti već poslat, kliknite **Slažem se sa predlogom**
+  umesto da šaljete novi — Direktor vidi ko se sve slaže, a odluku dobijate i vi.
+- Duplikat se zatvara sa vezom na original; o odluci o originalu obaveštenje stiže i podnosiocu duplikata.
+- Inženjer na kartici **Predlozi izmena** podrazumevano vidi samo svoje predloge (i one sa kojima se složio); **Samo moji** se isključuje.
+- Tokom popunjavanja, na dnu sekcije, mali link **Nešto fali u šablonu? Predloži izmenu** šalje predlog sa upisanim šablonom i sekcijom
+  (radi i bez interneta). Predlog pamti pregled: Direktor ima vezu na pregled, a u istoriji pregleda piše da je predlog poslat.
 
 ## 8.7 Istorijat šablona
 

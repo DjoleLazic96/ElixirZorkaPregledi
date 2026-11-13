@@ -111,11 +111,32 @@ export function LoginPage() {
             <Button type="submit" className="w-full" disabled={saljem}>
               {saljem ? 'Prijavljivanje…' : 'Prijavi se'}
             </Button>
+            <ZaboravljenaLozinka />
           </form>
 
           <p className="mt-5 text-center text-xs text-gray-400">v{VERZIJA}</p>
         </CardBody>
       </Card>
+    </div>
+  );
+}
+
+/**
+ * „Zaboravili ste lozinku?“ (zamerka 23): bez linka mejlom — novu lozinku postavlja administrator, a korisnik je menja pri
+ * prvoj prijavi (mejl bi bio slaba tačka, a službeni telefoni ga često nemaju).
+ */
+function ZaboravljenaLozinka() {
+  const [otvoreno, setOtvoreno] = useState(false);
+  return (
+    <div className="text-center text-sm">
+      <button type="button" className="text-primary-600 underline-offset-2 hover:underline" aria-expanded={otvoreno} onClick={() => setOtvoreno((x) => !x)}>
+        Zaboravili ste lozinku?
+      </button>
+      {otvoreno && (
+        <p role="status" className="mt-2 rounded-md bg-gray-100 px-3 py-2 text-gray-700">
+          Obratite se administratoru, koji će vam postaviti novu lozinku. Pri prvoj prijavi izaberite svoju.
+        </p>
+      )}
     </div>
   );
 }

@@ -42,6 +42,12 @@ public class ApplicationUser : IdentityUser<string>
     /// <summary>UTC trenutak poslednje uspešne prijave (null ako se nikad nije prijavio).</summary>
     public DateTime? LastLoginAt { get; set; }
 
+    /// <summary>
+    /// Lozinku je postavio Admin (reset, zamerka 23): pri sledećoj prijavi korisnik mora da je promeni, pa Admin ne zna
+    /// lozinku koju korisnik dalje koristi. Briše se uspešnom promenom sopstvene lozinke.
+    /// </summary>
+    public bool MoraPromenitiLozinku { get; set; }
+
     /// <summary>Refresh tokeni koje korisnik trenutno ima (po uređaju/sesiji).</summary>
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }

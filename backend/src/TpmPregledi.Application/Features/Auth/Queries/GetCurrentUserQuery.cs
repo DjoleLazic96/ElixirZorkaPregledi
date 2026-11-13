@@ -42,7 +42,7 @@ public sealed class GetCurrentUserHandler(
         var roles = (await userManager.GetRolesAsync(user)).ToList();
 
         return new CurrentUserResponse(
-            new UserDto(user.Id, user.UserName ?? "", user.FullName, user.Email),
+            new UserDto(user.Id, user.UserName ?? "", user.FullName, user.Email, user.MoraPromenitiLozinku),
             roles,
             await KorisnikPrava.ProcitajAsync(db, user.Id, ct));
     }

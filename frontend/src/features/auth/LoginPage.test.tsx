@@ -72,6 +72,13 @@ describe('LoginPage', () => {
     expect(screen.queryByText(/Sesija je istekla/)).not.toBeInTheDocument();
   });
 
+  it('„Zaboravili ste lozinku?“ upućuje na administratora, bez mejla (zamerka 23)', async () => {
+    renderLogin();
+    expect(screen.queryByText(/Obratite se administratoru/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Zaboravili ste lozinku?' }));
+    expect(screen.getByText(/Obratite se administratoru/)).toBeInTheDocument();
+  });
+
   it('prikazuje verziju frontenda u podnožju', () => {
     renderLogin();
     expect(screen.getByText(`v${VERZIJA}`)).toBeInTheDocument();
