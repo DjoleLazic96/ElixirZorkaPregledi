@@ -198,6 +198,8 @@ public static class RasporedEndpoints
         z.MapPost("/{id:int}/odluka", async (int id, [FromBody] OdlukaPrebacivanjaInput i, IMediator m) =>
                 Results.Ok(await m.Send(new OdluciOPrebacivanjuCommand(id, i.Odobreno, i.ZamenaId))))
             .RequireAuthorization(raspored).WithSummary("Odobri (sa zamenom) ili odbij");
+        z.MapPost("/{id:int}/otkazi", async (int id, IMediator m) => Results.Ok(await m.Send(new OtkaziZahtevPrebacivanjaCommand(id))))
+            .RequireAuthorization(PravoPolitika.Za(Prava.PreglediPopunjavanje)).WithSummary("Inženjer otkazuje svoj zahtev (dok čeka odluku)");
 
         return app;
     }

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { FilterTraka, type AktivanFilter } from '../../components/ui/FilterTraka';
+import { formatirajDatum } from '../../lib/datum';
 import type { AuditAkcija, AuditFilteri, AuditRedDto } from '../../api/types';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -70,14 +72,20 @@ export function AuditLogPage() {
   const stavke = upit.data?.stavke ?? [];
   const ukupno = upit.data?.ukupno ?? 0;
   const opsegGreska = od && doDatum && od > doDatum;
+  const aktivni: AktivanFilter[] = [
+    ...(korisnik.trim() ? [{ kljuc: 'korisnik', labela: `„${korisnik.trim()}“`, kucanje: true, ukloni: () => postavi({ korisnik: null }) }] : []),
+    ...(entitet ? [{ kljuc: 'entitet', labela: entiteti.data?.find((e) => e.entitet === entitet)?.labela ?? entitet, ukloni: () => postavi({ entitet: null }) }] : []),
+    ...(akcija ? [{ kljuc: 'akcija', labela: AKCIJE.find((a) => a.value === akcija)?.label ?? akcija, ukloni: () => postavi({ akcija: null }) }] : []),
+    ...(od ? [{ kljuc: 'od', labela: `od ${formatirajDatum(od)}`, ukloni: () => postavi({ od: null }) }] : []),
+    ...(doDatum ? [{ kljuc: 'do', labela: `do ${formatirajDatum(doDatum)}`, ukloni: () => postavi({ do: null }) }] : []),
+  ];
 
   return (
     <div className="space-y-4">
       <PageHeader title="Audit log" description="Ko je, kada, šta i odakle promenio — izmene podataka i prijave." />
 
-      <Card>
-        <CardBody className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-5">
+      <FilterTraka aktivni={aktivni} kolone="md:grid-cols-5 items-start"
+        onObrisiSve={() => postavi({ korisnik: null, entitet: null, akcija: null, od: null, do: null })}>
             <FormField label="Korisnik" htmlFor="audit-korisnik">
               <Input
                 id="audit-korisnik"
@@ -116,7 +124,10 @@ export function AuditLogPage() {
             <FormField label="Do datuma" htmlFor="audit-do">
               <DatePicker id="audit-do" value={doDatum} onChange={(v) => postavi({ do: v })} />
             </FormField>
-          </div>
+      </FilterTraka>
+
+      <Card>
+        <CardBody className="space-y-4">
 
           {upit.isPending ? (
             <Ucitavanje />

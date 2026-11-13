@@ -51,7 +51,8 @@ public sealed record OdsustvoKratkoDto(string KorisnikId, string Ime, DateOnly O
 /// <param name="Pregledi">Pregledi čiji planirani ili prvobitni dan pada u period.</param>
 /// <param name="NeradniDani">Neradni dani u periodu.</param>
 /// <param name="Odsustva">Odobrena odsustva koja seku period.</param>
-public sealed record RasporedDto(IReadOnlyList<PregledKalendarDto> Pregledi, IReadOnlyList<NeradniDanKratkoDto> NeradniDani, IReadOnlyList<OdsustvoKratkoDto> Odsustva);
+/// <param name="DpNaDanPz">Da li se DP radi i na dan PZ-a (R3.9) — ekran tada ne upozorava na pomeranje DP-ova.</param>
+public sealed record RasporedDto(IReadOnlyList<PregledKalendarDto> Pregledi, IReadOnlyList<NeradniDanKratkoDto> NeradniDani, IReadOnlyList<OdsustvoKratkoDto> Odsustva, bool DpNaDanPz = false);
 
 /// <summary>Stavka predloga ili potvrde rasporeda.</summary>
 /// <param name="Datum">Dan.</param>
@@ -163,7 +164,7 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
             .OrderBy(n => n.Datum).Select(n => new NeradniDanKratkoDto(n.Datum, n.Naziv)).ToListAsync(ct);
         var odsustva = k.Odsustva.Where(o => o.Od <= req.Do && o.Do >= req.Od)
             .Select(o => new OdsustvoKratkoDto(o.KorisnikId, k.Ime(o.KorisnikId), o.Od, o.Do, o.Vrsta)).ToList();
-        return new RasporedDto(pregledi.Select(p => Dto(p, k)).ToList(), neradni, odsustva);
+        return new RasporedDto(pregledi.Select(p => Dto(p, k)).ToList(), neradni, odsustva, k.DpNaDanPz);
     }
 
     /// <inheritdoc />
@@ -342,6 +343,8 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
         PregledIstorija.Dodaj(db, p, "izmena_rasporeda", new { stari, novi = new { inzenjer = k.Ime(p.DodeljenId), datum = p.PlaniraniDatum } }, currentUser.UserId, clock.UtcNow);
         await ObavestiOPromeniAsync(p, stariId, stariDatum, clock.UtcNow, ct);
         await db.SaveChangesAsync(ct);
+        // Pomeren PZ radi isto kao zakazan (R3.9, zamerka 43): DP na novi dan i naredni idu dan napred — i popune dan koji je PZ oslobodio.
+        if (!p.JeDp && stariDatum != p.PlaniraniDatum && !k.DpNaDanPz) await PomeriDpOdAsync(db, clock, p.PlaniraniDatum, "pz", ct);
         return Dto(p, k) with { SlobodanDan = stariDatum != p.PlaniraniDatum ? await SlobodanZaPovlacenjeAsync(stariDatum, ct) : null };
     }
 
@@ -390,10 +393,16 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
     /// Pomera DP-ove od dana <paramref name="dan"/>: ako tog dana postoji nezapočet ili započet a nepredat DP, on i svi kasniji
     /// planirani DP-ovi idu jedno mesto napred (<see cref="RasporedPravila.Prenesi"/>). Vraća broj pomerenih pregleda.
     /// </summary>
-    private async Task<int> PomeriOdAsync(DateOnly dan, string razlog, CancellationToken ct)
+    private Task<int> PomeriOdAsync(DateOnly dan, string razlog, CancellationToken ct) => PomeriDpOdAsync(db, clock, dan, razlog, ct);
+
+    /// <summary>
+    /// Isto kao <see cref="PomeriOdAsync"/>, za druge handlere (odobren raniji početak PZ-a). Zbog PZ-a (<paramref name="razlog"/>
+    /// <c>pz</c>) se pomera samo nezapočet DP — započet DP inženjer već radi, pa ostaje na svom danu.
+    /// </summary>
+    internal static async Task<int> PomeriDpOdAsync(IAppDbContext db, IDateTimeProvider clock, DateOnly dan, string razlog, CancellationToken ct)
     {
         var prvi = await db.Pregledi.FirstOrDefaultAsync(p => p.Tip.StartsWith("DP") && p.PlaniraniDatum == dan
-            && (p.Status == StatusPregleda.Planiran || p.Status == StatusPregleda.URadu), ct);
+            && (p.Status == StatusPregleda.Planiran || (p.Status == StatusPregleda.URadu && razlog != "pz")), ct);
         if (prvi is null) return 0;
 
         var k = await RasporedKontekst.UcitajAsync(db, ct);

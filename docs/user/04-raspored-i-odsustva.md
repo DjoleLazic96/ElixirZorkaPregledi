@@ -33,13 +33,17 @@ plana. Započet pregled se ne otkazuje nego poništava (stranica pregleda → **
 raspored** (naredni DP-ovi idu dan unazad, redosled i inženjeri po danima ostaju, a poslednji zakazani dan ostaje slobodan za sledeći
 predlog) ili **Ostavi prazno**.
 
-**Promeni DP.** Kartica planiranog DP-a → **Promeni DP**: DP1 postaje DP2 (ili obrnuto) i dobija nov broj. **Da, uskladi naredne**
-preokreće i naredne planirane DP-ove da smena ostane ispravna; **Ne, samo ovaj** menja samo taj dan.
+**Promeni DP.** Kartica planiranog DP-a → **Promeni DP**: DP1 postaje DP2 (ili obrnuto) i dobija nov broj. Ako posle tog dana ima
+zakazanih DP-ova, **Da, uskladi naredne** preokreće i njih da smena ostane ispravna, a **Ne, samo ovaj** menja samo taj dan; ako ih nema,
+pitanja nema — samo **Promeni u DP1** (ili DP2).
 
 ## 4.3 PZ
 
 **Zakaži PZ**: datum i inženjer; PZ je unapred postavljen na sledeći po redu (PZ1 → PZ4). Izbor drugog je **Promeni PZ** (napomena
-nije obavezna), a redosled se nastavlja od zakazanog. Na dan PZ-a DP se ne radi (podešavanje), pa se DP tog dana pomera.
+nije obavezna), a redosled se nastavlja od zakazanog. Na dan PZ-a DP se ne radi (podešavanje), pa se DP tog dana i naredni pomeraju
+za dan napred. Kad izaberete dan sa DP-om, ispod datuma piše koji DP se pomera, a dugme je **Zakaži i pomeri DP-ove**. Isto važi kad se
+PZ pomera na drugi dan (**Promeni u rasporedu**) ili kad odobrite raniji početak. Ako se PZ posle otkaže, prozor **Dan je ostao bez DP-a**
+nudi **Povuci raspored**, koje vraća DP-ove kako su bili pre tog PZ-a.
 
 **Odsutni inženjeri.** Inženjer koji je tog dana odsutan ne može da se izabere (poruka navodi dan i vrstu odsustva). Pregled koji je
 ostao odsutnom inženjeru ima crvenu oznaku **inženjer odsutan** i stoji u **Čeka moju odluku** dok se ne prebaci. Pregled za koji zahtev

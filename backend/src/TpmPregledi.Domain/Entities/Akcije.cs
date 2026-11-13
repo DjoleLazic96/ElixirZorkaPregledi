@@ -4,7 +4,8 @@ namespace TpmPregledi.Domain.Entities;
 
 /// <summary>
 /// Potrebna akcija (R7.1–R7.13): šta treba uraditi na stavci (uređaj + aktivnost). Broj <c>A-2026-0031</c>; zatvara je
-/// inženjer kroz pop-up na sledećem pregledu ili Supervizor/Direktor sa ekrana, uz razlog.
+/// inženjer kroz pop-up na sledećem pregledu, Supervizor/Direktor sa ekrana ili odobravanjem zahteva inženjera — uz podatke
+/// šta je urađeno, kada i ko je uradio (zamerka 49).
 /// </summary>
 [Auditable]
 public class Akcija
@@ -62,6 +63,65 @@ public class Akcija
 
     /// <summary>Kvar na stavci je zatvoren dok je akcija još otvorena (R7.15).</summary>
     public bool StavkaSadaIspravna { get; set; }
+
+    /// <summary>Šta je urađeno (zatvaranje van pregleda, zamerka 49).</summary>
+    public string? Uradjeno { get; set; }
+
+    /// <summary>Kada je urađeno.</summary>
+    public DateOnly? UradjenoDatum { get; set; }
+
+    /// <summary>Ko je uradio: inženjer, drugi inženjer ili služba (tekst za prikaz).</summary>
+    public string? Izvrsilac { get; set; }
+
+    /// <summary>Slika uz zatvaranje (opciono).</summary>
+    public long? ZatvaranjeFajlId { get; set; }
+}
+
+/// <summary>
+/// Zahtev inženjera za zatvaranje akcije van pregleda (zamerka 49): šta je urađeno, kada, ko i po želji slika. Odlučuju
+/// Supervizor ili Direktor (pravo <c>akcije.zatvaranje</c>); dok čeka odluku podnosilac može da ga otkaže.
+/// </summary>
+[Auditable]
+public class ZahtevZatvaranjaAkcije
+{
+    /// <summary>PK.</summary>
+    public int Id { get; set; }
+
+    /// <summary>Akcija.</summary>
+    public int AkcijaId { get; set; }
+
+    /// <summary>ID sa telefona — ponovljeno slanje (rad bez interneta) ne pravi duplikat.</summary>
+    public Guid KlijentId { get; set; }
+
+    /// <summary>Ko traži.</summary>
+    public string PodneoId { get; set; } = string.Empty;
+
+    /// <summary>Šta je urađeno.</summary>
+    public string Uradjeno { get; set; } = string.Empty;
+
+    /// <summary>Kada je urađeno.</summary>
+    public DateOnly Datum { get; set; }
+
+    /// <summary>Ko je uradio.</summary>
+    public string Izvrsilac { get; set; } = string.Empty;
+
+    /// <summary>Slika (opciono).</summary>
+    public long? FajlId { get; set; }
+
+    /// <summary><c>zahtev</c>, <c>odobreno</c>, <c>odbijeno</c>, <c>otkazano</c>.</summary>
+    public string Status { get; set; } = "zahtev";
+
+    /// <summary>Razlog odbijanja.</summary>
+    public string? Razlog { get; set; }
+
+    /// <summary>Ko je odlučio.</summary>
+    public string? OdlucioId { get; set; }
+
+    /// <summary>Kada je podnet (UTC).</summary>
+    public DateTime KreiranoAt { get; set; }
+
+    /// <summary>Kada je odlučeno ili otkazano (UTC).</summary>
+    public DateTime? OdlucenoAt { get; set; }
 }
 
 /// <summary>Događaj u istoriji akcije: otvorena, „ostaje otvorena“, dodela zaduženog, zatvaranje, otkazivanje.</summary>

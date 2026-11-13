@@ -15,6 +15,7 @@ import { porukaGreske } from '../../lib/apiError';
 import { danasYmd, formatirajDatum } from '../../lib/datum';
 import { imaPravo } from '../../lib/permissions';
 import { useAuth } from '../auth/AuthProvider';
+import { godineNeradnih } from './kalendar';
 import {
   STATUS_ODSUSTVA, VRSTE_NERADNIH, VRSTE_ODSUSTVA, useNeradniDani, useObrisiNeradni, useOdsustva, useOtkaziOdsustvo, useUnesiNeradne, useZahtevOdsustva,
 } from './hooks';
@@ -128,7 +129,7 @@ export function NeradniDaniPage() {
         title="Neradni dani"
         actions={
           <Select aria-label="Godina" value={godina} onChange={(v) => v && setGodina(v)}
-            options={[-1, 0, 1].map((d) => ({ value: Number(danasYmd().slice(0, 4)) + d, label: String(Number(danasYmd().slice(0, 4)) + d) }))} />
+            options={godineNeradnih(Number(danasYmd().slice(0, 4))).map((g) => ({ value: g, label: String(g) }))} />
         }
       />
       {sme && (

@@ -20,10 +20,12 @@ import { imaPravo } from '../../lib/permissions';
 import { useAuth } from '../auth/AuthProvider';
 import { useSablonVerzija } from '../sabloni/hooks';
 import {
-  useInzenjeri, useIzmeniDodelu, usePostaviUcesnika, usePodnesiPrebacivanje, useRaspored, type PregledKalendarDto, type RasporedDto,
+  useDpKojiSePomera, useInzenjeri, useIzmeniDodelu, useOtkaziZahtevPrebacivanja, usePostaviUcesnika, usePodnesiPrebacivanje, useRaspored,
+  useZahteviPrebacivanja, type PregledKalendarDto, type RasporedDto,
 } from './hooks';
+import { OtkaziZahtev } from './OtkaziZahtev';
 import { STATUS_LABELA, bojaPregleda, ivicaPregleda, oznakaPomeranja, oznakaPregleda, stavkeDana } from './kalendar';
-import { OtkazivanjeForma, PovlacenjeDijalog, TipDpForma } from './IzmeneRasporeda';
+import { OtkazivanjeForma, PovlacenjeDijalog, TipDpForma, UpozorenjeDp } from './IzmeneRasporeda';
 
 /**
  * Kalendar (R3.22, R3.23). Računar: mesec; telefon: spisak po danima. Klik na pregled otvara karticu sa brojem,
@@ -174,8 +176,11 @@ export function PregledKartica({ pregled, onClose }: { pregled: PregledKalendarD
   const planiran = pregled.status === 'planiran';
   const smeRaspored = imaPravo(pristup, 'raspored.uredjivanje');
   const posleIzmene = (r?: PregledKalendarDto) => (r?.slobodanDan ? setSlobodan(r.slobodanDan) : onClose());
+  const zahtevi = useZahteviPrebacivanja('zahtev', moj && !!pregled.zahtevNaCekanju);
+  const mojZahtev = zahtevi.data?.find((z) => z.pregled.id === pregled.id && z.podneoId === me?.user.id);
+  const otkaziZahtev = useOtkaziZahtevPrebacivanja();
 
-  if (slobodan) return <PovlacenjeDijalog datum={slobodan} onClose={onClose} />;
+  if (slobodan) return <PovlacenjeDijalog datum={slobodan} pz={!pregled.tip.startsWith('DP')} onClose={onClose} />;
 
   return (
     <Modal open title={pregled.broj} onClose={onClose}>
@@ -201,7 +206,12 @@ export function PregledKartica({ pregled, onClose }: { pregled: PregledKalendarD
               <Button onClick={() => navigate(`/pregled/${pregled.id}/popuni`)}>Popuni pregled</Button>
             )}
             {moj && planiran && imaPravo(pristup, 'pregledi.popunjavanje') && (pregled.zahtevNaCekanju
-              ? <span className="self-center text-sm font-semibold text-amber-800">Zahtev poslat — čeka odluku</span>
+              ? (
+                <span className="flex items-center gap-2 self-center text-sm font-semibold text-amber-800">
+                  Zahtev poslat — čeka odluku
+                  {mojZahtev && <OtkaziZahtev opis="zahtev za prebacivanje" otkazi={() => otkaziZahtev.mutateAsync(mojZahtev.id)} />}
+                </span>
+              )
               : <Button variant="secondary" onClick={() => setMod('prebacivanje')}>Zatraži prebacivanje</Button>)}
             {smeRaspored && (planiran || pregled.status === 'u_radu') && (
               <Button variant="secondary" onClick={() => setMod('izmena')}>Promeni u rasporedu</Button>
@@ -273,6 +283,7 @@ export function IzmenaForma({ pregled, onDone, onBack }: { pregled: PregledKalen
   const [inz, setInz] = useState<string | null>(pregled.dodeljenId);
   const [datum, setDatum] = useState(pregled.planiraniDatum);
   const [greska, setGreska] = useState<string | null>(null);
+  const dp = useDpKojiSePomera(!pregled.tip.startsWith('DP') && datum !== pregled.planiraniDatum ? datum : null);
 
   async function potvrdi(e: FormEvent) {
     e.preventDefault();
@@ -297,10 +308,11 @@ export function IzmenaForma({ pregled, onDone, onBack }: { pregled: PregledKalen
       <FormField label="Datum" htmlFor="izm-datum" hint={pregled.status === 'u_radu' ? 'Započetom pregledu se menja samo inženjer.' : undefined}>
         <DatePicker id="izm-datum" value={datum} onChange={setDatum} min={danasYmd()} clearable={false} disabled={pregled.status !== 'planiran'} />
       </FormField>
+      {dp && <UpozorenjeDp dp={dp} radnja="pomerite" />}
       {greska && <p role="alert" className="text-sm text-red-600">{greska}</p>}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onBack}>Nazad</Button>
-        <Button type="submit" disabled={izmeni.isPending}>{izmeni.isPending ? 'Čuvanje…' : 'Sačuvaj'}</Button>
+        <Button type="submit" disabled={izmeni.isPending}>{izmeni.isPending ? 'Čuvanje…' : dp ? 'Sačuvaj i pomeri DP-ove' : 'Sačuvaj'}</Button>
       </div>
     </form>
   );

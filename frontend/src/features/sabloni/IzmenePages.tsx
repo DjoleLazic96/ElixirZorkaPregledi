@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowDown, ArrowLeft, ArrowUp, Pencil, Trash2 } from 'lucide-react';
+import { FilterTraka } from '../../components/ui/FilterTraka';
 import type { SablonVerzijaDto, StavkaDto } from '../../api/types';
 import { useConfirm } from '../../app/providers/ConfirmProvider';
 import { useToast } from '../../app/providers/ToastProvider';
@@ -334,6 +335,10 @@ const STATUS_PREDLOGA: Record<PredlogDto['status'], { labela: string; ton: 'ambe
   duplikat: { labela: 'duplikat', ton: 'gray' },
 };
 
+const STATUSI_PREDLOGA = [
+  { value: 'zahtev', label: 'Čekaju odluku' }, { value: 'odobren', label: 'Odobreni' }, { value: 'odbijen', label: 'Odbijeni' }, { value: 'duplikat', label: 'Duplikati' },
+];
+
 /** Lista predloga; Direktor i Admin odobravaju ili odbijaju. */
 export function PredloziTab() {
   const { me } = useAuth();
@@ -362,15 +367,15 @@ export function PredloziTab() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-wrap items-center justify-between gap-2">
-        <CardTitle>Predlozi izmena</CardTitle>
-        <div className="flex flex-wrap items-center gap-3">
+      <CardHeader><CardTitle>Predlozi izmena</CardTitle></CardHeader>
+      <CardBody className="space-y-3">
+        <FilterTraka ugradjeno kolone="sm:grid-cols-2 lg:grid-cols-3" aktivni={[
+          ...(status ? [{ kljuc: 'status', labela: STATUSI_PREDLOGA.find((x) => x.value === status)?.label ?? status, ukloni: () => setStatus(null) }] : []),
+          ...(samoMoji ? [{ kljuc: 'moji', labela: 'Samo moji', ukloni: () => setSamoMoji(false) }] : []),
+        ]} onObrisiSve={() => { setStatus(null); setSamoMoji(false); }}>
+          <Select aria-label="Status" value={status} nullable placeholder="Svi" onChange={setStatus} options={STATUSI_PREDLOGA} />
           <Checkbox label="Samo moji" checked={samoMoji} onChange={(e) => setSamoMoji(e.target.checked)} />
-          <div className="w-48"><Select aria-label="Status" value={status} nullable placeholder="Svi" onChange={setStatus}
-            options={[{ value: 'zahtev', label: 'Čekaju odluku' }, { value: 'odobren', label: 'Odobreni' }, { value: 'odbijen', label: 'Odbijeni' }, { value: 'duplikat', label: 'Duplikati' }]} /></div>
-        </div>
-      </CardHeader>
-      <CardBody>
+        </FilterTraka>
         {predlozi.isLoading ? <Ucitavanje /> : !predlozi.data?.length ? <p className="text-sm text-gray-500">Nema predloga.</p> : (
           <ul className="divide-y divide-gray-100 text-sm">
             {predlozi.data.map((p) => (
@@ -449,13 +454,19 @@ export function IstorijatTab() {
   return (
     <Card>
       <CardBody className="space-y-3">
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <FilterTraka ugradjeno kolone="sm:grid-cols-2 lg:grid-cols-5" aktivni={[
+          ...(f.tip ? [{ kljuc: 'tip', labela: f.tip, ukloni: () => setF((x) => ({ ...x, tip: null })) }] : []),
+          ...(f.vrsta ? [{ kljuc: 'vrsta', labela: VRSTE_DOGADJAJA.find((x) => x.value === f.vrsta)?.label ?? f.vrsta, ukloni: () => setF((x) => ({ ...x, vrsta: null })) }] : []),
+          ...(f.korisnikId ? [{ kljuc: 'korisnik', labela: korisnici.find((x) => x.value === f.korisnikId)?.label ?? 'Korisnik', ukloni: () => setF((x) => ({ ...x, korisnikId: null })) }] : []),
+          ...(f.od ? [{ kljuc: 'od', labela: `od ${formatirajDatum(f.od)}`, ukloni: () => setF((x) => ({ ...x, od: '' })) }] : []),
+          ...(f.do ? [{ kljuc: 'do', labela: `do ${formatirajDatum(f.do)}`, ukloni: () => setF((x) => ({ ...x, do: '' })) }] : []),
+        ]} onObrisiSve={() => setF({ tip: null, vrsta: null, korisnikId: null, od: '', do: '' })}>
           <Select aria-label="Šablon" value={f.tip} nullable placeholder="Svi šabloni" onChange={(v) => setF({ ...f, tip: v })} options={TIPOVI.map((t) => ({ value: t, label: t }))} />
           <Select aria-label="Vrsta događaja" value={f.vrsta} nullable placeholder="Sve vrste" onChange={(v) => setF({ ...f, vrsta: v })} options={VRSTE_DOGADJAJA} />
           <Select aria-label="Korisnik" value={f.korisnikId} nullable placeholder="Svi korisnici" onChange={(v) => setF({ ...f, korisnikId: v })} options={korisnici} />
           <DatePicker aria-label="Od" value={f.od} placeholder="Od" onChange={(v) => setF({ ...f, od: v })} />
           <DatePicker aria-label="Do" value={f.do} placeholder="Do" onChange={(v) => setF({ ...f, do: v })} />
-        </div>
+        </FilterTraka>
         {ist.isLoading ? <Ucitavanje /> : !ist.data?.length ? <p className="text-sm text-gray-500">Nema događaja za zadate filtere.</p> : (
           <>
           <ul className="divide-y divide-gray-100 text-sm md:hidden">

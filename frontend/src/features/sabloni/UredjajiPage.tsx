@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Wrench } from 'lucide-react';
+import { FilterTraka, type AktivanFilter } from '../../components/ui/FilterTraka';
 import type { UredjajDto, UredjajInput } from '../../api/types';
 import { useToast } from '../../app/providers/ToastProvider';
 import { Badge } from '../../components/ui/Badge';
@@ -57,6 +58,13 @@ export function UredjajiPage() {
   }
 
   const opcijeSekcija = (sekcije.data ?? []).map((s) => ({ value: s.id, label: `Sekcija ${s.sifra}` }));
+  const statusiUredjaja = [{ value: 'aktivan', label: 'U upotrebi' }, { value: 'van_upotrebe', label: 'Van upotrebe' }];
+  const aktivni: AktivanFilter[] = [
+    ...(f.pretraga.trim() ? [{ kljuc: 'pretraga', labela: `„${f.pretraga.trim()}“`, kucanje: true, ukloni: () => setF((x) => ({ ...x, pretraga: '' })) }] : []),
+    ...(f.sekcijaId ? [{ kljuc: 'sekcija', labela: opcijeSekcija.find((x) => x.value === f.sekcijaId)?.label ?? 'Sekcija', ukloni: () => setF((x) => ({ ...x, sekcijaId: null })) }] : []),
+    ...(f.status ? [{ kljuc: 'status', labela: statusiUredjaja.find((x) => x.value === f.status)?.label ?? f.status, ukloni: () => setF((x) => ({ ...x, status: null })) }] : []),
+    ...(f.bezSablona ? [{ kljuc: 'bez', labela: 'Nije ni u jednom pregledu', ukloni: () => setF((x) => ({ ...x, bezSablona: false })) }] : []),
+  ];
   // Za nov uređaj samo aktivne sekcije (zamerka 33); postojeći zadržava svoju i kad je neaktivna.
   const sekcijeZaFormu = (sekcije.data ?? [])
     .filter((s) => s.aktivna !== false || (forma !== null && forma !== 'novi' && forma.sekcijaId === s.id))
@@ -81,8 +89,7 @@ export function UredjajiPage() {
         }
       />
 
-      <Card>
-        <CardBody className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <FilterTraka aktivni={aktivni} onObrisiSve={() => setF((x) => ({ ...x, pretraga: '', sekcijaId: null, status: null, bezSablona: false }))}>
           <Input
             aria-label="Pretraga uređaja"
             placeholder="Naziv ili oznaka…"
@@ -100,10 +107,7 @@ export function UredjajiPage() {
           <Select
             aria-label="Status"
             value={f.status}
-            options={[
-              { value: 'aktivan', label: 'U upotrebi' },
-              { value: 'van_upotrebe', label: 'Van upotrebe' },
-            ]}
+            options={statusiUredjaja}
             placeholder="Svi statusi"
             nullable
             onChange={(v) => setF({ ...f, status: v })}
@@ -113,8 +117,7 @@ export function UredjajiPage() {
             checked={f.bezSablona}
             onChange={(e) => setF({ ...f, bezSablona: e.target.checked })}
           />
-        </CardBody>
-      </Card>
+      </FilterTraka>
 
       {uredjaji.isLoading ? (
         <Ucitavanje />

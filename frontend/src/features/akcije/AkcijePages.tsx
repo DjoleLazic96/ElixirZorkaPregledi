@@ -15,6 +15,7 @@ import { Select } from '../../components/ui/Select';
 import { Ucitavanje } from '../../components/ui/Spinner';
 import { Textarea } from '../../components/ui/Textarea';
 import { porukaGreske } from '../../lib/apiError';
+import { FilterTraka, type AktivanFilter } from '../../components/ui/FilterTraka';
 import { cn } from '../../lib/cn';
 import { formatirajDatum, formatirajVreme } from '../../lib/datum';
 import { imaPravo } from '../../lib/permissions';
@@ -25,13 +26,15 @@ import {
   type AkcijaDto, type AkcijeFilteri, type KvaroviFilteri,
 } from './hooks';
 import { HITNOSTI, ZADUZENI_PREDLOZI, hitnostLabela, tonHitnosti, vrstaLabela } from './oznake';
+import { NacinZatvaranja, NeposlatiZahtevi, ZahtevNaCekanju, ZatvaranjeForma } from './ZatvaranjeAkcije';
 
 
 /** Kartica akcije za listu (R7.3, R7.6): broj, pregled, uređaj, hitnost, rok (crveno kad je istekao, R7.8), kvar na stavci. */
 function AkcijaRed({ a }: { a: AkcijaDto }) {
   return (
     // Stavka po mockup-u (`.list .it`); sadrži više linkova (akcija, uređaj, pregled), pa nije jedan veliki link.
-    <li className="rounded-[14px] border border-gray-200 bg-[#f7f8f6] px-3 py-2.5">
+    // „Stavka sada ispravna“ (R7.15) — zelena ivica levo, da se akcija za odluku odmah uoči (zamerka 50).
+    <li className={cn('rounded-[14px] border border-gray-200 bg-[#f7f8f6] px-3 py-2.5', a.stavkaSadaIspravna && 'border-l-4 border-l-green-500')}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Link to={`/akcije/${a.id}`} className="whitespace-nowrap text-[13px] font-bold text-primary-500 hover:underline">{a.broj}<span aria-hidden> ›</span></Link>
         <span className="flex flex-wrap gap-1">
@@ -39,6 +42,7 @@ function AkcijaRed({ a }: { a: AkcijaDto }) {
           <Badge tone={tonHitnosti(a.hitnost)}>{hitnostLabela(a.hitnost)}</Badge>
           {a.status !== 'otvorena' && <Badge tone="gray">{a.status}</Badge>}
           {a.stavkaSadaIspravna && <Badge tone="green">stavka sada ispravna</Badge>}
+          {a.zahtevZatvaranja && <Badge tone="amber">zahtev za zatvaranje</Badge>}
         </span>
       </div>
       <p className="mt-1 break-words text-sm font-semibold text-gray-800"><Link to={`/uredjaji/${a.uredjajId}`} className="text-primary-700 hover:underline">{a.uredjaj}</Link> · {a.aktivnost} · {vrstaLabela(a.vrsta)}{a.opis && ` — ${a.opis}`}</p>
@@ -57,19 +61,24 @@ export function AkcijePage() {
   const [f, setF] = useState<AkcijeFilteri>({ status: 'otvorena', hitnost: null, sekcijaId: null, sadaIspravna: false });
   const akcije = useAkcije(f);
   const sekcije = useSekcije();
+  const statusi = [{ value: 'otvorena', label: 'Otvorene' }, { value: 'zatvorena', label: 'Zatvorene' }, { value: 'otkazana', label: 'Otkazane' }];
+  const aktivni: AktivanFilter[] = [
+    ...(f.status ? [{ kljuc: 'status', labela: statusi.find((x) => x.value === f.status)?.label ?? f.status, ukloni: () => setF((x) => ({ ...x, status: null })) }] : []),
+    ...(f.hitnost ? [{ kljuc: 'hitnost', labela: hitnostLabela(f.hitnost), ukloni: () => setF((x) => ({ ...x, hitnost: null })) }] : []),
+    ...(f.sekcijaId ? [{ kljuc: 'sekcija', labela: `Sekcija ${sekcije.data?.find((x) => x.id === f.sekcijaId)?.sifra ?? ''}`.trim(), ukloni: () => setF((x) => ({ ...x, sekcijaId: null })) }] : []),
+    ...(f.sadaIspravna ? [{ kljuc: 'ispravna', labela: 'Stavka sada ispravna', ukloni: () => setF((x) => ({ ...x, sadaIspravna: false })) }] : []),
+  ];
   return (
     <div className="space-y-4">
       <PageHeader title="Potrebne akcije" actions={<IzvozDugme url="/izvoz/akcije.xlsx" params={parametriAkcija(f)} ime="Akcije.xlsx" />} />
-      <Card>
-        <CardBody className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Select aria-label="Status" value={f.status} nullable placeholder="Svi statusi" onChange={(v) => setF({ ...f, status: v })}
-            options={[{ value: 'otvorena', label: 'Otvorene' }, { value: 'zatvorena', label: 'Zatvorene' }, { value: 'otkazana', label: 'Otkazane' }]} />
+      <ZahteviZaZatvaranje />
+      <FilterTraka aktivni={aktivni} onObrisiSve={() => setF({ status: null, hitnost: null, sekcijaId: null, sadaIspravna: false })}>
+          <Select aria-label="Status" value={f.status} nullable placeholder="Svi statusi" onChange={(v) => setF({ ...f, status: v })} options={statusi} />
           <Select aria-label="Hitnost" value={f.hitnost} nullable placeholder="Sve hitnosti" options={HITNOSTI} onChange={(v) => setF({ ...f, hitnost: v })} />
           <Select aria-label="Sekcija" value={f.sekcijaId} nullable placeholder="Sve sekcije" onChange={(v) => setF({ ...f, sekcijaId: v })}
             options={(sekcije.data ?? []).map((s) => ({ value: s.id, label: `Sekcija ${s.sifra}` }))} />
           <Checkbox label="Stavka sada ispravna" checked={f.sadaIspravna} onChange={(e) => setF({ ...f, sadaIspravna: e.target.checked })} />
-        </CardBody>
-      </Card>
+      </FilterTraka>
       {akcije.isLoading ? <Ucitavanje /> : !akcije.data?.length ? (
         <Card><CardBody><EmptyState icon={ListChecks} title="Nema akcija za zadate filtere." /></CardBody></Card>
       ) : (
@@ -79,16 +88,45 @@ export function AkcijePage() {
   );
 }
 
-/** Ekran akcije (R7.6, R7.12): podaci, istorija; Supervizor/Direktor zatvaraju, otkazuju i dodeljuju zaduženog. */
+/** Zahtevi inženjera za zatvaranje koji čekaju odluku (zamerka 49) — samo za one koji odlučuju. */
+function ZahteviZaZatvaranje() {
+  const { me } = useAuth();
+  const odlucuje = imaPravo(me ?? { roles: [], prava: [] }, 'akcije.zatvaranje');
+  const zahtevi = useAkcije({ status: 'otvorena', hitnost: null, sekcijaId: null, sadaIspravna: false, saZahtevom: true }, odlucuje);
+  if (!odlucuje || !zahtevi.data?.length) return null;
+  return (
+    <Card>
+      <CardHeader><CardTitle>Zahtevi za zatvaranje ({zahtevi.data.length})</CardTitle></CardHeader>
+      <CardBody>
+        <ul className="divide-y divide-gray-100 text-sm">
+          {zahtevi.data.map((a) => (
+            <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+              <span className="min-w-0 break-words">
+                <Link to={`/akcije/${a.id}`} className="font-semibold text-primary-700 hover:underline">{a.broj}</Link> · {a.uredjaj} · {a.zahtevZatvaranja?.podneo}: {a.zahtevZatvaranja?.uradjeno}
+              </span>
+              <Link to={`/akcije/${a.id}`} className="text-xs font-medium text-primary-700 hover:underline">Odluči ›</Link>
+            </li>
+          ))}
+        </ul>
+      </CardBody>
+    </Card>
+  );
+}
+
+/**
+ * Ekran akcije (R7.6, R7.12): podaci, istorija; Supervizor/Direktor zatvaraju (šta, kada, ko — zamerka 49), otkazuju i
+ * dodeljuju zaduženog; inženjer šalje zahtev za zatvaranje.
+ */
 export function AkcijaPage() {
   const id = Number(useParams().id);
   const navigate = useNavigate();
   const { me } = useAuth();
   const sme = imaPravo(me ?? { roles: [], prava: [] }, 'akcije.zatvaranje');
+  const inzenjer = imaPravo(me ?? { roles: [], prava: [] }, 'pregledi.popunjavanje');
   const akcija = useAkcija(id);
   const odluka = useOdlukaAkcije(id);
   const toast = useToast();
-  const [dijalog, setDijalog] = useState<null | 'zatvori' | 'otkazi'>(null);
+  const [dijalog, setDijalog] = useState<null | 'zatvori' | 'otkazi' | 'zahtev'>(null);
   const [razlog, setRazlog] = useState('');
   const [zaduzen, setZaduzen] = useState<string | null>(null);
 
@@ -116,7 +154,7 @@ export function AkcijaPage() {
             <h1 className="whitespace-nowrap text-xl font-semibold">{a.broj}</h1>
             <Badge tone={tonHitnosti(a.hitnost)}>{hitnostLabela(a.hitnost)}</Badge>
             <Badge tone={a.status === 'otvorena' ? 'amber' : 'gray'}>{a.status}</Badge>
-            {a.stavkaSadaIspravna && <Badge tone="primary">stavka sada ispravna</Badge>}
+            {a.stavkaSadaIspravna && <Badge tone="green">stavka sada ispravna</Badge>}
           </div>
           <p className="break-words"><Link to={`/uredjaji/${a.uredjajId}`} className="text-primary-700 hover:underline">{a.uredjaj}</Link> (sekcija {a.sekcija}) · {a.aktivnost}</p>
           <p>{vrstaLabela(a.vrsta)}{a.opis && ` — ${a.opis}`}</p>
@@ -127,6 +165,12 @@ export function AkcijaPage() {
           <p className="text-gray-600">Kvar na stavci: {a.kvarBroj ? `${a.kvarBroj} — ${a.kvarOtvoren ? 'otvoren' : 'zatvoren'}` : 'nema'}</p>
           <p className="text-gray-600">Zadužen: {a.zaduzen ?? '—'}</p>
           {a.razlog && <p className="text-gray-600">Razlog: {a.razlog}</p>}
+          <NacinZatvaranja akcija={a} />
+          {a.zahtevZatvaranja && <ZahtevNaCekanju akcija={a} odlucuje={sme} />}
+          <NeposlatiZahtevi akcijaId={a.id} />
+          {inzenjer && !sme && a.status === 'otvorena' && !a.zahtevZatvaranja && (
+            <div className="pt-2"><Button onClick={() => setDijalog('zahtev')}>Zahtev za zatvaranje</Button></div>
+          )}
           {sme && a.status === 'otvorena' && (
             <div className="flex flex-wrap items-center gap-2 pt-2">
               <Select className="w-56" aria-label="Zadužen" value={zaduzen ?? a.zaduzen} nullable placeholder="Bez zaduženog"
@@ -148,14 +192,15 @@ export function AkcijaPage() {
           </ul>
         </CardBody>
       </Card>
-      {dijalog && (
-        <Modal open title={dijalog === 'zatvori' ? 'Zatvori akciju' : 'Otkaži akciju'} onClose={() => setDijalog(null)}>
+      {(dijalog === 'zatvori' || dijalog === 'zahtev') && <ZatvaranjeForma akcija={a} zahtev={dijalog === 'zahtev'} onClose={() => setDijalog(null)} />}
+      {dijalog === 'otkazi' && (
+        <Modal open title="Otkaži akciju" onClose={() => setDijalog(null)}>
           <div className="space-y-4">
             <Textarea aria-label="Razlog" placeholder="Razlog" rows={3} value={razlog} onChange={(e) => setRazlog(e.target.value)} />
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setDijalog(null)}>Odustani</Button>
-              <Button disabled={!razlog.trim() || odluka.isPending} onClick={() => void sacuvaj({ putanja: dijalog, razlog: razlog.trim() }, dijalog === 'zatvori' ? 'Akcija je zatvorena.' : 'Akcija je otkazana.')}>
-                {dijalog === 'zatvori' ? 'Zatvori' : 'Otkaži'}
+              <Button disabled={!razlog.trim() || odluka.isPending} onClick={() => void sacuvaj({ putanja: 'otkazi', razlog: razlog.trim() }, 'Akcija je otkazana.')}>
+                Otkaži
               </Button>
             </div>
           </div>
@@ -170,17 +215,20 @@ export function NeispravnostiPage() {
   const [f, setF] = useState<KvaroviFilteri>({ otvoreno: true, sekcijaId: null, pretraga: '' });
   const kvarovi = useKvarovi(f);
   const sekcije = useSekcije();
+  const aktivni: AktivanFilter[] = [
+    ...(f.pretraga.trim() ? [{ kljuc: 'pretraga', labela: `„${f.pretraga.trim()}“`, kucanje: true, ukloni: () => setF((x) => ({ ...x, pretraga: '' })) }] : []),
+    ...(f.sekcijaId ? [{ kljuc: 'sekcija', labela: `Sekcija ${sekcije.data?.find((x) => x.id === f.sekcijaId)?.sifra ?? ''}`.trim(), ukloni: () => setF((x) => ({ ...x, sekcijaId: null })) }] : []),
+    ...(f.otvoreno ? [{ kljuc: 'otvoreno', labela: 'Trenutno otvoreno', ukloni: () => setF((x) => ({ ...x, otvoreno: null })) }] : []),
+  ];
   return (
     <div className="space-y-4">
       <PageHeader title="Neispravnosti" actions={<IzvozDugme url="/izvoz/kvarovi.xlsx" params={parametriKvarova(f)} ime="Neispravnosti.xlsx" />} />
-      <Card>
-        <CardBody className="grid gap-3 sm:grid-cols-3">
+      <FilterTraka aktivni={aktivni} kolone="sm:grid-cols-3" onObrisiSve={() => setF({ otvoreno: null, sekcijaId: null, pretraga: '' })}>
           <Input aria-label="Pretraga" placeholder="Broj kvara, uređaj ili oznaka" value={f.pretraga} onChange={(e) => setF({ ...f, pretraga: e.target.value })} />
           <Select aria-label="Sekcija" value={f.sekcijaId} nullable placeholder="Sve sekcije" onChange={(v) => setF({ ...f, sekcijaId: v })}
             options={(sekcije.data ?? []).map((s) => ({ value: s.id, label: `Sekcija ${s.sifra}` }))} />
           <Checkbox label="Trenutno otvoreno" checked={f.otvoreno === true} onChange={(e) => setF({ ...f, otvoreno: e.target.checked ? true : null })} />
-        </CardBody>
-      </Card>
+      </FilterTraka>
       {kvarovi.isLoading ? <Ucitavanje /> : !kvarovi.data?.length ? (
         <Card><CardBody><EmptyState icon={ShieldAlert} title="Nema neispravnosti za zadate filtere." /></CardBody></Card>
       ) : (

@@ -36,6 +36,8 @@ export interface RasporedDto {
   pregledi: PregledKalendarDto[];
   neradniDani: { datum: string; naziv: string }[];
   odsustva: { korisnikId: string; ime: string; od: string; do: string; vrsta: string }[];
+  /** DP se radi i na dan PZ-a (R3.9) — tada se DP-ovi ne pomeraju. */
+  dpNaDanPz?: boolean;
 }
 
 export interface PredlogStavka {
@@ -125,8 +127,9 @@ function useInvalidiraj() {
   return () => KEYS.forEach((k) => void qc.invalidateQueries({ queryKey: [k] }));
 }
 
-export function useRaspored(od: string, doDatuma: string) {
+export function useRaspored(od: string, doDatuma: string, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: ['raspored', od, doDatuma],
     queryFn: async () => (await api.get<RasporedDto>('/raspored', { params: { od, do: doDatuma } })).data,
   });
@@ -288,8 +291,9 @@ export function usePreglediUOdsustvu(korisnikId: string | null, od: string, doDa
   });
 }
 
-export function useZahteviPrebacivanja(status?: string) {
+export function useZahteviPrebacivanja(status?: string, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: ['zahtevi-prebacivanja', status ?? 'svi'],
     queryFn: async () => (await api.get<ZahtevPrebacivanjaDto[]>('/zahtevi-prebacivanja', { params: { status } })).data,
   });
@@ -310,6 +314,15 @@ export function useZatraziRanijiPocetak() {
   return useMutation({
     mutationFn: async (v: { pregledId: number; razlog: string }) =>
       (await api.post<ZahtevPrebacivanjaDto>('/zahtevi-prebacivanja/raniji-pocetak', v)).data,
+    onSuccess: inv,
+  });
+}
+
+/** Inženjer otkazuje svoj zahtev (prebacivanje ili raniji početak) dok čeka odluku (zamerka 47). */
+export function useOtkaziZahtevPrebacivanja() {
+  const inv = useInvalidiraj();
+  return useMutation({
+    mutationFn: async (id: number) => (await api.post<ZahtevPrebacivanjaDto>(`/zahtevi-prebacivanja/${id}/otkazi`)).data,
     onSuccess: inv,
   });
 }
@@ -347,4 +360,14 @@ export function useObrisiNeradni() {
     },
     onSuccess: inv,
   });
+}
+
+/**
+ * Nezapočet DP na dan za koji se zakazuje ili na koji se pomera PZ (zamerka 43): na dan PZ-a DP se ne radi (R3.9), pa taj DP
+ * i svi naredni idu dan napred. Null kad tog dana nema DP-a ili se DP radi i na dan PZ-a (podešavanje).
+ */
+export function useDpKojiSePomera(datum: string | null): PregledKalendarDto | null {
+  const r = useRaspored(datum ?? '', datum ?? '', datum !== null);
+  if (!datum || !r.data || r.data.dpNaDanPz) return null;
+  return r.data.pregledi.find((p) => p.tip.startsWith('DP') && p.status === 'planiran' && p.planiraniDatum === datum) ?? null;
 }

@@ -51,9 +51,11 @@ public sealed record StavkaPopunjavanjaDto(int StavkaId, string Aktivnost, strin
 /// <param name="VanFunkcije">Označen „Nije u funkciji“ na ovom pregledu.</param>
 /// <param name="ProsliPutVanFunkcije">Bio van funkcije na poslednjem predatom pregledu (R4.6).</param>
 /// <param name="Stavke">Aktivnosti.</param>
-/// <param name="OtvoreneAkcije">Otvorene akcije na uređaju — pop-up „da li je urađena“ (R4.7).</param>
+/// <param name="OtvoreneAkcije">Otvorene akcije iz ranijih pregleda — pop-up „da li je urađena“ (R4.7). Bez akcija otvorenih na ovom
+/// pregledu i bez onih na koje je na ovom pregledu već odgovoreno „Ne“ (zamerka 46).</param>
+/// <param name="AkcijeOvogPregleda">Akcije otvorene na ovom pregledu — samo oznaka uz stavku, bez pitanja (zamerka 46).</param>
 public sealed record UredjajPopunjavanjaDto(int UredjajId, string Naziv, string Oznaka, bool VanFunkcije, bool ProsliPutVanFunkcije,
-    IReadOnlyList<StavkaPopunjavanjaDto> Stavke, IReadOnlyList<AkcijaKratkoDto> OtvoreneAkcije);
+    IReadOnlyList<StavkaPopunjavanjaDto> Stavke, IReadOnlyList<AkcijaKratkoDto> OtvoreneAkcije, IReadOnlyList<AkcijaKratkoDto>? AkcijeOvogPregleda = null);
 
 /// <summary>Otvorena akcija za pop-up.</summary>
 /// <param name="Id">ID.</param>
@@ -215,10 +217,18 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
         var stareSlike = sveSlike.Where(f => f.Dorada < p.Dorada).ToLookup(f => f.StavkaId, f => f.Id);
         var uredjajIds = stavke.Select(s => s.UredjajId).Distinct().ToList();
         var prosli = await ProsliPutVanFunkcijeAsync(p, uredjajIds, ct);
-        var akcije = (await db.Akcije.AsNoTracking().Where(a => a.Status == "otvorena" && uredjajIds.Contains(a.UredjajId))
+        // Pitanje „da li je urađena“ je za akcije iz ranijih pregleda (R4.7); akcija otvorena ovde i ona na koju je ovde već
+        // odgovoreno „Ne“ ne pitaju ponovo do kraja ovog pregleda (zamerka 46).
+        var odgovoreneOvde = await db.AkcijaDogadjaji.AsNoTracking().Where(d => d.PregledId == p.Id && d.Vrsta == "ostaje_otvorena")
+            .Select(d => d.AkcijaId).ToListAsync(ct);
+        var naUredjajima = (await db.Akcije.AsNoTracking()
+                .Where(a => uredjajIds.Contains(a.UredjajId) && ((a.Status == "otvorena" && !odgovoreneOvde.Contains(a.Id)) || a.PregledId == p.Id))
                 .Join(db.Aktivnosti, a => a.AktivnostId, x => x.Id, (a, x) => new { a, x.Naziv }).ToListAsync(ct))
-            .ToLookup(x => x.a.UredjajId, x => new AkcijaKratkoDto(x.a.Id, x.a.Broj, x.Naziv,
-                stavke.FirstOrDefault(s => s.Kljuc == x.a.StavkaKljuc)?.StavkaId, x.a.Vrsta, x.a.Hitnost, x.a.Opis));
+            .Select(x => (x.a.UredjajId, OvogPregleda: x.a.PregledId == p.Id, Dto: new AkcijaKratkoDto(x.a.Id, x.a.Broj, x.Naziv,
+                stavke.FirstOrDefault(s => s.Kljuc == x.a.StavkaKljuc)?.StavkaId, x.a.Vrsta, x.a.Hitnost, x.a.Opis)))
+            .ToList();
+        var akcije = naUredjajima.Where(x => !x.OvogPregleda).ToLookup(x => x.UredjajId, x => x.Dto);
+        var akcijeOvde = naUredjajima.Where(x => x.OvogPregleda).ToLookup(x => x.UredjajId, x => x.Dto);
 
         var sekcije = stavke.GroupBy(s => s.Sekcija).Select(gs =>
         {
@@ -227,7 +237,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 gu.Key, gu.First().Naziv, gu.First().Oznaka, van.Contains(gu.Key), prosli.Contains(gu.Key),
                 gu.Select(s => new StavkaPopunjavanjaDto(s.StavkaId, s.Aktivnost, s.Ok, s.Nok, s.Polja,
                     odgovori.TryGetValue(s.StavkaId, out var o) ? new OdgovorDto(o.Vrednost, o.Napomena, JsonDocument.Parse(o.Polja).RootElement.Clone()) : null,
-                    slike[s.StavkaId].ToList(), s.AktivnostId, s.Uputstvo, s.UputstvoSlika, stareSlike[s.StavkaId].ToList())).ToList(), akcije[gu.Key].ToList())).ToList());
+                    slike[s.StavkaId].ToList(), s.AktivnostId, s.Uputstvo, s.UputstvoSlika, stareSlike[s.StavkaId].ToList())).ToList(), akcije[gu.Key].ToList(), akcijeOvde[gu.Key].ToList())).ToList());
         }).ToList();
 
         return new PopunjavanjeDto(p.Id, p.Broj, p.Tip, p.Status, p.PlaniraniDatum, p.ZapocetAt, verzijaId, sekcije);
@@ -282,6 +292,15 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
 
     /// <summary>Poruka za operaciju čiji podaci nisu u očekivanom obliku (npr. stara verzija aplikacije).</summary>
     public const string PorukaNeispravnaOperacija = "Operacija ima neispravne podatke i nije primenjena.";
+
+    /// <summary>Poruka kad operacija ni posle ponovljenih pokušaja ne može da se upiše.</summary>
+    public const string PorukaNijeSacuvana = "Promena nije mogla da se sačuva. Proverite unos i pokušajte ponovo.";
+
+    /// <summary>Najduža napomena uz odgovor (kolona <c>odgovor.napomena</c>).</summary>
+    public const int NajduzaNapomena = 2000;
+
+    /// <summary>Najduži opis akcije (kolona <c>akcija.opis</c>).</summary>
+    public const int NajduziOpisAkcije = 1000;
 
     private const int NajvisePokusaja = 3;
 
@@ -338,11 +357,14 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 db.ChangeTracker.Clear();
                 return PorukaNeispravnaOperacija;
             }
-            catch (DbUpdateException) when (pokusaj < NajvisePokusaja)
+            catch (DbUpdateException)
             {
                 _zaBrisanje.Clear();
                 db.ChangeTracker.Clear();
                 if (await db.SinhronizacijaOperacije.AnyAsync(o => o.OpId == op.OpId, ct)) return null;
+                // Posle poslednjeg pokušaja odbija se samo ova operacija (zamerka 38): greška za ceo paket bi zaglavila red
+                // na telefonu, pa ne bi stiglo ni ništa posle nje.
+                if (pokusaj >= NajvisePokusaja) return PorukaNijeSacuvana;
             }
         }
     }
@@ -395,6 +417,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 ProveriSekciju(p, s.Sekcija, k);
                 var napomena = op.Podaci.TryGetProperty("napomena", out var n) && n.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(n.GetString())
                     ? n.GetString()!.Trim() : null;
+                if (napomena?.Length > NajduzaNapomena) throw new BusinessRuleException($"Napomena može imati najviše {NajduzaNapomena} znakova.");
                 var polja = op.Podaci.TryGetProperty("polja", out var pp) && pp.ValueKind == JsonValueKind.Object ? pp.GetRawText() : "{}";
 
                 var o = await db.Odgovori.FirstOrDefaultAsync(x => x.PregledId == p.Id && x.StavkaId == stavkaId && x.Dorada == p.Dorada, ct);
@@ -479,6 +502,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 if (!AkcijaPravila.Vrste.Contains(vrsta)) throw new BusinessRuleException("Nepoznata vrsta akcije.");
                 if (!AkcijaPravila.Hitnosti.Contains(hitnost)) throw new BusinessRuleException("Nepoznata hitnost akcije.");
                 var opis = op.Podaci.TryGetProperty("opis", out var o) && o.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(o.GetString()) ? o.GetString()!.Trim() : null;
+                if (opis?.Length > NajduziOpisAkcije) throw new BusinessRuleException($"Opis akcije može imati najviše {NajduziOpisAkcije} znakova.");
                 // Dan po beogradskom vremenu (zamerka 12): UTC posle ponoći je još jučerašnji datum.
                 var danas = AnalitikaPravila.LokalniDan(klijentAt);
                 var sledeciPz = await db.Pregledi.Where(x => x.Tip.StartsWith("PZ") && x.Status == StatusPregleda.Planiran && x.PlaniraniDatum >= danas)
@@ -510,6 +534,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                     a.ZatvorioId = currentUser.UserId;
                     a.ZatvorenoAt = clock.UtcNow;
                     a.Razlog = $"Urađeno (potvrđeno na pregledu {p.Broj})";
+                    await TpmPregledi.Application.Features.Akcije.ZatvaranjeAkcijeHandler.ZatvoriZahteveAsync(db, a, currentUser.UserId, clock.UtcNow, ct);
                 }
                 db.AkcijaDogadjaji.Add(new AkcijaDogadjaj
                 {
@@ -774,7 +799,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
     {
         var poslednji = await (
                 from pr in db.Pregledi.AsNoTracking()
-                where pr.PredatAt != null && pr.Id != p.Id
+                where pr.PredatAt != null && pr.Id != p.Id && pr.Status != StatusPregleda.Ponisten   // poništen se ne računa (zamerka 41)
                 join s in db.SablonStavke.AsNoTracking() on pr.SablonVerzijaId equals s.VerzijaId
                 where uredjaji.Contains(s.UredjajId)
                 select new { s.UredjajId, pr.Id, pr.PredatAt })

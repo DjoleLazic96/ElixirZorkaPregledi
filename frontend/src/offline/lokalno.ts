@@ -31,7 +31,16 @@ export function primeniLokalno(p: PopunjavanjeDto, op: Operacija, sada: string):
           for (const st of u.stavke) if (!st.odgovor) st.odgovor = { vrednost: 0, napomena: null, polja: {} };
       return kopija;
     case 'akcija':
-      // Broj akcije dodeljuje server; lokalno se ništa ne prikazuje dok ne stigne novi paket.
+      // Broj dodeljuje server; do tada se uz stavku vidi oznaka „nova akcija“ (zamerka 46).
+      for (const s of kopija.sekcije)
+        for (const u of s.uredjaji) {
+          const st = u.stavke.find((x) => x.stavkaId === op.podaci.stavkaId);
+          if (st)
+            u.akcijeOvogPregleda = [...(u.akcijeOvogPregleda ?? []), {
+              id: -(u.akcijeOvogPregleda?.length ?? 0) - 1, broj: '', aktivnost: st.aktivnost, stavkaId: st.stavkaId,
+              vrsta: op.podaci.vrsta, hitnost: op.podaci.hitnost, opis: op.podaci.opis,
+            }];
+        }
       return kopija;
     case 'akcija_odgovor':
       // Pop-up je odgovoren: akcija nestaje sa uređaja (zatvorena ili „ostaje otvorena“ za ovaj pregled).

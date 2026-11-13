@@ -72,7 +72,34 @@ public sealed record SporanUnosDto(long Id, string Korisnik, string Opis, string
 /// <param name="Razlog">Razlog.</param>
 /// <param name="Status">Status.</param>
 /// <param name="KreiranoAt">Kada.</param>
-public sealed record ZahtevDoradeDto(int Id, string Podneo, string Razlog, string Status, DateTime KreiranoAt);
+/// <param name="PodneoId">Ko traži (ID) — samo on otkazuje zahtev dok čeka odluku (zamerka 47).</param>
+public sealed record ZahtevDoradeDto(int Id, string Podneo, string Razlog, string Status, DateTime KreiranoAt, string? PodneoId = null);
+
+/// <summary>Akcija otvorena na ovom pregledu (rezime, Ceo pregled, PDF i Word — zamerka 48).</summary>
+/// <param name="Id">ID.</param>
+/// <param name="Broj">Broj, npr. A-2026-0031.</param>
+/// <param name="StavkaId">Stavka u verziji ovog pregleda (za prikaz ispod nje).</param>
+/// <param name="Uredjaj">Uređaj sa oznakom.</param>
+/// <param name="Aktivnost">Aktivnost.</param>
+/// <param name="Vrsta">Vrsta (ključ).</param>
+/// <param name="Hitnost">Hitnost (ključ).</param>
+/// <param name="Opis">Opis.</param>
+/// <param name="Status">Sadašnji status.</param>
+public sealed record AkcijaNaPregleduDto(int Id, string Broj, int? StavkaId, string Uredjaj, string Aktivnost, string Vrsta, string Hitnost, string? Opis, string Status);
+
+/// <summary>Odgovor na pitanje „da li je akcija urađena“ dat na ovom pregledu (zamerka 48).</summary>
+/// <param name="Broj">Broj akcije.</param>
+/// <param name="Uredjaj">Uređaj.</param>
+/// <param name="Aktivnost">Aktivnost.</param>
+/// <param name="Uradjena">Urađena (zatvorena) ili ostaje otvorena.</param>
+public sealed record OdgovorNaAkcijuDto(string Broj, string Uredjaj, string Aktivnost, bool Uradjena);
+
+/// <summary>Predlog izmene šablona poslat sa ovog pregleda (zamerka 48).</summary>
+/// <param name="Id">ID.</param>
+/// <param name="Vrsta">Vrsta.</param>
+/// <param name="Opis">Opis.</param>
+/// <param name="Status">Status.</param>
+public sealed record PredlogSaPregledaDto(int Id, string Vrsta, string Opis, string Status);
 
 /// <summary>Ceo pregled (R6.x, R5.3–R5.4).</summary>
 public sealed record PregledDetaljDto(
@@ -80,7 +107,8 @@ public sealed record PregledDetaljDto(
     string DodeljenId, string Inzenjer, int? VerzijaBroj, DateTime? ZapocetAt, DateTime? PredatAt, int AktivnoSekundi, int Delova,
     string? Overio, DateTime? OverenoAt, bool OverioDirektor, string? PonistenRazlog,
     IReadOnlyList<string> Upozorenja, IReadOnlyList<DetaljSekcijaDto> Sekcije, IReadOnlyList<DogadjajDto> Istorija,
-    IReadOnlyList<SporanUnosDto> SporniUnosi, IReadOnlyList<ZahtevDoradeDto> ZahteviDorade, IReadOnlyList<UcesnikDto> Ucesnici, bool VezanZaUredjaj = false);
+    IReadOnlyList<SporanUnosDto> SporniUnosi, IReadOnlyList<ZahtevDoradeDto> ZahteviDorade, IReadOnlyList<UcesnikDto> Ucesnici, bool VezanZaUredjaj = false,
+    IReadOnlyList<AkcijaNaPregleduDto>? Akcije = null, IReadOnlyList<OdgovorNaAkcijuDto>? OdgovoriNaAkcije = null, IReadOnlyList<PredlogSaPregledaDto>? Predlozi = null);
 
 // ─── Zahtevi ──────────────────────────────────────────────────────────────
 
@@ -109,6 +137,10 @@ public sealed record VratiNaDoraduCommand(int Id, string InzenjerId, string Razl
 /// <param name="Id">ID.</param>
 /// <param name="Razlog">Razlog.</param>
 public sealed record ZatraziDoraduCommand(int Id, string Razlog) : IRequest<PregledDetaljDto>;
+
+/// <summary>Inženjer otkazuje svoj zahtev za doradu dok čeka odluku (zamerka 47); posle toga može da pošalje nov.</summary>
+/// <param name="Id">Pregled.</param>
+public sealed record OtkaziZahtevZaDoraduCommand(int Id) : IRequest<PregledDetaljDto>;
 
 /// <summary>Odluka o zahtevu za doradu.</summary>
 /// <param name="Id">ID pregleda.</param>
@@ -169,6 +201,7 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
     IRequestHandler<OveriCommand, PregledDetaljDto>,
     IRequestHandler<VratiNaDoraduCommand, PregledDetaljDto>,
     IRequestHandler<ZatraziDoraduCommand, PregledDetaljDto>,
+    IRequestHandler<OtkaziZahtevZaDoraduCommand, PregledDetaljDto>,
     IRequestHandler<OdluciODoradiCommand, PregledDetaljDto>,
     IRequestHandler<PonistiCommand, PregledDetaljDto>,
     IRequestHandler<OtkljucajUredjajCommand, PregledDetaljDto>,
@@ -213,6 +246,7 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
         var k = await RasporedKontekst.UcitajAsync(db, ct);
 
         var sekcije = new List<DetaljSekcijaDto>();
+        var stavkaPoKljucu = new Dictionary<Guid, int>();
         int? verzijaBroj = null;
         if (p.SablonVerzijaId is { } vid)
         {
@@ -220,10 +254,11 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
             var stavke = await db.SablonStavke.AsNoTracking().Where(s => s.VerzijaId == vid).OrderBy(s => s.Redosled)
                 .Select(s => new
                 {
-                    s.Id, s.UredjajId, Sekcija = db.Sekcije.Where(x => x.Id == s.SekcijaId).Select(x => x.Sifra).First(),
+                    s.Id, s.Kljuc, s.UredjajId, Sekcija = db.Sekcije.Where(x => x.Id == s.SekcijaId).Select(x => x.Sifra).First(),
                     s.Uredjaj!.Naziv, s.Uredjaj.Oznaka, Aktivnost = s.Aktivnost!.Naziv, s.Aktivnost.OdgovorIspravan, s.Aktivnost.OdgovorNeispravan,
                     Polja = s.Polja.Select(x => new { x.DodatnoPolje!.Id, x.DodatnoPolje.Naziv, x.DodatnoPolje.Jedinica }).ToList(),
                 }).ToListAsync(ct);
+            stavkaPoKljucu = stavke.ToDictionary(s => s.Kljuc, s => s.Id);
             var odgovori = await db.Odgovori.AsNoTracking().Where(o => o.PregledId == p.Id && o.Dorada == p.Dorada).ToDictionaryAsync(o => o.StavkaId, ct);
             var van = (await db.UredjajiVanFunkcije.AsNoTracking().Where(v => v.PregledId == p.Id).Select(v => v.UredjajId).ToListAsync(ct)).ToHashSet();
             var slike = (await db.Fotografije.AsNoTracking().Where(f => f.PregledId == p.Id).Select(f => new { f.StavkaId, f.Id }).ToListAsync(ct))
@@ -256,6 +291,25 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
         if (p.Delova > 1) upozorenja.Add($"Pregled je rađen u {p.Delova} dela.");
 
         var sporni = await db.SporniUnosi.AsNoTracking().Where(s => s.PregledId == p.Id).OrderBy(s => s.PrimljenoAt).ToListAsync(ct);
+
+        // Rezime (zamerka 48): akcije otvorene na ovom pregledu, odgovori na ranije akcije i predlozi izmene šablona sa njega.
+        var akcije = await (from a in db.Akcije.AsNoTracking()
+                            join u in db.Uredjaji on a.UredjajId equals u.Id
+                            join x in db.Aktivnosti on a.AktivnostId equals x.Id
+                            where a.PregledId == p.Id
+                            orderby a.Id
+                            select new { a.Id, a.Broj, a.StavkaKljuc, Uredjaj = (u.Naziv + " " + u.Oznaka).Trim(), Aktivnost = x.Naziv, a.Vrsta, a.Hitnost, a.Opis, a.Status })
+            .ToListAsync(ct);
+        var odgovoriNaAkcije = await (from d in db.AkcijaDogadjaji.AsNoTracking()
+                                      join a in db.Akcije on d.AkcijaId equals a.Id
+                                      join u in db.Uredjaji on a.UredjajId equals u.Id
+                                      join x in db.Aktivnosti on a.AktivnostId equals x.Id
+                                      where d.PregledId == p.Id && a.PregledId != p.Id && (d.Vrsta == "zatvorena" || d.Vrsta == "ostaje_otvorena")
+                                      orderby d.At
+                                      select new OdgovorNaAkcijuDto(a.Broj, (u.Naziv + " " + u.Oznaka).Trim(), x.Naziv, d.Vrsta == "zatvorena"))
+            .ToListAsync(ct);
+        var predlozi = await db.PredloziIzmena.AsNoTracking().Where(x => x.PregledId == p.Id).OrderBy(x => x.Id)
+            .Select(x => new PredlogSaPregledaDto(x.Id, x.Vrsta, x.Opis, x.Status)).ToListAsync(ct);
         var zahtevi = await db.ZahteviDorade.AsNoTracking().Where(z => z.PregledId == p.Id).OrderBy(z => z.KreiranoAt).ToListAsync(ct);
 
         return new PregledDetaljDto(p.Id, p.Broj, p.Tip, p.Status, p.Dorada, p.PlaniraniDatum, p.PrvobitniDatum, p.DodeljenId, k.Ime(p.DodeljenId),
@@ -263,9 +317,12 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
             p.OverioDirektor, p.PonistenRazlog, upozorenja, sekcije,
             dogadjaji.Select(d => new DogadjajDto(d.Vrsta, OpisDogadjaja(d), k.Ime(d.KorisnikId), d.At)).ToList(),
             sporni.Select(s => new SporanUnosDto(s.Id, k.Ime(s.KorisnikId), OpisOperacije(s.Operacija), s.Razlog, s.PrimljenoAt, s.Odluka)).ToList(),
-            zahtevi.Select(z => new ZahtevDoradeDto(z.Id, k.Ime(z.PodneoId), z.Razlog, z.Status, z.KreiranoAt)).ToList(),
+            zahtevi.Select(z => new ZahtevDoradeDto(z.Id, k.Ime(z.PodneoId), z.Razlog, z.Status, z.KreiranoAt, z.PodneoId)).ToList(),
             p.Ucesnici.Select(u => new UcesnikDto(u.KorisnikId, k.Ime(u.KorisnikId), u.Sekcije)).ToList(),
-            p.UredjajKlijenta is not null && p.Status is StatusPregleda.URadu or StatusPregleda.VracenNaDoradu);
+            p.UredjajKlijenta is not null && p.Status is StatusPregleda.URadu or StatusPregleda.VracenNaDoradu,
+            akcije.Select(a => new AkcijaNaPregleduDto(a.Id, a.Broj, stavkaPoKljucu.TryGetValue(a.StavkaKljuc, out var sid) ? sid : null,
+                a.Uredjaj, a.Aktivnost, a.Vrsta, a.Hitnost, a.Opis, a.Status)).ToList(),
+            odgovoriNaAkcije, predlozi);
     }
 
     /// <inheritdoc />
@@ -312,6 +369,19 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
     }
 
     /// <inheritdoc />
+    public async Task<PregledDetaljDto> Handle(OtkaziZahtevZaDoraduCommand req, CancellationToken ct)
+    {
+        var p = await UcitajAsync(req.Id, ct);
+        var z = await db.ZahteviDorade.FirstOrDefaultAsync(x => x.PregledId == p.Id && x.Status == "zahtev", ct)
+                ?? throw new BusinessRuleException("Nema zahteva za doradu koji čeka odluku.");
+        if (z.PodneoId != currentUser.UserId) throw new ForbiddenException("Zahtev otkazuje samo onaj ko ga je poslao.");
+        (z.Status, z.OdlucenoAt) = ("otkazano", clock.UtcNow);
+        PregledIstorija.Dodaj(db, p, "zahtev_za_doradu_otkazan", new { }, currentUser.UserId, clock.UtcNow);
+        await db.SaveChangesAsync(ct);
+        return await Handle(new GetPregledQuery(p.Id), ct);
+    }
+
+    /// <inheritdoc />
     public async Task<PregledDetaljDto> Handle(OdluciODoradiCommand req, CancellationToken ct)
     {
         var p = await UcitajAsync(req.Id, ct);
@@ -344,7 +414,27 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
         p.Status = StatusPregleda.Ponisten;
         p.PonistenRazlog = req.Razlog.Trim();
         p.PonistioId = currentUser.UserId;
-        PregledIstorija.Dodaj(db, p, "ponistavanje", new { razlog = p.PonistenRazlog }, currentUser.UserId, clock.UtcNow);
+        var sada = clock.UtcNow;
+        PregledIstorija.Dodaj(db, p, "ponistavanje", new { razlog = p.PonistenRazlog }, currentUser.UserId, sada);
+
+        // Zahtev koji je čekao odluku za ovaj pregled više nema smisla — zatvara se, uz obaveštenje podnosiocu (zamerka 40).
+        var tekstZahteva = $"{p.Broj} je poništen, pa je vaš zahtev zatvoren.";
+        foreach (var z in await db.ZahteviDorade.Where(z => z.PregledId == p.Id && z.Status == "zahtev").ToListAsync(ct))
+        {
+            (z.Status, z.OdlucioId, z.OdlucenoAt) = ("odbijeno", currentUser.UserId, sada);
+            await Obavesti.DodajAsync(db, [z.PodneoId], VrsteObavestenja.IshodZahteva, "Zahtev je zatvoren", tekstZahteva, $"/pregledi/{p.Id}", null, sada, ct);
+        }
+        foreach (var z in await db.ZahteviPrebacivanja.Where(z => z.PregledId == p.Id && z.Status == "zahtev").ToListAsync(ct))
+        {
+            (z.Status, z.OdlucioId, z.OdlucenoAt) = ("odbijeno", currentUser.UserId, sada);
+            await Obavesti.DodajAsync(db, [z.PodneoId], VrsteObavestenja.IshodZahteva, "Zahtev je zatvoren", tekstZahteva, $"/pregledi/{p.Id}", null, sada, ct);
+        }
+
+        // R6.10: obaveštenje dobijaju inženjer (i drugi inženjer PZ-a) i onaj ko je overio (zamerka 39).
+        var ucesnici = await db.Pregledi.Where(x => x.Id == p.Id).SelectMany(x => x.Ucesnici.Select(u => u.KorisnikId)).ToListAsync(ct);
+        string[] primaoci = [p.DodeljenId, .. ucesnici, .. p.OverioId is null ? [] : new[] { p.OverioId }];
+        await Obavesti.DodajAsync(db, primaoci.Distinct().Where(id => id != currentUser.UserId).ToArray(), VrsteObavestenja.Dodela, $"{p.Broj} je poništen",
+            $"{p.Broj} ({p.PlaniraniDatum:dd.MM.yyyy}) je poništen. Razlog: {p.PonistenRazlog}", $"/pregledi/{p.Id}", null, sada, ct);
         await db.SaveChangesAsync(ct);
         return await Handle(new GetPregledQuery(p.Id), ct);
     }
@@ -466,6 +556,8 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
             "zahtev_za_doradu" => $"Zatražena dorada: {S("razlog")}",
             "dorada_odobrena" => $"Odobrena dorada {S("dorada")}: {S("razlog")}",
             "dorada_odbijena" => "Odbijen zahtev za doradu",
+            "zahtev_za_doradu_otkazan" => "Zahtev za doradu otkazao inženjer",
+            "zahtev_otkazan" => $"Zahtev za {S("vrsta")} otkazao inženjer",
             "ponistavanje" => $"Poništen: {S("razlog")}",
             "odstupanje_sata" => $"Sat telefona odstupa {S("sekundi")} s",
             "sporan_unos" => $"Sporan unos: {S("odluka")}",

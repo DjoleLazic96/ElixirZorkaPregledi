@@ -71,7 +71,8 @@ korisnika: nova prava važe najkasnije kad istekne trenutni access token (15 min
 | Overa, vrati na doradu, odluka o doradi, poništavanje, sporan unos | `Pravo:overa`; Supervizor ne dira overu Direktora (422) |
 | Zahtev za doradu | `Pravo:pregledi.popunjavanje` + inženjer koji je radio pregled |
 | Akcije i neispravnosti — čitanje, Excel | RequireKorisnik |
-| Zatvaranje, otkazivanje, zaduženi | `Pravo:akcije.zatvaranje` |
+| Zatvaranje, otkazivanje, zaduženi, odluka o zahtevu za zatvaranje | `Pravo:akcije.zatvaranje` |
+| Zahtev za zatvaranje akcije i njegovo otkazivanje; otkazivanje svog zahteva za doradu, prebacivanje i raniji početak | `Pravo:pregledi.popunjavanje` (samo podnosilac) |
 | Otvaranje akcije i odgovor na pop-up | kroz `/sinhronizacija` (`Pravo:pregledi.popunjavanje`) |
 | Ekran uređaja, QR, Dashboard, pretraga | RequireKorisnik |
 | Opšta analitika i ispunjenje plana (`/analitika`) | `Pravo:analitika` (podrazumevano sve četiri role) |

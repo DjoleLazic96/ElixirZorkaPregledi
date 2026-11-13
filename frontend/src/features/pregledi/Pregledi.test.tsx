@@ -42,10 +42,43 @@ describe('PregledDetaljPage', () => {
     renderDetalj();
     expect(await screen.findByText('Pregled je rađen u 2 dela.')).toBeInTheDocument();
     expect(screen.getByText(/40 min · 2 dela/)).toBeInTheDocument();
-    expect(screen.getByText(/Problematične stavke \(1\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Neispravne stavke \(1\)/)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Overio' }));
     expect(api.post).toHaveBeenCalledWith('/pregledi/5/overi', {});
+  });
+
+  it('rezime pokazuje akcije, odgovore i napomene, a Ceo pregled sekcije kao dugmad (zamerke 47, 48)', async () => {
+    const d: PregledDetaljDto = {
+      ...DETALJ,
+      sekcije: [
+        ...DETALJ.sekcije,
+        { sifra: '20', uredjaji: [{ uredjajId: 2, naziv: 'Elevator 20-C-01', vanFunkcije: false, stavke: [
+          { stavkaId: 11, aktivnost: 'Pregled trake', odgovor: 'Ispravno', neispravan: false, napomena: 'blago curi, pratiti', polja: [], fotografije: [] },
+        ] }] },
+      ],
+      akcije: [{ id: 3, broj: 'A-2026-0003', stavkaId: 9, uredjaj: 'Transporter 10-C-08', aktivnost: 'Pregled rolni', vrsta: 'zameniti', hitnost: 'hitno', opis: 'Zameniti rolne', status: 'otvorena' }],
+      odgovoriNaAkcije: [{ broj: 'A-2026-0001', uredjaj: 'Elevator 20-C-01', aktivnost: 'Pregled trake', uradjena: false }],
+      zahteviDorade: [{ id: 1, podneo: 'Ana', podneoId: 'ana', razlog: 'Pogrešno', status: 'zahtev', kreiranoAt: '2026-11-09T09:00:00Z' }],
+    };
+    pristup = { ...pristup, user: { ...pristup.user, id: 'ana' }, roles: ['Inzenjer'], prava: ['pregledi.popunjavanje'] };
+    vi.mocked(api.get).mockImplementation(async (url: string) => (url === '/pregledi/5' ? odgovor(d) : odgovor([])));
+    vi.mocked(api.post).mockResolvedValue(odgovor(d));
+    renderDetalj();
+
+    expect(await screen.findByText(/Akcije otvorene na ovom pregledu \(1\)/)).toBeInTheDocument();
+    expect(screen.getByText(/nije urađena, ostaje otvorena/)).toBeInTheDocument();
+    expect(screen.getByText('blago curi, pratiti')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Ceo pregled' }));
+    const sekcije = screen.getByRole('group', { name: 'Sekcije' });
+    expect(within(sekcije).getByRole('button', { name: 'Sekcija 10' })).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(within(sekcije).getByRole('button', { name: 'Sekcija 20' }));
+    expect(screen.getByText('Pregled trake')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Otkaži zahtev' }));
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Otkaži zahtev' })).getByRole('button', { name: 'Otkaži zahtev' }));
+    expect(api.post).toHaveBeenCalledWith('/pregledi/5/zahtev-za-doradu/otkazi', {});
   });
 
   it('„Vrati na doradu“ traži razlog i šalje izabranog inženjera', async () => {

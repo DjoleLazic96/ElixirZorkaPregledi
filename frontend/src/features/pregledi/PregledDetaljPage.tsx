@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, FileText } from 'lucide-react';
 import { useToast } from '../../app/providers/ToastProvider';
-import { Slike } from '../../components/Slike';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '../../components/ui/Card';
@@ -10,9 +9,9 @@ import { FormField } from '../../components/ui/FormField';
 import { Modal } from '../../components/ui/Modal';
 import { Select } from '../../components/ui/Select';
 import { Ucitavanje } from '../../components/ui/Spinner';
+import { Tabs } from '../../components/ui/Tabs';
 import { Textarea } from '../../components/ui/Textarea';
 import { porukaGreske } from '../../lib/apiError';
-import { cn } from '../../lib/cn';
 import { formatirajDatum, formatirajVreme } from '../../lib/datum';
 import { preuzmiFajl } from '../../lib/download';
 import { imaPravo } from '../../lib/permissions';
@@ -21,7 +20,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useInzenjeri, type PregledKalendarDto } from '../raspored/hooks';
 import { IzmenaForma, UcesnikForma } from '../raspored/KalendarPage';
 import { OtkazivanjeForma, PovlacenjeDijalog, TipDpForma } from '../raspored/IzmeneRasporeda';
+import { OtkaziZahtev } from '../raspored/OtkaziZahtev';
 import { statusLabela, tonStatusa, useOdluka, usePregled, type PregledDetaljDto } from './hooks';
+import { CeoPregled, RezimePregleda, UredjajStavke } from './PrikazPregleda';
 
 type Dijalog = null | 'vrati' | 'ponisti' | 'zatrazi' | 'raspored' | 'ucesnik' | 'otkazi' | 'tip';
 
@@ -42,6 +43,7 @@ export function PregledDetaljPage() {
   const qc = useQueryClient();
   const [dijalog, setDijalog] = useState<Dijalog>(null);
   const [slobodan, setSlobodan] = useState<string | null>(null);
+  const [prikaz, setPrikaz] = useState<'rezime' | 'ceo'>('rezime');
 
   async function posalji(putanja: string, telo: object | undefined, uspeh: string) {
     try {
@@ -59,8 +61,6 @@ export function PregledDetaljPage() {
   const p = pregled.data;
   const overa = imaPravo(pristup, 'overa');
   const moj = me?.user.id === p.dodeljenId;
-  const problemi = p.sekcije.flatMap((s) => s.uredjaji.flatMap((u) => u.stavke.filter((x) => x.neispravan).map((x) => ({ s: s.sifra, u, x }))));
-  const van = p.sekcije.flatMap((s) => s.uredjaji.filter((u) => u.vanFunkcije));
   const zahtev = p.zahteviDorade.find((z) => z.status === 'zahtev');
   const nezapocet = p.status === 'planiran';
   // Isto kao kartica u Kalendaru: ko uređuje raspored menja inženjera/datum, a na PZ-u dodaje drugog inženjera (R3.6, R3.14).
@@ -135,6 +135,9 @@ export function PregledDetaljPage() {
           {zahtev && (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-sm">
               <span className="break-words">Zahtev za doradu ({zahtev.podneo}): {zahtev.razlog}</span>
+              {zahtev.podneoId === me?.user.id && (
+                <OtkaziZahtev opis="zahtev za doradu" otkazi={() => odluka.mutateAsync({ putanja: 'zahtev-za-doradu/otkazi', telo: undefined })} />
+              )}
               {overa && (
                 <span className="flex gap-2">
                   <Button size="sm" variant="ghost" onClick={() => void posalji('zahtev-za-doradu/odluka', { odobreno: false }, 'Zahtev je odbijen.').then((g) => g && toast.error(g))}>Odbij</Button>
@@ -172,29 +175,13 @@ export function PregledDetaljPage() {
         </Card>
       )}
 
+      {/* Rezime / Ceo pregled (zamerka 48): pregled se uvek otvara kao Rezime, a ceo pregled korisnik bira sam. */}
       <Card>
-        <CardHeader><CardTitle>Problematične stavke ({problemi.length})</CardTitle></CardHeader>
-        <CardBody className="space-y-2 text-sm">
-          {problemi.length === 0 && <p className="text-gray-500">Nema neispravnih stavki.</p>}
-          {problemi.map(({ s, u, x }) => (
-            <div key={x.stavkaId} className="rounded-md border border-red-200 bg-red-50 p-2">
-              <p className="break-words font-medium text-red-900">Sekcija {s} · {u.naziv} · {x.aktivnost}: {x.odgovor}</p>
-              {(x.napomena || x.polja.length > 0) && <p className="break-words text-red-800">{[x.napomena, ...x.polja].filter(Boolean).join(' · ')}</p>}
-              <Slike ids={x.fotografije} />
-            </div>
-          ))}
-          {van.length > 0 && <p className="text-amber-800">Nije u funkciji: {van.map((u) => u.naziv).join(', ')}</p>}
-        </CardBody>
+        <CardHeader>
+          <Tabs aria-label="Prikaz pregleda" value={prikaz} onChange={setPrikaz} items={[{ key: 'rezime', label: 'Rezime' }, { key: 'ceo', label: 'Ceo pregled' }]} />
+        </CardHeader>
+        <CardBody>{prikaz === 'rezime' ? <RezimePregleda p={p} /> : <CeoPregled p={p} />}</CardBody>
       </Card>
-
-      {p.sekcije.map((s) => (
-        <Card key={s.sifra}>
-          <CardHeader><CardTitle>Sekcija {s.sifra}</CardTitle></CardHeader>
-          <CardBody className="space-y-3">
-            {s.uredjaji.map((u) => <UredjajStavke key={u.uredjajId} u={u} />)}
-          </CardBody>
-        </Card>
-      ))}
 
       <Card>
         <CardHeader><CardTitle>Istorija</CardTitle></CardHeader>
@@ -225,7 +212,7 @@ export function PregledDetaljPage() {
           <TipDpForma pregled={zaRaspored} onDone={() => posleRasporeda()} onBack={() => setDijalog(null)} />
         </Modal>
       )}
-      {slobodan && <PovlacenjeDijalog datum={slobodan} onClose={() => setSlobodan(null)} />}
+      {slobodan && <PovlacenjeDijalog datum={slobodan} pz={!p.tip.startsWith('DP')} onClose={() => setSlobodan(null)} />}
       {dijalog === 'ucesnik' && (
         <Modal open title={`Drugi inženjer — ${p.broj}`} onClose={() => setDijalog(null)}>
           <UcesnikForma pregled={zaRaspored} onDone={posleRasporeda} onBack={() => setDijalog(null)} />
@@ -245,23 +232,6 @@ export function PregledDetaljPage() {
 }
 
 /** Stavke jednog uređaja u pregledu. */
-function UredjajStavke({ u }: { u: PregledDetaljDto['sekcije'][number]['uredjaji'][number] }) {
-  return (
-    <div>
-      <p className="break-words font-medium">{u.naziv}{u.vanFunkcije && <Badge tone="amber" className="ml-2">nije u funkciji</Badge>}</p>
-      <ul className="mt-1 space-y-1 text-sm">
-        {u.stavke.map((x) => (
-          <li key={x.stavkaId} className="flex flex-wrap justify-between gap-x-3">
-            <span className="min-w-0 break-words">{x.aktivnost}{x.napomena && <span className="text-gray-500"> — {x.napomena}</span>}</span>
-            <span className={cn('whitespace-nowrap', x.neispravan ? 'font-semibold text-red-700' : 'text-gray-600')}>{u.vanFunkcije ? '—' : x.odgovor ?? 'bez odgovora'}</span>
-            {x.fotografije.length > 0 && <Slike ids={x.fotografije} />}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 function Polje({ l, v }: { l: string; v: string }) {
   return <div className="min-w-0"><dt className="inline text-gray-500">{l}: </dt><dd className="inline break-words">{v}</dd></div>;
 }

@@ -61,6 +61,8 @@ public static class PreglediEndpoints
         g.MapPost("/{id:int}/zahtev-za-doradu", async (int id, [FromBody] RazlogInput i, IMediator m) =>
                 Results.Ok(await m.Send(new ZatraziDoraduCommand(id, i.Razlog))))
             .RequireAuthorization(PravoPolitika.Za(Prava.PreglediPopunjavanje)).WithSummary("Inženjer traži doradu svog pregleda");
+        g.MapPost("/{id:int}/zahtev-za-doradu/otkazi", async (int id, IMediator m) => Results.Ok(await m.Send(new OtkaziZahtevZaDoraduCommand(id))))
+            .RequireAuthorization(PravoPolitika.Za(Prava.PreglediPopunjavanje)).WithSummary("Inženjer otkazuje svoj zahtev za doradu (dok čeka odluku)");
         g.MapPost("/{id:int}/zahtev-za-doradu/odluka", async (int id, [FromBody] OdlukaInput i, IMediator m) =>
                 Results.Ok(await m.Send(new OdluciODoradiCommand(id, i.Odobreno))))
             .RequireAuthorization(overa).WithSummary("Odluka o zahtevu za doradu");

@@ -56,8 +56,10 @@ export interface UredjajPopunjavanjaDto {
   vanFunkcije: boolean;
   prosliPutVanFunkcije: boolean;
   stavke: StavkaPopunjavanjaDto[];
-  /** Otvorene akcije — pop-up „da li je urađena“ (R4.7). */
+  /** Otvorene akcije iz ranijih pregleda — pop-up „da li je urađena“ (R4.7). */
   otvoreneAkcije: AkcijaKratkoDto[];
+  /** Akcije otvorene na ovom pregledu — samo oznaka uz stavku (zamerka 46); negativan ID = još nije poslata. */
+  akcijeOvogPregleda?: AkcijaKratkoDto[];
 }
 
 export interface SekcijaPopunjavanjaDto {

@@ -69,3 +69,12 @@ export function oznakaPregleda(p: Pick<PregledKalendarDto, 'inzenjerOdsutan' | '
   if (p.zahtevNaCekanju) return { tekst: 'čeka prebacivanje', boja: 'text-amber-800' };
   return null;
 }
+
+/** Prva godina u kojoj aplikacija radi — ranije godine nemaju podatke (zamerka 42). */
+const PRVA_GODINA = 2026;
+
+/** Godine za izbor na „Neradni dani“: od prve godine aplikacije do sledeće (praznici se unose unapred). */
+export function godineNeradnih(ova: number): number[] {
+  const od = Math.min(PRVA_GODINA, ova);
+  return Array.from({ length: ova + 1 - od + 1 }, (_, i) => od + i);
+}

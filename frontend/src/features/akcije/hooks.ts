@@ -24,6 +24,13 @@ export interface AkcijaDto {
   stavkaSadaIspravna: boolean;
   kvarBroj: string | null;
   kvarOtvoren: boolean;
+  /** Kako je zatvorena (zamerka 49). */
+  uradjeno?: string | null;
+  uradjenoDatum?: string | null;
+  izvrsilac?: string | null;
+  imaSlikuZatvaranja?: boolean;
+  /** Zahtev za zatvaranje koji čeka odluku. */
+  zahtevZatvaranja?: { id: number; podneoId: string; podneo: string; uradjeno: string; datum: string; izvrsilac: string; imaSliku: boolean; kreiranoAt: string } | null;
 }
 
 export interface AkcijaDetaljDto {
@@ -59,14 +66,17 @@ export interface AkcijeFilteri {
   hitnost: string | null;
   sekcijaId: number | null;
   sadaIspravna: boolean;
+  /** Samo akcije sa zahtevom za zatvaranje na čekanju (zamerka 49). */
+  saZahtevom?: boolean;
 }
 
 export const parametriAkcija = (f: AkcijeFilteri) => ({
   status: f.status ?? undefined, hitnost: f.hitnost ?? undefined, sekcijaId: f.sekcijaId ?? undefined, sadaIspravna: f.sadaIspravna || undefined,
+  saZahtevom: f.saZahtevom || undefined,
 });
 
-export function useAkcije(f: AkcijeFilteri) {
-  return useQuery({ queryKey: ['akcije', f], queryFn: async () => (await api.get<AkcijaDto[]>('/akcije', { params: parametriAkcija(f) })).data });
+export function useAkcije(f: AkcijeFilteri, enabled = true) {
+  return useQuery({ enabled, queryKey: ['akcije', f], queryFn: async () => (await api.get<AkcijaDto[]>('/akcije', { params: parametriAkcija(f) })).data });
 }
 
 export function useAkcija(id: number) {
@@ -76,7 +86,7 @@ export function useAkcija(id: number) {
 export function useOdlukaAkcije(id: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: { putanja: 'zatvori' | 'otkazi'; razlog: string } | { putanja: 'zaduzen'; zaduzen: string | null }) =>
+    mutationFn: async (v: { putanja: 'otkazi'; razlog: string } | { putanja: 'zaduzen'; zaduzen: string | null }) =>
       v.putanja === 'zaduzen'
         ? (await api.put<AkcijaDetaljDto>(`/akcije/${id}/zaduzen`, { zaduzen: v.zaduzen })).data
         : (await api.post<AkcijaDetaljDto>(`/akcije/${id}/${v.putanja}`, { razlog: v.razlog })).data,

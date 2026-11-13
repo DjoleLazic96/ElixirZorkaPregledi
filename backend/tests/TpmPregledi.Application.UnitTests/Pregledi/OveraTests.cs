@@ -96,6 +96,41 @@ public class OveraTests
     }
 
     [Fact]
+    public async Task Ponistavanje_obavestava_inzenjera_i_overioca_i_zatvara_zahtev_za_doradu_zamerke_39_40()
+    {
+        var o = await PredatAsync();
+        await using var _ = o.H;
+        await Kao(o, o.Sup, Roles.Supervizor).Handle(new OveriCommand(o.PregledId), default);
+        await Kao(o, o.Ana, Roles.Inzenjer).Handle(new ZatraziDoraduCommand(o.PregledId, "Pogrešan uređaj"), default);
+        var preObavestenja = await o.H.Db.Obavestenja.Select(x => x.Id).ToListAsync();
+
+        await Kao(o, o.Dir, Roles.Direktor).Handle(new PonistiCommand(o.PregledId, "Duplikat"), default);
+
+        (await o.H.Db.ZahteviDorade.SingleAsync()).Status.Should().Be("odbijeno");
+        var nova = await o.H.Db.Obavestenja.Where(x => !preObavestenja.Contains(x.Id)).ToListAsync();
+        nova.Where(x => x.KorisnikId == o.Ana).Select(x => x.Naslov).Should().BeEquivalentTo("Zahtev je zatvoren", "DP1-2026-0001 je poništen");
+        nova.Where(x => x.KorisnikId == o.Sup).Select(x => x.Naslov).Should().Equal("DP1-2026-0001 je poništen");
+        nova.Should().NotContain(x => x.KorisnikId == o.Dir, "ko poništava ne obaveštava sebe");
+    }
+
+    [Fact]
+    public async Task Inzenjer_otkazuje_svoj_zahtev_za_doradu_pa_moze_nov_zamerka_47()
+    {
+        var o = await PredatAsync();
+        await using var _ = o.H;
+        await Kao(o, o.Ana, Roles.Inzenjer).Handle(new ZatraziDoraduCommand(o.PregledId, "Pogrešan uređaj"), default);
+
+        var tudji = () => Kao(o, o.Sup, Roles.Supervizor).Handle(new OtkaziZahtevZaDoraduCommand(o.PregledId), default);
+        await tudji.Should().ThrowAsync<ForbiddenException>();
+        var d = await Kao(o, o.Ana, Roles.Inzenjer).Handle(new OtkaziZahtevZaDoraduCommand(o.PregledId), default);
+
+        d.ZahteviDorade.Single().Status.Should().Be("otkazano");
+        d.Istorija.Select(x => x.Opis).Should().Contain("Zahtev za doradu otkazao inženjer");
+        (await Kao(o, o.Ana, Roles.Inzenjer).Handle(new ZatraziDoraduCommand(o.PregledId, "Ipak treba"), default))
+            .ZahteviDorade.Should().Contain(z => z.Status == "zahtev");
+    }
+
+    [Fact]
     public async Task Vrati_na_doradu_kopira_odgovore_a_dorada_ne_menja_broj_ni_aktivno_vreme()
     {
         var o = await PredatAsync();

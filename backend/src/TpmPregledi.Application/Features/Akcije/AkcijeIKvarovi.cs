@@ -10,11 +10,23 @@ namespace TpmPregledi.Application.Features.Akcije;
 
 // ─── DTO ──────────────────────────────────────────────────────────────────
 
-/// <summary>Akcija u listi i detalju (R7.3, R7.6).</summary>
+/// <summary>Zahtev za zatvaranje koji čeka odluku (zamerka 49).</summary>
+/// <param name="Id">ID zahteva.</param>
+/// <param name="PodneoId">Ko traži (ID).</param>
+/// <param name="Podneo">Ko traži.</param>
+/// <param name="Uradjeno">Šta je urađeno.</param>
+/// <param name="Datum">Kada.</param>
+/// <param name="Izvrsilac">Ko je uradio.</param>
+/// <param name="ImaSliku">Uz zahtev je slika.</param>
+/// <param name="KreiranoAt">Kada je podnet.</param>
+public sealed record ZahtevZatvaranjaDto(int Id, string PodneoId, string Podneo, string Uradjeno, DateOnly Datum, string Izvrsilac, bool ImaSliku, DateTime KreiranoAt);
+
+/// <summary>Akcija u listi i detalju (R7.3, R7.6); kako je zatvorena i zahtev na čekanju (zamerka 49).</summary>
 public sealed record AkcijaDto(
     int Id, string Broj, int PregledId, string Pregled, int UredjajId, string Uredjaj, string Sekcija, string Aktivnost,
     string Vrsta, string Hitnost, string? Opis, DateOnly? Rok, bool RokIstekao, string Status, string? Zaduzen, string Prijavio,
-    DateTime KreiranoAt, string? Razlog, bool StavkaSadaIspravna, string? KvarBroj, bool KvarOtvoren);
+    DateTime KreiranoAt, string? Razlog, bool StavkaSadaIspravna, string? KvarBroj, bool KvarOtvoren,
+    string? Uradjeno = null, DateOnly? UradjenoDatum = null, string? Izvrsilac = null, bool ImaSlikuZatvaranja = false, ZahtevZatvaranjaDto? ZahtevZatvaranja = null);
 
 /// <summary>Događaj akcije.</summary>
 /// <param name="Vrsta">Vrsta.</param>
@@ -49,7 +61,7 @@ public sealed record KvarDetaljDto(KvarDto Kvar, IReadOnlyList<PrijavaKvaraDto> 
 // ─── Zahtevi ──────────────────────────────────────────────────────────────
 
 /// <summary>Filteri liste akcija.</summary>
-public sealed record AkcijeFilteri(string? Status = "otvorena", string? Hitnost = null, int? SekcijaId = null, int? UredjajId = null, bool? SadaIspravna = null);
+public sealed record AkcijeFilteri(string? Status = "otvorena", string? Hitnost = null, int? SekcijaId = null, int? UredjajId = null, bool? SadaIspravna = null, bool? SaZahtevom = null);
 
 /// <summary>Lista akcija.</summary>
 /// <param name="F">Filteri.</param>
@@ -59,11 +71,17 @@ public sealed record GetAkcijeQuery(AkcijeFilteri F) : IRequest<IReadOnlyList<Ak
 /// <param name="Id">ID.</param>
 public sealed record GetAkcijaQuery(int Id) : IRequest<AkcijaDetaljDto>;
 
-/// <summary>Zatvaranje ili otkazivanje sa ekrana (R7.5).</summary>
+/// <summary>
+/// Zatvaranje ili otkazivanje sa ekrana (R7.5). Otkazivanje traži razlog; zatvaranje šta je urađeno, kada i ko je uradio
+/// (zamerka 49), jer se inače ne zna kako je akcija završena.
+/// </summary>
 /// <param name="Id">ID.</param>
 /// <param name="Otkazi">true = otkazana, false = zatvorena.</param>
-/// <param name="Razlog">Razlog (obavezan).</param>
-public sealed record ZatvoriAkcijuCommand(int Id, bool Otkazi, string Razlog) : IRequest<AkcijaDetaljDto>;
+/// <param name="Razlog">Razlog otkazivanja.</param>
+/// <param name="Uradjeno">Šta je urađeno (zatvaranje).</param>
+/// <param name="Datum">Kada je urađeno (zatvaranje).</param>
+/// <param name="Izvrsilac">Ko je uradio (zatvaranje).</param>
+public sealed record ZatvoriAkcijuCommand(int Id, bool Otkazi, string? Razlog, string? Uradjeno = null, DateOnly? Datum = null, string? Izvrsilac = null) : IRequest<AkcijaDetaljDto>;
 
 /// <summary>Zaduženi (R7.12).</summary>
 /// <param name="Id">ID.</param>
@@ -81,12 +99,21 @@ public sealed record GetKvaroviQuery(KvaroviFilteri F) : IRequest<IReadOnlyList<
 /// <param name="Id">ID.</param>
 public sealed record GetKvarQuery(int Id) : IRequest<KvarDetaljDto>;
 
-/// <summary>Razlog je obavezan.</summary>
+/// <summary>Otkazivanje: razlog; zatvaranje: šta je urađeno, kada i ko.</summary>
 public sealed class ZatvoriAkcijuValidator : AbstractValidator<ZatvoriAkcijuCommand>
 {
     /// <summary>Pravila.</summary>
-    public ZatvoriAkcijuValidator() =>
-        RuleFor(x => x.Razlog).NotEmpty().WithMessage("Razlog je obavezan.").MaximumLength(500).WithMessage("Razlog može imati najviše 500 karaktera.");
+    public ZatvoriAkcijuValidator()
+    {
+        When(x => x.Otkazi, () =>
+            RuleFor(x => x.Razlog).NotEmpty().WithMessage("Razlog je obavezan.").MaximumLength(500).WithMessage("Razlog može imati najviše 500 karaktera."));
+        When(x => !x.Otkazi, () =>
+        {
+            RuleFor(x => x.Uradjeno).NotEmpty().WithMessage("Upišite šta je urađeno.").MaximumLength(1000).WithMessage("Najviše 1000 karaktera.");
+            RuleFor(x => x.Datum).NotNull().WithMessage("Izaberite kada je urađeno.");
+            RuleFor(x => x.Izvrsilac).NotEmpty().WithMessage("Izaberite ko je uradio.").MaximumLength(200).WithMessage("Najviše 200 karaktera.");
+        });
+    }
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────
@@ -110,6 +137,7 @@ public sealed class AkcijeIKvaroviHandler(IAppDbContext db, ICurrentUser current
         if (f.UredjajId is { } u) upit = upit.Where(a => a.UredjajId == u);
         if (f.SekcijaId is { } s) upit = upit.Where(a => db.Uredjaji.Any(x => x.Id == a.UredjajId && x.SekcijaId == s));
         if (f.SadaIspravna is { } si) upit = upit.Where(a => a.StavkaSadaIspravna == si);
+        if (f.SaZahtevom == true) upit = upit.Where(a => db.ZahteviZatvaranja.Any(z => z.AkcijaId == a.Id && z.Status == "zahtev"));
         return await DtoAsync(await upit.ToListAsync(ct), ct);
     }
 
@@ -127,11 +155,23 @@ public sealed class AkcijeIKvaroviHandler(IAppDbContext db, ICurrentUser current
     {
         var a = await db.Akcije.FirstOrDefaultAsync(x => x.Id == req.Id, ct) ?? throw new NotFoundException("Akcija ne postoji.");
         if (a.Status != "otvorena") throw new BusinessRuleException("Akcija je već zatvorena ili otkazana.");
+        if (!req.Otkazi && req.Datum > clock.Today) throw new BusinessRuleException(ZatvaranjeAkcijeHandler.PorukaBuduciDan);
         a.Status = req.Otkazi ? "otkazana" : "zatvorena";
         a.ZatvorioId = currentUser.UserId;
         a.ZatvorenoAt = clock.UtcNow;
-        a.Razlog = req.Razlog.Trim();
-        db.AkcijaDogadjaji.Add(new AkcijaDogadjaj { AkcijaId = a.Id, Vrsta = a.Status, Tekst = $"{(req.Otkazi ? "Otkazana" : "Zatvorena")}: {a.Razlog}", KorisnikId = currentUser.UserId, At = clock.UtcNow });
+        string tekst;
+        if (req.Otkazi)
+        {
+            a.Razlog = req.Razlog!.Trim();
+            tekst = $"Otkazana: {a.Razlog}";
+        }
+        else
+        {
+            (a.Uradjeno, a.UradjenoDatum, a.Izvrsilac) = (req.Uradjeno!.Trim(), req.Datum, req.Izvrsilac!.Trim());
+            tekst = ZatvaranjeAkcijeHandler.TekstZatvaranja(a);
+        }
+        db.AkcijaDogadjaji.Add(new AkcijaDogadjaj { AkcijaId = a.Id, Vrsta = a.Status, Tekst = tekst, KorisnikId = currentUser.UserId, At = clock.UtcNow });
+        await ZatvaranjeAkcijeHandler.ZatvoriZahteveAsync(db, a, currentUser.UserId, clock.UtcNow, ct);
         await db.SaveChangesAsync(ct);
         return await Handle(new GetAkcijaQuery(a.Id), ct);
     }
@@ -195,6 +235,9 @@ public sealed class AkcijeIKvaroviHandler(IAppDbContext db, ICurrentUser current
         var pIds = akcije.Select(a => a.PregledId).Distinct().ToList();
         var pregledi = await db.Pregledi.AsNoTracking().Where(p => pIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, p => p.Broj, ct);
         var kvarovi = await db.Kvarovi.AsNoTracking().Where(x => uIds.Contains(x.UredjajId)).ToListAsync(ct);
+        var akIds = akcije.Select(a => a.Id).ToList();
+        var zahtevi = (await db.ZahteviZatvaranja.AsNoTracking().Where(z => akIds.Contains(z.AkcijaId) && z.Status == "zahtev").ToListAsync(ct))
+            .ToDictionary(z => z.AkcijaId);
         var danas = clock.Today;
 
         return akcije
@@ -205,7 +248,10 @@ public sealed class AkcijeIKvaroviHandler(IAppDbContext db, ICurrentUser current
                 var kvar = kvarovi.Where(x => x.UredjajId == a.UredjajId && x.AktivnostId == a.AktivnostId).OrderByDescending(x => x.Otvoren).FirstOrDefault();
                 return new AkcijaDto(a.Id, a.Broj, a.PregledId, pregledi.GetValueOrDefault(a.PregledId, ""), a.UredjajId, u.Prikaz, u.Sekcija?.Sifra ?? "",
                     aktivnosti.GetValueOrDefault(a.AktivnostId, ""), a.Vrsta, a.Hitnost, a.Opis, a.Rok, a.Status == "otvorena" && a.Rok < danas, a.Status,
-                    a.Zaduzen, k.Ime(a.KreiraoId), a.KreiranoAt, a.Razlog, a.StavkaSadaIspravna, kvar?.Broj, kvar is { Zatvoren: null });
+                    a.Zaduzen, k.Ime(a.KreiraoId), a.KreiranoAt, a.Razlog, a.StavkaSadaIspravna, kvar?.Broj, kvar is { Zatvoren: null },
+                    a.Uradjeno, a.UradjenoDatum, a.Izvrsilac, a.ZatvaranjeFajlId is not null,
+                    zahtevi.TryGetValue(a.Id, out var z)
+                        ? new ZahtevZatvaranjaDto(z.Id, z.PodneoId, k.Ime(z.PodneoId), z.Uradjeno, z.Datum, z.Izvrsilac, z.FajlId is not null, z.KreiranoAt) : null);
             }).ToList();
     }
 
