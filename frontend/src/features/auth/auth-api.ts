@@ -1,4 +1,4 @@
-import { api } from '../../api/client';
+import { api, obnoviSesiju } from '../../api/client';
 import type { CurrentUserResponse, LoginResponse, PromenaLozinkeInput } from '../../api/types';
 
 /**
@@ -11,9 +11,9 @@ export async function login(userName: string, password: string, zapamtiMe = fals
   return r.data;
 }
 
-export async function refresh(): Promise<LoginResponse> {
-  const r = await api.post<LoginResponse>('/auth/refresh', {});
-  return r.data;
+/** Ide kroz zajedničku obnovu (`obnoviSesiju`), da se tajmer, start i interceptor ne preklope (rotacija tokena). */
+export function refresh(): Promise<LoginResponse> {
+  return obnoviSesiju();
 }
 
 export async function logout(): Promise<void> {
