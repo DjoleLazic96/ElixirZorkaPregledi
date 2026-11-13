@@ -55,9 +55,10 @@ Status na ekranu uređaja: „nije pregledan“ ako nema predatog pregleda ili j
 
 ## 4. Pomeranje rasporeda — prenos propuštenog DP-a (R3.2–R3.5)
 
-Posle **kraja radnog dana** (podešavanje, 15:00) današnji DP koji nije predat ide na sledeće mesto; **inženjeri ostaju na svojim danima**,
+Posle **kraja radnog dana** (podešavanje, 15:00) današnji DP koji **nije ni započet** ide na sledeće mesto; **inženjeri ostaju na svojim danima**,
 pa svaki kasniji planirani DP ide jedno mesto napred i preuzima inženjera tog dana. Poslednji dobija sledeći dan za DP (radni dan koji
-nije neradni ni dan PZ-a, osim ako je uključeno „DP se radi i na dan PZ-a“) i inženjera po rotaciji. Započet pregled zadržava svog inženjera.
+nije neradni ni dan PZ-a, osim ako je uključeno „DP se radi i na dan PZ-a“) i inženjera po rotaciji. Započet a nepredat DP ostaje na svom
+danu i ništa se ne pomera (zamerka 58); kad ga inženjer preda posle tog dana, u ispunjenju plana se broji kao „kasnije“.
 
 | | Pon 9.11 | Uto 10.11 | Sre 11.11 | Čet 12.11 |
 |---|---|---|---|---|

@@ -81,6 +81,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Uklonjen primer „Kategorije“ iz skeleta; početni ekran je **Početna**.
 
 ### Ispravljeno
+- DP koji je započet, a predat posle kraja radnog dana, više se ne prenosi kao propušten i ne pomera raspored narednih DP-ova; u ispunjenju plana broji se kao „kasnije“.
 - Predugačka napomena ili opis akcije više ne blokira slanje sa telefona: polja imaju ograničenje i brojač, a server odbija samo tu promenu.
 - „Poništi pregled“ šalje obaveštenje inženjeru i onome ko je overio, i zatvara zahteve koji su čekali odluku.
 - Poništen pregled se ne računa za „Prošli put nije bio u funkciji“.

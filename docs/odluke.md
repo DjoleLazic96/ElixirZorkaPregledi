@@ -9,6 +9,13 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-13 — Zamerka 58: započet DP se ne prenosi posle kraja radnog dana (odobreno)
+
+**Kontekst:** treći krug testiranja scenarija — DP započet u 14:30 i predat u 15:10 bio je u 15:00 prenet kao propušten, a ceo niz DP-ova pomeren za dan sa promenom inženjera. Kod je odstupao od R3.3 („propušten ako nije ni započet“).
+**Odluka:** prenosi se samo nezapočet DP; započet ostaje na svom danu i ništa se ne pomera. Predaja posle tog dana se u ispunjenju plana broji kao „kasnije“; Supervizor može da ga dodeli drugome dok je u radu.
+**Posledice:** `PomeriDpOdAsync` uzima samo planiran DP; `docs/05` §4 i korisničko uputstvo 4.4 usklađeni.
+**Odlučio:** vlasnik projekta (2026-11-13).
+
 ## 2026-11-13 — Zamerke 54–57: deaktivacija, povratak sa odsustva, brisanje neradnog dana, overa svog pregleda (odobreno)
 
 **Kontekst:** dileme iz drugog kruga testiranja scenarija.

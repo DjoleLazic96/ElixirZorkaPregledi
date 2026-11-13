@@ -124,6 +124,26 @@ public class RasporedTests
     }
 
     [Fact]
+    public async Task Zapocet_DP_posle_kraja_radnog_dana_ostaje_na_svom_danu_i_raspored_se_ne_pomera_zamerka_58()
+    {
+        var (h, ana, bora, ceca) = await HarnessAsync();
+        await using var _ = h;
+        await Sut(h).Handle(new PotvrdiRasporedCommand(
+            [new StavkaRasporeda(Pon, "DP1", ana), new StavkaRasporeda(Pon.AddDays(1), "DP2", bora)]), default);
+        var dp1 = await h.Db.Pregledi.SingleAsync(p => p.Tip == "DP1");
+        dp1.Status = StatusPregleda.URadu;
+        await h.Db.SaveChangesAsync();
+
+        (await Sut(h).Handle(new PrenesiCommand(Pon), default)).Should().Be(0);
+
+        dp1 = await h.Db.Pregledi.SingleAsync(p => p.Tip == "DP1");
+        dp1.PlaniraniDatum.Should().Be(Pon);
+        dp1.DodeljenId.Should().Be(ana);
+        dp1.Propusten.Should().BeFalse("započet pregled nije propušten");
+        (await h.Db.Pregledi.SingleAsync(p => p.Tip == "DP2")).PlaniraniDatum.Should().Be(Pon.AddDays(1), "naredni DP ostaje gde je bio");
+    }
+
+    [Fact]
     public async Task Prenos_propustenog_DP_a_upisuje_istoriju_i_drugi_put_ne_radi_nista()
     {
         var (h, ana, bora, ceca) = await HarnessAsync();
