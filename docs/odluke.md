@@ -9,6 +9,13 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-13 — Zamerke 52–53: neradni dan i započet DP (odobreno)
+
+**Kontekst:** dileme iz testiranja scenarija.
+**Odluka:** unos neradnog dana sa zakazanim DP-ovima nudi „Unesi i pomeri DP-ove“ (nezapočeti DP-ovi idu dalje u nizu, postojeći dani zadržavaju inženjere, novi dani na kraju po rotaciji) ili „Odustani“; DP koji stoji na neradnom danu ima oznaku u kalendaru (R3.16). PZ na dan sa započetim DP-om: DP ostaje, ekran upozorava (R3.9).
+**Posledice:** `POST /neradni-dani` prima `pomeriDp`; `PregledKalendarDto.naNeradniDan`.
+**Odlučio:** vlasnik projekta (2026-11-13).
+
 ## 2026-11-13 — Zamerke 38–51: zatvaranje akcije, rezime, filteri, PZ i DP (odobreno)
 
 **Kontekst:** testiranje 13.11. (zamerke 38–51 u „Zamerke za doradu.md“) i pregled koda.

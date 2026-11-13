@@ -67,7 +67,7 @@ public sealed record OdlukaPrebacivanjaInput(bool Odobreno, string? ZamenaId);
 /// <param name="Do">Do.</param>
 /// <param name="Naziv">Naziv.</param>
 /// <param name="Vrsta">Vrsta.</param>
-public sealed record NeradniDaniInput(DateOnly Od, DateOnly Do, string Naziv, string Vrsta);
+public sealed record NeradniDaniInput(DateOnly Od, DateOnly Do, string Naziv, string Vrsta, bool PomeriDp = false);
 
 /// <summary>Telo predloga.</summary>
 /// <param name="Od">Prvi dan nedelje.</param>
@@ -152,7 +152,7 @@ public static class RasporedEndpoints
         n.MapGet("", async ([FromQuery] int godina, IMediator m) => Results.Ok(await m.Send(new GetNeradniDaniQuery(godina))))
             .WithSummary("Neradni dani u godini");
         n.MapPost("", async ([FromBody] NeradniDaniInput i, IMediator m) =>
-                Results.Ok(await m.Send(new UnesiNeradneDaneCommand(i.Od, i.Do, i.Naziv, i.Vrsta))))
+                Results.Ok(await m.Send(new UnesiNeradneDaneCommand(i.Od, i.Do, i.Naziv, i.Vrsta, i.PomeriDp))))
             .RequireAuthorization(PravoPolitika.Za(Prava.NeradniDani)).WithSummary("Unos neradnih dana od–do");
         n.MapDelete("/{id:int}", async (int id, IMediator m) =>
             {

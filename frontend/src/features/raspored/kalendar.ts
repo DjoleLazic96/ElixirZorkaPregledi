@@ -63,7 +63,8 @@ export function preracunajTipove<T extends { datum: string; tip: string; datumPr
 }
 
 /** Kratak tekst oznake ispod pregleda. */
-export function oznakaPregleda(p: Pick<PregledKalendarDto, 'inzenjerOdsutan' | 'zahtevNaCekanju'>): { tekst: string; boja: string } | null {
+export function oznakaPregleda(p: Pick<PregledKalendarDto, 'inzenjerOdsutan' | 'zahtevNaCekanju' | 'naNeradniDan'>): { tekst: string; boja: string } | null {
+  if (p.naNeradniDan) return { tekst: 'na neradni dan', boja: 'font-semibold text-red-700' };   // zamerka 52
   if (p.inzenjerOdsutan) return { tekst: 'inženjer odsutan', boja: 'text-red-700' };
   if (p.zahtevNaCekanju === 'raniji_pocetak') return { tekst: 'čeka raniji početak', boja: 'text-amber-800' };
   if (p.zahtevNaCekanju) return { tekst: 'čeka prebacivanje', boja: 'text-amber-800' };
@@ -78,3 +79,6 @@ export function godineNeradnih(ova: number): number[] {
   const od = Math.min(PRVA_GODINA, ova);
   return Array.from({ length: ova + 1 - od + 1 }, (_, i) => od + i);
 }
+
+/** Da li DP sa upozorenja zaista ide napred (nezapočet) — tada dugme kaže i „pomeri DP-ove“. */
+export const pomeraSe = (dp: PregledKalendarDto | null) => dp?.status === 'planiran';

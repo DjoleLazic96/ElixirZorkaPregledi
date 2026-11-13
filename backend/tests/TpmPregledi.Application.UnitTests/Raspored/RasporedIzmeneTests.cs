@@ -87,6 +87,29 @@ public class RasporedIzmeneTests
     }
 
     [Fact]
+    public async Task Neradni_dan_sa_pomeranjem_seli_DP_dalje_u_nizu_a_bez_njega_DP_ostaje_sa_oznakom_zamerka_52()
+    {
+        var (h, ana, bora, ceca) = await HarnessAsync();
+        await using var _ = h;
+        // Pon–pet DP; sreda i četvrtak postaju neradni.
+        await Sut(h, Pon).Handle(new PotvrdiRasporedCommand([new StavkaRasporeda(Pon, "DP1", ana), new StavkaRasporeda(Pon.AddDays(1), "DP2", bora),
+            new StavkaRasporeda(Pon.AddDays(2), "DP1", ceca), new StavkaRasporeda(Pon.AddDays(3), "DP2", ana), new StavkaRasporeda(Pon.AddDays(4), "DP1", bora)]), default);
+        var neradni = new NeradniDaniHandler(h.Db, new FakeCurrentUser(), new FakeClock(Pon.ToDateTime(new TimeOnly(9, 0), DateTimeKind.Utc)));
+
+        await neradni.Handle(new UnesiNeradneDaneCommand(Pon.AddDays(2), Pon.AddDays(3), "Praznik", "drzavni", PomeriDp: true), default);
+
+        (await NizAsync(h)).Should().Equal((Pon, "DP1"), (Pon.AddDays(1), "DP2"), (Pon.AddDays(4), "DP1"), (Pon.AddDays(7), "DP2"), (Pon.AddDays(8), "DP1"));
+        var petak = await h.Db.Pregledi.AsNoTracking().SingleAsync(p => p.PlaniraniDatum == Pon.AddDays(4));
+        petak.DodeljenId.Should().Be(bora, "petak zadržava svog inženjera; DP iz srede je došao na njegovo mesto");
+
+        // Bez pomeranja: DP ostaje, a kalendar ga označava.
+        await neradni.Handle(new UnesiNeradneDaneCommand(Pon.AddDays(7), Pon.AddDays(7), "Fabrika", "fabrika"), default);
+        var r = await Sut(h, Pon).Handle(new GetRasporedQuery(Pon, Pon.AddDays(10)), default);
+        r.Pregledi.Single(p => p.PlaniraniDatum == Pon.AddDays(7)).NaNeradniDan.Should().BeTrue();
+        r.Pregledi.Single(p => p.PlaniraniDatum == Pon.AddDays(4)).NaNeradniDan.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task PZ_pomeren_sa_srede_na_utorak_pomera_samo_DP_iz_utorka_u_sredu_zamerka_43()
     {
         var (h, ana, bora, ceca) = await HarnessAsync();

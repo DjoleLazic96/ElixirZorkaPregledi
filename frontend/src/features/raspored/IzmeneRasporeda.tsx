@@ -150,11 +150,14 @@ export function PovlacenjeDijalog({ datum, pz = false, onClose }: { datum: strin
   );
 }
 
-/** Upozorenje ispod datuma (zamerka 43): koji DP se pomera i šta se dešava sa narednima. */
+/** Upozorenje ispod datuma: koji DP se pomera (zamerka 43), ili da započet DP ostaje i taj dan se rade oba (zamerka 53). */
 export function UpozorenjeDp({ dp, radnja }: { dp: PregledKalendarDto; radnja: string }) {
   return (
     <p role="status" className="rounded-md border border-amber-200 bg-amber-50 p-2 text-sm text-amber-900">
-      ⚠ Na taj dan je zakazan <b>{dp.broj} ({dp.dodeljen})</b>. Ako {radnja} PZ, on i svi naredni DP-ovi se pomeraju za jedan dan napred.
+      {dp.status === 'u_radu'
+        ? <>⚠ <b>{dp.broj} ({dp.dodeljen})</b> je već započet i ostaje tog dana — taj dan se rade i DP i PZ.</>
+        : <>⚠ Na taj dan je zakazan <b>{dp.broj} ({dp.dodeljen})</b>. Ako {radnja} PZ, on i svi naredni DP-ovi se pomeraju za jedan dan napred.</>}
     </p>
   );
 }
+

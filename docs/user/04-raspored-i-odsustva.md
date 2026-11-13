@@ -42,7 +42,8 @@ pitanja nema — samo **Promeni u DP1** (ili DP2).
 **Zakaži PZ**: datum i inženjer; PZ je unapred postavljen na sledeći po redu (PZ1 → PZ4). Izbor drugog je **Promeni PZ** (napomena
 nije obavezna), a redosled se nastavlja od zakazanog. Na dan PZ-a DP se ne radi (podešavanje), pa se DP tog dana i naredni pomeraju
 za dan napred. Kad izaberete dan sa DP-om, ispod datuma piše koji DP se pomera, a dugme je **Zakaži i pomeri DP-ove**. Isto važi kad se
-PZ pomera na drugi dan (**Promeni u rasporedu**) ili kad odobrite raniji početak. Ako se PZ posle otkaže, prozor **Dan je ostao bez DP-a**
+PZ pomera na drugi dan (**Promeni u rasporedu**) ili kad odobrite raniji početak. Ako je DP tog dana već započet, on ostaje i
+taj dan se rade i DP i PZ — to piše ispod datuma. Ako se PZ posle otkaže, prozor **Dan je ostao bez DP-a**
 nudi **Povuci raspored**, koje vraća DP-ove kako su bili pre tog PZ-a.
 
 **Odsutni inženjeri.** Inženjer koji je tog dana odsutan ne može da se izabere (poruka navodi dan i vrstu odsustva). Pregled koji je
@@ -83,4 +84,6 @@ odmah može da ga započne; **Odbij** ostavlja zakazani datum. DP se ne radi ran
 
 ## 4.7 Neradni dani (Administrator, Direktor)
 
-Levi meni → **Neradni dani** → od, do, naziv, vrsta → **Dodaj**. DP se ne radi neradnim danima; PZ može ako je zakazan.
+Levi meni → **Neradni dani** → od, do, naziv, vrsta → **Dodaj**. DP se ne radi neradnim danima; PZ može ako je zakazan. Ako su u tom periodu već
+zakazani DP-ovi, pre unosa se vidi njihov spisak: **Unesi i pomeri DP-ove** ih pomera dalje u nizu (inženjeri dobijaju obaveštenje), a
+**Odustani** ne unosi ništa. DP koji ipak stoji na neradnom danu (npr. već započet) u kalendaru ima crvenu oznaku „na neradni dan“.

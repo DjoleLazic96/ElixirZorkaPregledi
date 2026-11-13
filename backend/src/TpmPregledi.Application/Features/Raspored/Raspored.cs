@@ -23,10 +23,11 @@ namespace TpmPregledi.Application.Features.Raspored;
 /// <param name="ZahtevNaCekanju">Vrsta zahteva inženjera koji čeka odluku (<c>prebacivanje</c>, <c>raniji_pocetak</c>) ili null.</param>
 /// <param name="Propusten">Propušten i automatski prenet (crveno „nije urađen – prenet“); inače je pomeranje ručno (sivo).</param>
 /// <param name="SlobodanDan">Posle izmene: dan koji je ostao bez DP-a usred niza — UI nudi „Povuci raspored“ (zamerka 29).</param>
+/// <param name="NaNeradniDan">DP koji stoji na neradnom danu (npr. već započet kad je dan proglašen neradnim) — crvena oznaka (zamerka 52).</param>
 public sealed record PregledKalendarDto(
     int Id, string Broj, string Tip, DateOnly PlaniraniDatum, DateOnly PrvobitniDatum, string Status,
     string DodeljenId, string Dodeljen, IReadOnlyList<UcesnikDto> Ucesnici, string? Napomena,
-    bool InzenjerOdsutan = false, string? ZahtevNaCekanju = null, bool Propusten = false, DateOnly? SlobodanDan = null);
+    bool InzenjerOdsutan = false, string? ZahtevNaCekanju = null, bool Propusten = false, DateOnly? SlobodanDan = null, bool NaNeradniDan = false);
 
 /// <summary>Učesnik PZ-a.</summary>
 /// <param name="KorisnikId">ID.</param>
@@ -448,6 +449,32 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
         await PrimeniPomeranjaAsync(db, clock, k, pomeranja, "pz", ct);
     }
 
+    /// <summary>
+    /// Neradni dani uneti od <paramref name="od"/> (R3.16, zamerka 52): nezapočeti DP-ovi sa neradnih dana i svi posle njih
+    /// prelaze na sledeća mesta u nizu — postojeći dani za DP ostaju mesta (sa svojim inženjerima), neradni ispadaju, a na kraju
+    /// se dodaju sledeći dani za DP sa inženjerom po rotaciji. Započet DP ostaje (u kalendaru dobija oznaku „na neradni dan“).
+    /// </summary>
+    internal static async Task<int> PomeriDpSaNeradnihAsync(IAppDbContext db, IDateTimeProvider clock, DateOnly od, CancellationToken ct)
+    {
+        var k = await RasporedKontekst.UcitajAsync(db, ct);
+        var niz = await db.Pregledi.Where(p => p.Tip.StartsWith("DP") && p.Status == StatusPregleda.Planiran && p.PlaniraniDatum >= od)
+            .OrderBy(p => p.PlaniraniDatum).ToListAsync(ct);
+        if (!niz.Any(p => k.Neradni.Contains(p.PlaniraniDatum))) return 0;
+        var inzenjerDana = niz.ToDictionary(p => p.PlaniraniDatum, p => p.DodeljenId);
+        var mesta = niz.Select(p => p.PlaniraniDatum).Where(k.JeDanZaDp).ToList();
+        while (mesta.Count < niz.Count) mesta.Add(k.SledeciDanZaDp(mesta.Count > 0 ? mesta[^1] : od));
+        var pomeranja = new List<Pomeranje>();
+        string? prethodni = null;
+        for (var i = 0; i < niz.Count; i++)
+        {
+            var inzenjer = inzenjerDana.TryGetValue(mesta[i], out var z) ? z : k.SledeciInzenjer(mesta[i], prethodni) ?? prethodni ?? niz[i].DodeljenId;
+            prethodni = inzenjer;
+            if (niz[i].PlaniraniDatum != mesta[i] || niz[i].DodeljenId != inzenjer) pomeranja.Add(new Pomeranje(niz[i], mesta[i], inzenjer));
+        }
+        await PrimeniPomeranjaAsync(db, clock, k, pomeranja, "neradni", ct);
+        return pomeranja.Count;
+    }
+
     /// <summary>Upisuje pomeranja DP-ova: novi dan i inženjer, istorija „prenos“ i jedno obaveštenje po inženjeru.</summary>
     private static async Task PrimeniPomeranjaAsync(IAppDbContext db, IDateTimeProvider clock, RasporedKontekst k, IReadOnlyList<Pomeranje> pomeranja, string razlog, CancellationToken ct)
     {
@@ -479,5 +506,6 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
     public static PregledKalendarDto Dto(Pregled p, RasporedKontekst k) =>
         new(p.Id, p.Broj, p.Tip, p.PlaniraniDatum, p.PrvobitniDatum, p.Status, p.DodeljenId, k.Ime(p.DodeljenId),
             p.Ucesnici.Select(u => new UcesnikDto(u.KorisnikId, k.Ime(u.KorisnikId), u.Sekcije)).ToList(), p.Napomena,
-            p.Status == StatusPregleda.Planiran && k.JeOdsutan(p.DodeljenId, p.PlaniraniDatum), k.ZahteviNaCekanju.GetValueOrDefault(p.Id), p.Propusten);
+            p.Status == StatusPregleda.Planiran && k.JeOdsutan(p.DodeljenId, p.PlaniraniDatum), k.ZahteviNaCekanju.GetValueOrDefault(p.Id), p.Propusten,
+            NaNeradniDan: p.JeDp && p.Status is StatusPregleda.Planiran or StatusPregleda.URadu && k.Neradni.Contains(p.PlaniraniDatum));
 }

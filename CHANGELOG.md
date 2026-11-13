@@ -6,6 +6,8 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- Neradni dan na dan sa zakazanim DP-om: pre unosa spisak DP-ova i „Unesi i pomeri DP-ove“ (DP-ovi idu dalje u nizu); DP koji ipak stoji na neradnom danu je u kalendaru crveno označen.
+- Zakazivanje ili pomeranje PZ-a na dan kad je DP već započet: upozorenje da DP ostaje i da se taj dan rade oba.
 - Zatvaranje akcije van pregleda: inženjer šalje „Zahtev za zatvaranje“ (šta je urađeno, kada, ko, po želji slika; radi i bez interneta), Supervizor ili Direktor odobrava ili odbija. I zatvaranje sa ekrana sada traži šta, kada i ko; to se vidi na akciji, u istoriji i u Excelu.
 - Detalj pregleda: „Rezime“ (otvara se prvi) i „Ceo pregled“ sa sekcijama kao dugmadima. Rezime pokazuje i akcije otvorene na pregledu, odgovore na ranije akcije, napomene uz ispravne stavke, „Sve ispravno“ i predloge izmene šablona.
 - PDF i Word: neispravno crveno, akcija plavo ispod stavke, van funkcije narandžasto; na kraju lista akcija sa pregleda.

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { CalendarOff } from 'lucide-react';
+import { api } from '../../api/client';
 import { useToast } from '../../app/providers/ToastProvider';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -8,6 +9,7 @@ import { DatePicker } from '../../components/ui/DatePicker';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { FormField } from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
+import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Select } from '../../components/ui/Select';
 import { Ucitavanje } from '../../components/ui/Spinner';
@@ -18,8 +20,8 @@ import { useAuth } from '../auth/AuthProvider';
 import { godineNeradnih } from './kalendar';
 import {
   STATUS_ODSUSTVA, VRSTE_NERADNIH, VRSTE_ODSUSTVA, useNeradniDani, useObrisiNeradni, useOdsustva, useOtkaziOdsustvo, useUnesiNeradne, useZahtevOdsustva,
+  type PregledKalendarDto, type RasporedDto,
 } from './hooks';
-
 
 /** „Moja odsustva“ (R3.19): zahtev za odsustvo i spisak ranijih sa statusom. */
 export function MojaOdsustvaPage() {
@@ -111,16 +113,32 @@ export function NeradniDaniPage() {
   const [vrsta, setVrsta] = useState<string | null>('drzavni');
   const [greska, setGreska] = useState<string | null>(null);
 
+  // DP-ovi zakazani u periodu (zamerka 52): pre unosa se pita da li se pomeraju dalje u nizu.
+  const [dpUPeriodu, setDpUPeriodu] = useState<PregledKalendarDto[] | null>(null);
+
+  async function sacuvaj(pomeriDp: boolean) {
+    try {
+      const novi = await unesi.mutateAsync({ od, do: doDatuma, naziv: naziv.trim(), vrsta: vrsta ?? 'drzavni', pomeriDp });
+      toast.success(pomeriDp ? `Uneto ${novi.length} dana; DP-ovi su pomereni.` : `Uneto ${novi.length} dana.`);
+      setNaziv('');
+      setDpUPeriodu(null);
+    } catch (err) {
+      setDpUPeriodu(null);
+      setGreska(porukaGreske(err, 'Neradni dani nisu uneti.'));
+    }
+  }
+
   async function potvrdi(e: FormEvent) {
     e.preventDefault();
     setGreska(null);
     try {
-      const novi = await unesi.mutateAsync({ od, do: doDatuma, naziv: naziv.trim(), vrsta: vrsta ?? 'drzavni' });
-      toast.success(`Uneto ${novi.length} dana.`);
-      setNaziv('');
-    } catch (err) {
-      setGreska(porukaGreske(err, 'Neradni dani nisu uneti.'));
+      const r = (await api.get<RasporedDto>('/raspored', { params: { od, do: doDatuma } })).data;
+      const dp = r.pregledi.filter((p) => p.tip.startsWith('DP') && p.status === 'planiran' && p.planiraniDatum >= od && p.planiraniDatum <= doDatuma);
+      if (dp.length > 0) return setDpUPeriodu(dp);
+    } catch {
+      // Provera nije uspela — unos ide kao i do sada (server odbija ako treba).
     }
+    await sacuvaj(false);
   }
 
   return (
@@ -144,6 +162,20 @@ export function NeradniDaniPage() {
               <div className="flex justify-end sm:col-span-2 lg:col-span-4">
                 <Button type="submit" disabled={unesi.isPending}>Dodaj</Button>
               </div>
+              {dpUPeriodu && (
+                <Modal open title="U tom periodu su zakazani DP-ovi" onClose={() => setDpUPeriodu(null)}>
+                  <div className="space-y-3 text-sm">
+                    <ul className="list-disc space-y-0.5 pl-5">
+                      {dpUPeriodu.map((p) => <li key={p.id}>Na {formatirajDatum(p.planiraniDatum)} je zakazan <b>{p.broj}</b> ({p.dodeljen})</li>)}
+                    </ul>
+                    <p className="text-gray-700">Neradnim danima se DP ne radi. <b>Unesi i pomeri DP-ove</b>: ti DP-ovi i naredni idu dalje u nizu, a inženjeri dobijaju obaveštenje.</p>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Button type="button" variant="ghost" onClick={() => setDpUPeriodu(null)} disabled={unesi.isPending}>Odustani</Button>
+                      <Button type="button" onClick={() => void sacuvaj(true)} disabled={unesi.isPending}>Unesi i pomeri DP-ove</Button>
+                    </div>
+                  </div>
+                </Modal>
+              )}
             </form>
           </CardBody>
         </Card>
