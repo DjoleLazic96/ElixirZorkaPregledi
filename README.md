@@ -87,6 +87,7 @@ Dev baza: `localhost:55434`, `tpm-pregledi` / `tpm-pregledi` / `tpm-pregledi-dev
 cd backend; dotnet test                                # unit + integracioni (Testcontainers → Docker)
 dotnet test tests\TpmPregledi.Application.UnitTests         # samo unit (bez Docker-a)
 cd frontend; npm run lint; npm test
+cd frontend; npm run e2e                               # Playwright kroz pregledač (API + prazna baza; vidi frontend/e2e/README.md)
 ```
 
 ## Dokumentacija

@@ -43,6 +43,9 @@ export interface OdbijenaOperacija {
   at: string;
   /** Slika koju server nije primio — čuva se na telefonu da se ne izgubi. */
   slika?: Blob;
+  /** Stavka i izvor odbijene slike, za ponovno slanje (zamerka 19). */
+  stavkaId?: number;
+  izvor?: 'kamera' | 'galerija';
 }
 
 class TpmDb extends Dexie {
@@ -220,7 +223,7 @@ async function posaljiSlike(korisnikId: string, pregledId?: number): Promise<voi
           ? 'Slika je prevelika i nije poslata. Sačuvana je na telefonu.'
           : ((err as { response?: { data?: { greske?: string[] } } }).response?.data?.greske?.[0] ?? 'Slika nije primljena.');
       await db.transaction('rw', db.slike, db.odbijene, async () => {
-        await db.odbijene.add({ korisnikId, opId: s.klijentId, pregledId: s.pregledId, razlog, at: new Date().toISOString(), slika: s.blob });
+        await db.odbijene.add({ korisnikId, opId: s.klijentId, pregledId: s.pregledId, razlog, at: new Date().toISOString(), slika: s.blob, stavkaId: s.stavkaId, izvor: s.izvor });
         await db.slike.delete(s.klijentId);
       });
     }
@@ -286,6 +289,34 @@ async function posalji(korisnikId: string): Promise<void> {
 /** „U redu“ na obaveštenju o odbijenim promenama: brišu se poruke za pregled (odbijene slike ostaju — jedini primerak). */
 export async function zatvoriOdbijene(pregledId: number): Promise<void> {
   await db.odbijene.where('pregledId').equals(pregledId).filter((x) => x.slika === undefined).delete();
+}
+
+/** Odbijene slike prijavljenog korisnika (zamerka 19): vide se, šalju ponovo, čuvaju na telefon ili odbacuju. */
+export function useOdbijeneSlike(korisnikId: string | undefined): OdbijenaOperacija[] {
+  const k = korisnikId ?? '';
+  return useLokalno(() => db.odbijene.where('korisnikId').equals(k).filter((x) => x.slika !== undefined).toArray(), [k], []);
+}
+
+/** Da li odbijena slika može ponovo da se pošalje: pregled je na telefonu i još se popunjava. */
+export async function mozePonovo(o: OdbijenaOperacija): Promise<boolean> {
+  if (!o.slika || o.stavkaId === undefined) return false;
+  const p = await db.pregledi.get(o.pregledId);
+  return !!p && (p.status === 'u_radu' || p.status === 'vracen_na_doradu');
+}
+
+/** Vraća odbijenu sliku u red za slanje (kao novu sliku uz istu stavku). Prevelika slika se pre toga još jednom smanji. */
+export async function posaljiPonovo(id: number, smanji?: (b: Blob) => Promise<Blob>): Promise<boolean> {
+  const o = await db.odbijene.get(id);
+  if (!o || !(await mozePonovo(o))) return false;
+  const blob = smanji ? await smanji(o.slika!) : o.slika!;
+  await db.odbijene.delete(id);
+  await dodajSliku(o.pregledId, o.stavkaId!, blob, o.izvor ?? 'kamera');
+  return true;
+}
+
+/** Odbacivanje odbijene slike — briše jedini primerak sa telefona (pita se pre toga). */
+export async function odbaciOdbijenuSliku(id: number): Promise<void> {
+  await db.odbijene.delete(id);
 }
 
 /** Briše lokalne podatke prijavljenog korisnika (odjava) — samo kad ništa njegovo ne čeka slanje, inače bi se urađeno izgubilo. Odbijene slike ostaju (jedini primerak). */

@@ -8,7 +8,7 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 // ESLint flat config (Elixir blueprint 13 §9). 0 grešaka je uslov za merge;
 // `eslint-disable` samo uz komentar zašto.
 export default defineConfig([
-  globalIgnores(['dist', 'coverage']),
+  globalIgnores(['dist', 'coverage', 'playwright-report', 'test-results']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

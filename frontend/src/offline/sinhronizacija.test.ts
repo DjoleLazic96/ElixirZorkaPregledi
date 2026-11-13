@@ -1,7 +1,8 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api/client';
-import { db, dodajOperaciju, dodajSliku, obrisiLokalno, postaviKorisnika, sinhronizuj } from './sinhronizacija';
+import { db, dodajOperaciju, dodajSliku, obrisiLokalno, odbaciOdbijenuSliku, posaljiPonovo, postaviKorisnika, sinhronizuj } from './sinhronizacija';
+import type { PopunjavanjeDto } from '../features/popunjavanje/hooks';
 
 vi.mock('../api/client', () => ({ api: { get: vi.fn(), post: vi.fn() } }));
 
@@ -76,6 +77,34 @@ describe('sinhronizacija', () => {
 
     expect(await obrisiLokalno()).toBe(true);
     expect((await db.odbijene.toArray()).map((x) => x.slika)).toHaveLength(1);
+  });
+
+  it('odbijena slika se vraća u red dok se pregled popunjava, a posle predaje samo čuva ili odbacuje (zamerka 19)', async () => {
+    await db.pregledi.put({ id: 5, status: 'u_radu', sekcije: [] } as unknown as PopunjavanjeDto);
+    await dodajSliku(5, 7, new Blob(['jpeg']), 'galerija');
+    const post = vi.mocked(api.post).getMockImplementation()!;
+    vi.mocked(api.post).mockImplementation(async (url: string, telo: unknown) => {
+      if (url === '/fotografije') throw { response: { status: 422, data: { greske: ['Slika nije u formatu JPG, PNG ili WebP.'] } } };
+      return post(url, telo);
+    });
+    online = true;
+    await sinhronizuj();
+    const [o] = await db.odbijene.toArray();
+    expect(o).toMatchObject({ stavkaId: 7, izvor: 'galerija', razlog: 'Slika nije u formatu JPG, PNG ili WebP.' });
+
+    online = false;
+    expect(await posaljiPonovo(o.id!)).toBe(true);
+    expect(await db.odbijene.count()).toBe(0);
+    expect(await db.slike.toArray()).toMatchObject([{ pregledId: 5, stavkaId: 7, izvor: 'galerija' }]);
+
+    await db.slike.clear();
+    await db.odbijene.add({ ...o, id: undefined });
+    await db.pregledi.put({ id: 5, status: 'predato', sekcije: [] } as unknown as PopunjavanjeDto);
+    const [o2] = await db.odbijene.toArray();
+    expect(await posaljiPonovo(o2.id!)).toBe(false);
+    expect(await db.odbijene.count()).toBe(1);
+    await odbaciOdbijenuSliku(o2.id!);
+    expect(await db.odbijene.count()).toBe(0);
   });
 
   it('bez veze sa serverom slika ostaje u redu, a predaja čeka', async () => {

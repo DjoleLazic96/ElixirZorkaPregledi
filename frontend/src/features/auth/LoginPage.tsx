@@ -106,7 +106,7 @@ export function LoginPage() {
               onChange={(e) => setZapamti(e.target.checked)}
             />
 
-            {greska !== null && <p className="text-sm text-red-600">{greska}</p>}
+            {greska !== null && <p role="alert" className="text-sm text-red-600">{greska}</p>}
 
             <Button type="submit" className="w-full" disabled={saljem}>
               {saljem ? 'Prijavljivanje…' : 'Prijavi se'}

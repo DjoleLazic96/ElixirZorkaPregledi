@@ -558,6 +558,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R10.5** Započet pregled je vezan za jedan telefon; na drugom može da se nastavi tek kad prvi pošalje podatke. Ako se šablon promeni dok je inženjer bez interneta, pregled se završava po staroj verziji. *[Z]*
 - **R10.6** Aplikacija se instalira na početni ekran telefona kroz Chrome (Android), čime rade push obaveštenja i ne gube se neposlati podaci. *[K]*
 - **R10.10** Kad server odbije promene sa telefona (npr. pregled je vezan za drugi uređaj ili predaja nije potpuna), telefon odmah prikazuje razlog i vraća pregled na stanje sa servera; Supervizor ili Direktor može da otključa pregled za drugi uređaj. Inženjer briše svoju sliku dok pregled nije predat, i bez interneta. *[O]* (2026-11-10)
+- **R10.11** Slika koju server trajno odbije ostaje na telefonu i vidi se na svakom ekranu inženjera sa razlogom; inženjer je šalje ponovo (dok se pregled još popunjava), čuva na telefon ili odbacuje uz potvrdu. *[O]* (odluka 2026-11-13)
 - **R10.7** Prva prijava je sa internetom; posle toga inženjer ostaje prijavljen i radi bez interneta. *[Z]*
 - **R10.8** Aplikacija je responzivna za telefon, tablet, laptop i veliki monitor: na telefonu donji meni, kartice umesto tabela, jedan uređaj u fokusu i velika dugmad; na većim ekranima bočni meni i pune tabele. *[Z]*
 - **R10.9** Osnovna pravila prikaza (važe za sve ekrane): *[O]*
