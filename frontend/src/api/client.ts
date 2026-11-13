@@ -57,6 +57,25 @@ const BEZ_REFRESHA = ['/auth/login', '/auth/refresh'];
 // Single-flight: više paralelnih 401 → jedan refresh poziv, svi čekaju isti Promise.
 let refreshInFlight: Promise<LoginResponse> | null = null;
 
+/**
+ * Obnova sesije — jedini put do `/auth/refresh` (interceptor, tajmer tihe obnove, start aplikacije). Refresh token se
+ * rotira, pa dve obnove sa istim kolačićem ne smeju da se preklope: druga bi dobila 401 i odjavila korisnika (npr.
+ * telefon se probudi pa istovremeno okinu tajmer i zahtev sa isteklim tokenom, ili dve kartice). U istoj kartici čeka
+ * se isti Promise; između kartica Web Locks pušta jednu po jednu, pa sledeća šalje već nov kolačić.
+ */
+export function obnoviSesiju(): Promise<LoginResponse> {
+  refreshInFlight ??= zakljucano(() => axios.post<LoginResponse>('/api/v1/auth/refresh', {}, { withCredentials: true }).then((r) => r.data))
+    .finally(() => {
+      refreshInFlight = null;
+    });
+  return refreshInFlight;
+}
+
+function zakljucano<T>(posao: () => Promise<T>): Promise<T> {
+  const locks = typeof navigator === 'undefined' ? undefined : navigator.locks;
+  return locks ? locks.request('tpm-pregledi.refresh', posao) : posao();
+}
+
 api.interceptors.response.use(undefined, async (error: AxiosError<ApiProblem>) => {
   const original = error.config as RetriedConfig | undefined;
   const status = error.response?.status;
@@ -68,13 +87,7 @@ api.interceptors.response.use(undefined, async (error: AxiosError<ApiProblem>) =
   original._retried = true;
 
   try {
-    refreshInFlight ??= axios
-      .post<LoginResponse>('/api/v1/auth/refresh', {}, { withCredentials: true })
-      .then((r) => r.data)
-      .finally(() => {
-        refreshInFlight = null;
-      });
-    const obnova = await refreshInFlight;
+    const obnova = await obnoviSesiju();
     setAccessToken(obnova.accessToken);
     onTokenRefreshed?.(obnova.expiresAt);
     return api.request(original);
