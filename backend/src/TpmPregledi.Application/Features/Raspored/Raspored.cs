@@ -391,19 +391,19 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
     }
 
     /// <summary>
-    /// Pomera DP-ove od dana <paramref name="dan"/>: ako tog dana postoji nezapočet ili započet a nepredat DP, on i svi kasniji
+    /// Pomera DP-ove od dana <paramref name="dan"/>: ako tog dana postoji nezapočet DP, on i svi kasniji
     /// planirani DP-ovi idu jedno mesto napred (<see cref="RasporedPravila.Prenesi"/>). Vraća broj pomerenih pregleda.
     /// </summary>
     private Task<int> PomeriOdAsync(DateOnly dan, string razlog, CancellationToken ct) => PomeriDpOdAsync(db, clock, dan, razlog, ct);
 
     /// <summary>
-    /// Isto kao <see cref="PomeriOdAsync"/>, za druge handlere (odobren raniji početak PZ-a). Zbog PZ-a (<paramref name="razlog"/>
-    /// <c>pz</c>) se pomera samo nezapočet DP — započet DP inženjer već radi, pa ostaje na svom danu.
+    /// Isto kao <see cref="PomeriOdAsync"/>, za druge handlere (odobren raniji početak PZ-a). Pomera se samo nezapočet DP —
+    /// započet DP inženjer već radi, pa ostaje na svom danu i kad se zakaže PZ i posle kraja radnog dana (zamerka 58: inače bi
+    /// DP predat u 15:10 bio „propušten“, a ceo niz pomeren za dan). Kasna predaja se u ispunjenju broji kao „kasnije“.
     /// </summary>
     internal static async Task<int> PomeriDpOdAsync(IAppDbContext db, IDateTimeProvider clock, DateOnly dan, string razlog, CancellationToken ct)
     {
-        var prvi = await db.Pregledi.FirstOrDefaultAsync(p => p.Tip.StartsWith("DP") && p.PlaniraniDatum == dan
-            && (p.Status == StatusPregleda.Planiran || (p.Status == StatusPregleda.URadu && razlog != "pz")), ct);
+        var prvi = await db.Pregledi.FirstOrDefaultAsync(p => p.Tip.StartsWith("DP") && p.PlaniraniDatum == dan && p.Status == StatusPregleda.Planiran, ct);
         if (prvi is null) return 0;
 
         var k = await RasporedKontekst.UcitajAsync(db, ct);
