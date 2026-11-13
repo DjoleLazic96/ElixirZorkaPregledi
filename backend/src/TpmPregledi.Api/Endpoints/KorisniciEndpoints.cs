@@ -8,6 +8,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace TpmPregledi.Api.Endpoints;
 
+/// <summary>Telo deaktivacije: prebacivanje planiranih pregleda (zamerka 54).</summary>
+/// <param name="Prebacivanja">Pregled i zamena.</param>
+public sealed record DeaktivacijaInput(IReadOnlyList<TpmPregledi.Application.Features.Raspored.PrebacivanjeInput>? Prebacivanja);
+
 /// <summary>
 /// Upravljanje korisnicima i pravima (<c>/api/v1/korisnici</c>, pravo <c>korisnici</c>). Korisnici se nikad ne brišu —
 /// nema DELETE rute, samo <c>deaktiviraj</c>/<c>aktiviraj</c>. Lozinka ide isključivo u telo zahteva.
@@ -46,9 +50,14 @@ public static class KorisniciEndpoints
             .WithSummary("Zameni štiklirana prava korisnika (revokuje sesije)");
 
         group.MapPost("/{id}/deaktiviraj",
-            async (string id, IMediator m) =>
-                Results.Ok(await m.Send(new DeaktivirajKorisnikaCommand(id))))
-            .WithSummary("Deaktiviraj korisnika (blokira prijavu, revokuje sesije)");
+            async (string id, [FromBody] DeaktivacijaInput? input, IMediator m) =>
+                Results.Ok(await m.Send(new DeaktivirajKorisnikaCommand(id, input?.Prebacivanja))))
+            .WithSummary("Deaktiviraj korisnika (blokira prijavu, revokuje sesije); planirani pregledi se mogu prebaciti");
+
+        group.MapGet("/{id}/planirani-pregledi",
+            async (string id, IMediator m, TpmPregledi.Application.Common.Interfaces.IDateTimeProvider clock) =>
+                Results.Ok(await m.Send(new TpmPregledi.Application.Features.Raspored.GetPreglediUOdsustvuQuery(id, clock.Today, clock.Today.AddYears(1)))))
+            .WithSummary("Planirani pregledi korisnika sa predlogom zamene (pre deaktivacije, zamerka 54)");
 
         group.MapPost("/{id}/aktiviraj",
             async (string id, IMediator m) =>

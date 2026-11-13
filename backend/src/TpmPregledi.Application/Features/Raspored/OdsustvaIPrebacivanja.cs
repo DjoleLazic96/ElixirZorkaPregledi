@@ -32,7 +32,7 @@ public sealed record UnesiNeradneDaneCommand(DateOnly Od, DateOnly Do, string Na
 
 /// <summary>Brisanje neradnog dana (pogrešan unos).</summary>
 /// <param name="Id">ID.</param>
-public sealed record ObrisiNeradniDanCommand(int Id) : IRequest;
+public sealed record ObrisiNeradniDanCommand(int Id) : IRequest<DateOnly?>;
 
 /// <summary>Oblik ulaza.</summary>
 public sealed class UnesiNeradneDaneValidator : AbstractValidator<UnesiNeradneDaneCommand>
@@ -51,7 +51,7 @@ public sealed class UnesiNeradneDaneValidator : AbstractValidator<UnesiNeradneDa
 public sealed class NeradniDaniHandler(IAppDbContext db, ICurrentUser currentUser, IDateTimeProvider clock) :
     IRequestHandler<GetNeradniDaniQuery, IReadOnlyList<NeradniDanDto>>,
     IRequestHandler<UnesiNeradneDaneCommand, IReadOnlyList<NeradniDanDto>>,
-    IRequestHandler<ObrisiNeradniDanCommand>
+    IRequestHandler<ObrisiNeradniDanCommand, DateOnly?>
 {
     /// <inheritdoc />
     public async Task<IReadOnlyList<NeradniDanDto>> Handle(GetNeradniDaniQuery req, CancellationToken ct) =>
@@ -74,11 +74,13 @@ public sealed class NeradniDaniHandler(IAppDbContext db, ICurrentUser currentUse
     }
 
     /// <inheritdoc />
-    public async Task Handle(ObrisiNeradniDanCommand req, CancellationToken ct)
+    /// <remarks>Vraća dan ako je posle brisanja ostao bez DP-a usred niza — ekran nudi „Povuci raspored“ (zamerka 56).</remarks>
+    public async Task<DateOnly?> Handle(ObrisiNeradniDanCommand req, CancellationToken ct)
     {
         var n = await db.NeradniDani.FirstOrDefaultAsync(x => x.Id == req.Id, ct) ?? throw new NotFoundException("Neradni dan ne postoji.");
         db.NeradniDani.Remove(n);
         await db.SaveChangesAsync(ct);
+        return await RasporedHandler.SlobodanZaPovlacenjeAsync(db, clock, n.Datum, ct);
     }
 }
 
@@ -95,7 +97,9 @@ public sealed class NeradniDaniHandler(IAppDbContext db, ICurrentUser currentUse
 /// <param name="Status"><c>zahtev</c>, <c>odobreno</c>, <c>odbijeno</c>.</param>
 /// <param name="RazlogOdbijanja">Razlog odbijanja.</param>
 /// <param name="KreiranoAt">Kada je uneto.</param>
-public sealed record OdsustvoDto(int Id, string KorisnikId, string Ime, DateOnly Od, DateOnly Do, string Vrsta, string? Napomena, string Status, string? RazlogOdbijanja, DateTime KreiranoAt);
+/// <param name="ZaVracanje">Posle skraćivanja ili otkazivanja: pregledi prebačeni zbog ovog odsustva na dane koji više nisu u njemu — ekran nudi „Vrati preglede“ (zamerka 55).</param>
+public sealed record OdsustvoDto(int Id, string KorisnikId, string Ime, DateOnly Od, DateOnly Do, string Vrsta, string? Napomena, string Status, string? RazlogOdbijanja, DateTime KreiranoAt,
+    IReadOnlyList<PregledKalendarDto>? ZaVracanje = null);
 
 /// <summary>Prebacivanje jednog pregleda na zamenu.</summary>
 /// <param name="PregledId">Pregled.</param>
@@ -155,6 +159,11 @@ public sealed class IzmeniOdsustvoValidator : AbstractValidator<IzmeniOdsustvoCo
 /// <param name="Do">Do.</param>
 public sealed record GetPreglediUOdsustvuQuery(string KorisnikId, DateOnly Od, DateOnly Do) : IRequest<IReadOnlyList<PregledZaPrebacivanjeDto>>;
 
+/// <summary>Vraća inženjeru preglede koji su bili prebačeni zbog odsustva (zamerka 55).</summary>
+/// <param name="Id">Odsustvo.</param>
+/// <param name="PregledIds">Pregledi za vraćanje.</param>
+public sealed record VratiPregledeCommand(int Id, IReadOnlyList<int> PregledIds) : IRequest<int>;
+
 /// <summary>Oblik ulaza.</summary>
 public sealed class UnesiOdsustvoValidator : AbstractValidator<UnesiOdsustvoCommand>
 {
@@ -177,7 +186,8 @@ public sealed class OdsustvaHandler(IAppDbContext db, ICurrentUser currentUser, 
     IRequestHandler<OdluciOOdsustvuCommand, OdsustvoDto>,
     IRequestHandler<GetPreglediUOdsustvuQuery, IReadOnlyList<PregledZaPrebacivanjeDto>>,
     IRequestHandler<IzmeniOdsustvoCommand, OdsustvoDto>,
-    IRequestHandler<OtkaziOdsustvoCommand, OdsustvoDto>
+    IRequestHandler<OtkaziOdsustvoCommand, OdsustvoDto>,
+    IRequestHandler<VratiPregledeCommand, int>
 {
     /// <summary>Statusi koji ne zauzimaju period (ne preklapaju se, ne preskaču se u rasporedu).</summary>
     private static readonly string[] Neaktivna = ["odbijeno", "otkazano"];
@@ -261,11 +271,12 @@ public sealed class OdsustvaHandler(IAppDbContext db, ICurrentUser currentUser, 
         if (await db.Odsustva.AnyAsync(x => x.Id != o.Id && x.KorisnikId == o.KorisnikId && !Neaktivna.Contains(x.Status) && x.Od <= req.Do && x.Do >= req.Od, ct))
             throw new BusinessRuleException(PorukaPreklapanje);
         var stari = $"{o.Od:dd.MM.yyyy}–{o.Do:dd.MM.yyyy}";
+        var (bioOd, bioDo) = (o.Od, o.Do);
         (o.Od, o.Do) = (req.Od, req.Do);
         await Obavesti.DodajAsync(db, [o.KorisnikId], VrsteObavestenja.IshodZahteva, "Odsustvo izmenjeno",
             $"Odsustvo {stari} je sada {o.Od:dd.MM.yyyy}–{o.Do:dd.MM.yyyy}.", "/moja-odsustva", null, clock.UtcNow, ct);
         await db.SaveChangesAsync(ct);
-        return Dto(o, await ImenaAsync(ct));
+        return Dto(o, await ImenaAsync(ct)) with { ZaVracanje = await ZaVracanjeAsync(o.KorisnikId, bioOd, bioDo, d => d < o.Od || d > o.Do, ct) };
     }
 
     /// <summary>
@@ -283,11 +294,57 @@ public sealed class OdsustvaHandler(IAppDbContext db, ICurrentUser currentUser, 
             await Obavesti.DodajAsync(db, [o.KorisnikId], VrsteObavestenja.IshodZahteva, "Odsustvo otkazano",
                 $"Odsustvo {o.Od:dd.MM.yyyy}–{o.Do:dd.MM.yyyy} je otkazano.", "/moja-odsustva", null, clock.UtcNow, ct);
         await db.SaveChangesAsync(ct);
-        return Dto(o, await ImenaAsync(ct));
+        return Dto(o, await ImenaAsync(ct)) with { ZaVracanje = req.MozeSva ? await ZaVracanjeAsync(o.KorisnikId, o.Od, o.Do, _ => true, ct) : null };
     }
 
-    /// <summary>Prebacuje preglede na zamene; započet pregled se ne prebacuje automatski (R3.20).</summary>
-    private async Task PrebaciAsync(IReadOnlyList<PrebacivanjeInput>? prebacivanja, CancellationToken ct)
+    private Task PrebaciAsync(IReadOnlyList<PrebacivanjeInput>? prebacivanja, CancellationToken ct) =>
+        PrebaciAsync(db, clock, currentUser.UserId, prebacivanja, "odsustvo", ct);
+
+    /// <summary>
+    /// Pregledi prebačeni zbog ovog odsustva (istorija „prebacivanje“, razlog odsustvo, sa ovog inženjera) na dane za koje važi
+    /// <paramref name="van"/> — više nisu u odsustvu, a pregled je još planiran i kod zamene.
+    /// </summary>
+    private async Task<IReadOnlyList<PregledKalendarDto>> ZaVracanjeAsync(string korisnikId, DateOnly od, DateOnly doDana, Func<DateOnly, bool> van, CancellationToken ct)
+    {
+        var kandidati = await db.Pregledi.Include(p => p.Ucesnici)
+            .Where(p => p.Status == StatusPregleda.Planiran && p.DodeljenId != korisnikId && p.PlaniraniDatum >= od && p.PlaniraniDatum <= doDana)
+            .ToListAsync(ct);
+        kandidati = kandidati.Where(p => van(p.PlaniraniDatum)).ToList();
+        if (kandidati.Count == 0) return [];
+        var ids = kandidati.Select(p => p.Id).ToList();
+        var dogadjaji = await db.PregledDogadjaji.AsNoTracking().Where(d => ids.Contains(d.PregledId) && d.Vrsta == "prebacivanje").Select(d => new { d.PregledId, d.Podaci }).ToListAsync(ct);
+        var prebaceni = dogadjaji.Where(d =>
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(d.Podaci);
+            var r = doc.RootElement;
+            return r.TryGetProperty("razlog", out var raz) && raz.GetString() == "odsustvo" && r.TryGetProperty("stariId", out var s) && s.GetString() == korisnikId;
+        }).Select(d => d.PregledId).ToHashSet();
+        var k = await RasporedKontekst.UcitajAsync(db, ct);
+        return kandidati.Where(p => prebaceni.Contains(p.Id)).OrderBy(p => p.PlaniraniDatum).Select(p => RasporedHandler.Dto(p, k)).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<int> Handle(VratiPregledeCommand req, CancellationToken ct)
+    {
+        var o = await db.Odsustva.AsNoTracking().FirstOrDefaultAsync(x => x.Id == req.Id, ct) ?? throw new NotFoundException("Odsustvo ne postoji.");
+        var k = await RasporedKontekst.UcitajAsync(db, ct);
+        var pregledi = await db.Pregledi.Where(p => req.PregledIds.Contains(p.Id)).ToListAsync(ct);
+        var sada = clock.UtcNow;
+        foreach (var p in pregledi)
+        {
+            if (p.Status != StatusPregleda.Planiran) throw new BusinessRuleException($"{p.Broj} je već započet i ostaje kod zamene.");
+            k.ProveriDostupnost(o.KorisnikId, p.PlaniraniDatum);
+            PregledIstorija.Dodaj(db, p, "prebacivanje", new { razlog = "povratak sa odsustva", stari = k.Ime(p.DodeljenId), stariId = p.DodeljenId, novi = k.Ime(o.KorisnikId), noviId = o.KorisnikId }, currentUser.UserId, sada);
+            await Obavesti.DodajAsync(db, [p.DodeljenId], VrsteObavestenja.Dodela, $"{p.Broj} više nije vaš", $"{p.Broj} ({p.PlaniraniDatum:dd.MM.yyyy}) se vraća inženjeru {k.Ime(o.KorisnikId)}.", "/kalendar", null, sada, ct);
+            await Obavesti.DodajAsync(db, [o.KorisnikId], VrsteObavestenja.Dodela, $"Dodeljen vam je {p.Broj}", $"{p.Broj} za {p.PlaniraniDatum:dd.MM.yyyy} je ponovo vaš.", "/kalendar", null, sada, ct);
+            p.DodeljenId = o.KorisnikId;
+        }
+        await db.SaveChangesAsync(ct);
+        return pregledi.Count;
+    }
+
+    /// <summary>Prebacuje preglede na zamene; započet pregled se ne prebacuje automatski (R3.20). Deli ga i deaktivacija korisnika (zamerka 54).</summary>
+    internal static async Task PrebaciAsync(IAppDbContext db, IDateTimeProvider clock, string? ko, IReadOnlyList<PrebacivanjeInput>? prebacivanja, string razlog, CancellationToken ct)
     {
         if (prebacivanja is not { Count: > 0 }) return;
         var k = await RasporedKontekst.UcitajAsync(db, ct);
@@ -300,7 +357,7 @@ public sealed class OdsustvaHandler(IAppDbContext db, ICurrentUser currentUser, 
             if (p.Status != StatusPregleda.Planiran) throw new BusinessRuleException(PorukaZapocet);
             k.ProveriInzenjera(x.ZamenaId);
             k.ProveriDostupnost(x.ZamenaId, p.PlaniraniDatum);
-            PregledIstorija.Dodaj(db, p, "prebacivanje", new { razlog = "odsustvo", stari = k.Ime(p.DodeljenId), stariId = p.DodeljenId, novi = k.Ime(x.ZamenaId), noviId = x.ZamenaId }, currentUser.UserId, sada);
+            PregledIstorija.Dodaj(db, p, "prebacivanje", new { razlog, stari = k.Ime(p.DodeljenId), stariId = p.DodeljenId, novi = k.Ime(x.ZamenaId), noviId = x.ZamenaId }, ko, sada);
             await Obavesti.DodajAsync(db, [x.ZamenaId], VrsteObavestenja.Dodela, $"Dodeljen vam je {p.Broj}",
                 $"{p.Broj} za {p.PlaniraniDatum:dd.MM.yyyy} je sada vaš (zamena za {k.Ime(p.DodeljenId)}).", "/kalendar", null, sada, ct);
             p.DodeljenId = x.ZamenaId;

@@ -19,7 +19,7 @@ import { danasYmd, dodajDane, formatirajDatum, kratakDan, ponedeljakNedelje } fr
 import { imaPravo } from '../../lib/permissions';
 import { useAuth } from '../auth/AuthProvider';
 import {
-  STATUS_ODSUSTVA, VRSTE_ODSUSTVA, useInzenjeri, useIzmeniOdsustvo, useOtkaziOdsustvo, useOdluciOdsustvo, useOdluciPrebacivanje, useOdsustva, usePotvrdi, usePredlog,
+  STATUS_ODSUSTVA, VRSTE_ODSUSTVA, useInzenjeri, useIzmeniOdsustvo, useOtkaziOdsustvo, useVratiPreglede, useOdluciOdsustvo, useOdluciPrebacivanje, useOdsustva, usePotvrdi, usePredlog,
   usePreglediUOdsustvu, useRaspored, useSledeciPz, useUnesiOdsustvo, useZahteviPrebacivanja, useZakaziPz,
   useDpKojiSePomera, type OdsustvoDto, type PredlogStavka, type PregledKalendarDto, type ZahtevPrebacivanjaDto,
 } from './hooks';
@@ -387,17 +387,20 @@ function IzmenaOdsustva({ odsustvo, onClose }: { odsustvo: OdsustvoDto; onClose:
   const [od, setOd] = useState(odsustvo.od);
   const [doDatuma, setDo] = useState(odsustvo.do);
   const [greska, setGreska] = useState<string | null>(null);
+  const [vracanje, setVracanje] = useState<PregledKalendarDto[] | null>(null);
 
   async function sacuvaj() {
     try {
-      await izmeni.mutateAsync({ id: odsustvo.id, od, do: doDatuma });
+      const r = await izmeni.mutateAsync({ id: odsustvo.id, od, do: doDatuma });
       toast.success('Odsustvo je izmenjeno.');
+      if (r.zaVracanje?.length) return setVracanje(r.zaVracanje);
       onClose();
     } catch (err) {
       setGreska(porukaGreske(err, 'Izmena nije sačuvana.'));
     }
   }
 
+  if (vracanje) return <VratiPregledeDijalog odsustvo={odsustvo} pregledi={vracanje} onClose={onClose} />;
   return (
     <Modal open title={`Izmena odsustva — ${odsustvo.ime}`} onClose={onClose}>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -417,17 +420,20 @@ function OtkazOdsustva({ odsustvo, onClose }: { odsustvo: OdsustvoDto; onClose: 
   const otkazi = useOtkaziOdsustvo();
   const toast = useToast();
   const [greska, setGreska] = useState<string | null>(null);
+  const [vracanje, setVracanje] = useState<PregledKalendarDto[] | null>(null);
 
   async function potvrdi() {
     try {
-      await otkazi.mutateAsync(odsustvo.id);
+      const r = await otkazi.mutateAsync(odsustvo.id);
       toast.success('Odsustvo je otkazano.');
+      if (r?.zaVracanje?.length) return setVracanje(r.zaVracanje);
       onClose();
     } catch (err) {
       setGreska(porukaGreske(err, 'Odsustvo nije otkazano.'));
     }
   }
 
+  if (vracanje) return <VratiPregledeDijalog odsustvo={odsustvo} pregledi={vracanje} onClose={onClose} />;
   return (
     <Modal open title="Otkaži odsustvo" onClose={onClose}>
       <p className="text-sm text-gray-700">
@@ -437,6 +443,42 @@ function OtkazOdsustva({ odsustvo, onClose }: { odsustvo: OdsustvoDto; onClose: 
       <div className="flex justify-end gap-2 pt-4">
         <Button variant="ghost" onClick={onClose}>Odustani</Button>
         <Button variant="danger" onClick={() => void potvrdi()} disabled={otkazi.isPending}>Otkaži odsustvo</Button>
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * Posle skraćenog ili otkazanog odsustva (zamerka 55): pregledi koji su bili prebačeni zbog njega, a sada padaju na dane kad
+ * je inženjer tu — „Vrati preglede“ ih vraća njemu (zamene i on dobijaju obaveštenje), „Ostavi“ ih ostavlja zamenama.
+ */
+function VratiPregledeDijalog({ odsustvo, pregledi, onClose }: { odsustvo: OdsustvoDto; pregledi: PregledKalendarDto[]; onClose: () => void }) {
+  const vrati = useVratiPreglede();
+  const toast = useToast();
+  const [greska, setGreska] = useState<string | null>(null);
+
+  async function potvrdi() {
+    try {
+      const r = await vrati.mutateAsync({ id: odsustvo.id, pregledIds: pregledi.map((p) => p.id) });
+      toast.success(`Vraćeno pregleda: ${r.vraceno}.`);
+      onClose();
+    } catch (err) {
+      setGreska(porukaGreske(err, 'Pregledi nisu vraćeni.'));
+    }
+  }
+
+  return (
+    <Modal open title="Vratiti preglede?" onClose={onClose}>
+      <div className="space-y-3 text-sm">
+        <p>Ovi pregledi su bili prebačeni zbog odsustva, a sada padaju na dane kad je {odsustvo.ime} tu:</p>
+        <ul className="list-disc space-y-0.5 pl-5">
+          {pregledi.map((p) => <li key={p.id}><b>{p.broj}</b> · {kratakDan(p.planiraniDatum)}, {formatirajDatum(p.planiraniDatum)} — sada {p.dodeljen}</li>)}
+        </ul>
+        {greska && <p role="alert" className="text-red-600">{greska}</p>}
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="ghost" onClick={onClose} disabled={vrati.isPending}>Ostavi zamenama</Button>
+          <Button onClick={() => void potvrdi()} disabled={vrati.isPending}>Vrati preglede</Button>
+        </div>
       </div>
     </Modal>
   );

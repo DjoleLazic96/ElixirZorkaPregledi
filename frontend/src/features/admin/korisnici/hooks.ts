@@ -68,7 +68,8 @@ export function useResetLozinke() {
 export function useDeaktivirajKorisnika() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => (await api.post<KorisnikDto>(`/korisnici/${id}/deaktiviraj`)).data,
+    mutationFn: async (v: { id: string; prebacivanja?: { pregledId: number; zamenaId: string }[] }) =>
+      (await api.post<KorisnikDto>(`/korisnici/${v.id}/deaktiviraj`, { prebacivanja: v.prebacivanja ?? null })).data,
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: [KEY] });
     },

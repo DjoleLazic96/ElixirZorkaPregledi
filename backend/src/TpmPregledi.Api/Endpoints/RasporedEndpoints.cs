@@ -73,6 +73,10 @@ public sealed record NeradniDaniInput(DateOnly Od, DateOnly Do, string Naziv, st
 /// <param name="Od">Prvi dan nedelje.</param>
 public sealed record PredlogInput(DateOnly Od);
 
+/// <summary>Telo „Vrati preglede“.</summary>
+/// <param name="PregledIds">Pregledi.</param>
+public sealed record VratiPregledeInput(IReadOnlyList<int> PregledIds);
+
 /// <summary>Telo potvrde.</summary>
 /// <param name="Stavke">Dani rasporeda.</param>
 /// <param name="Uskladi">Rupe usred niza popuniti povlačenjem niza (zamerka 30).</param>
@@ -156,8 +160,8 @@ public static class RasporedEndpoints
             .RequireAuthorization(PravoPolitika.Za(Prava.NeradniDani)).WithSummary("Unos neradnih dana od–do");
         n.MapDelete("/{id:int}", async (int id, IMediator m) =>
             {
-                await m.Send(new ObrisiNeradniDanCommand(id));
-                return Results.NoContent();
+                var slobodan = await m.Send(new ObrisiNeradniDanCommand(id));
+                return Results.Ok(new { slobodanDan = slobodan });
             })
             .RequireAuthorization(PravoPolitika.Za(Prava.NeradniDani)).WithSummary("Brisanje neradnog dana");
 
@@ -178,6 +182,9 @@ public static class RasporedEndpoints
         o.MapPut("/{id:int}", async (int id, [FromBody] IzmenaOdsustvaInput i, IMediator m) =>
                 Results.Ok(await m.Send(new IzmeniOdsustvoCommand(id, i.Od, i.Do))))
             .RequireAuthorization(odsustva).WithSummary("Izmena perioda odsustva");
+        o.MapPost("/{id:int}/vrati-preglede", async (int id, [FromBody] VratiPregledeInput i, IMediator m) =>
+                Results.Ok(new { vraceno = await m.Send(new VratiPregledeCommand(id, i.PregledIds)) }))
+            .RequireAuthorization(odsustva).WithSummary("Vrati inženjeru preglede prebačene zbog odsustva (posle skraćivanja ili otkazivanja)");
         o.MapPost("/{id:int}/otkazi", async (int id, ClaimsPrincipal u, IMediator m) =>
                 Results.Ok(await m.Send(new OtkaziOdsustvoCommand(id, Ima(u, Prava.OdsustvaOdobravanje)))))
             .WithSummary("Otkazivanje odsustva (inženjer: samo svoj zahtev na čekanju)");

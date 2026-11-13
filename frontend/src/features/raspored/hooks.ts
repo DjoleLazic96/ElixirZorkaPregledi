@@ -73,6 +73,8 @@ export interface OdsustvoDto {
   status: 'zahtev' | 'odobreno' | 'odbijeno' | 'otkazano';
   razlogOdbijanja: string | null;
   kreiranoAt: string;
+  /** Posle skraćivanja ili otkazivanja: pregledi prebačeni zbog ovog odsustva koji mogu da se vrate (zamerka 55). */
+  zaVracanje?: PregledKalendarDto[] | null;
 }
 
 export interface PregledZaPrebacivanjeDto {
@@ -241,6 +243,15 @@ export function useIzmeniOdsustvo() {
   });
 }
 
+/** „Vrati preglede“ posle skraćenog ili otkazanog odsustva (zamerka 55). */
+export function useVratiPreglede() {
+  const inv = useInvalidiraj();
+  return useMutation({
+    mutationFn: async (v: { id: number; pregledIds: number[] }) => (await api.post<{ vraceno: number }>(`/odsustva/${v.id}/vrati-preglede`, { pregledIds: v.pregledIds })).data,
+    onSuccess: inv,
+  });
+}
+
 /** Otkazivanje odsustva; inženjer tako povlači svoj zahtev dok o njemu nije odlučeno. */
 export function useOtkaziOdsustvo() {
   const inv = useInvalidiraj();
@@ -357,9 +368,7 @@ export function useUnesiNeradne() {
 export function useObrisiNeradni() {
   const inv = useInvalidiraj();
   return useMutation({
-    mutationFn: async (id: number) => {
-      await api.delete(`/neradni-dani/${id}`);
-    },
+    mutationFn: async (id: number) => (await api.delete<{ slobodanDan: string | null } | ''>(`/neradni-dani/${id}`)).data || { slobodanDan: null },
     onSuccess: inv,
   });
 }

@@ -1,3 +1,4 @@
+using TpmPregledi.Application.Common.Interfaces;
 using TpmPregledi.Application.Common.Exceptions;
 using TpmPregledi.Application.Features.Obavestenja;
 using TpmPregledi.Domain.Entities;
@@ -182,7 +183,10 @@ public sealed partial class RasporedHandler :
     /// Dan je „rupa usred niza“ (zamerka 29): danas ili kasnije, dan za DP (posle izmene — npr. PZ je otišao), bez DP-a,
     /// a posle njega postoje planirani DP-ovi. Inače null.
     /// </summary>
-    private async Task<DateOnly?> SlobodanZaPovlacenjeAsync(DateOnly d, CancellationToken ct)
+    private Task<DateOnly?> SlobodanZaPovlacenjeAsync(DateOnly d, CancellationToken ct) => SlobodanZaPovlacenjeAsync(db, clock, d, ct);
+
+    /// <summary>Isto, za druge handlere (brisanje neradnog dana, zamerka 56).</summary>
+    internal static async Task<DateOnly?> SlobodanZaPovlacenjeAsync(IAppDbContext db, IDateTimeProvider clock, DateOnly d, CancellationToken ct)
     {
         if (d < clock.Today) return null;
         var k = await RasporedKontekst.UcitajAsync(db, ct);

@@ -43,7 +43,8 @@ Isto za korisnike: zauzeto korisničko ime → 422. 409 je rezervisan za konkure
 | POST | `/korisnici` | `KorisnikInput` + `lozinka` → 201 |
 | PUT | `/korisnici/{id}` | `{ ime, email?, rola }` → 200; promena role vraća podrazumevana prava nove role |
 | PUT | `/korisnici/{id}/prava` | `{ prava[] }` → 200 `KorisnikDto`; 400 nepoznato pravo; 422 „samo Inženjer popunjava“, „ne možete sebi oduzeti upravljanje korisnicima“; revokuje refresh tokene |
-| POST | `/korisnici/{id}/deaktiviraj` · `/aktiviraj` | 200 `KorisnikDto`; 422 guardovi |
+| POST | `/korisnici/{id}/deaktiviraj` `{ prebacivanja? }` · `/aktiviraj` | 200 `KorisnikDto`; 422 guardovi; `prebacivanja[{pregledId, zamenaId}]` predaje planirane preglede (zamerka 54) |
+| GET | `/korisnici/{id}/planirani-pregledi` | planirani pregledi sa predlogom zamene (pre deaktivacije) |
 | POST | `/korisnici/{id}/reset-lozinka` | `{ novaLozinka }` → 204; 400 politika lozinke |
 
 Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivirati sopstveni nalog.", „Ne možete ukloniti rolu Administrator poslednjem aktivnom administratoru.", „Ne možete deaktivirati poslednjeg aktivnog administratora."
@@ -106,14 +107,15 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 | POST | `/pregledi/{id}/ucesnici` `{ korisnikId, sekcije[] }` | raspored.uredjivanje | drugi inženjer na PZ-u (prazne sekcije = ukloni) |
 | POST | `/pregledi/{id}/otkazi` `{ razlog, pomeri }` | raspored.uredjivanje | otkazivanje planiranog; DP + `pomeri` = pomeri raspored; odgovor može imati `slobodanDan` (ponuditi povlačenje); 422 nije planiran |
 | PUT | `/pregledi/{id}/tip` `{ tip, uskladi }` | raspored.uredjivanje | „Promeni DP“; nov broj; `uskladi` preokreće naredne planirane DP-ove |
-| GET · POST · DELETE | `/neradni-dani?godina` · `/neradni-dani` `{ od, do, naziv, vrsta, pomeriDp? }` · `/neradni-dani/{id}` | RequireKorisnik · neradni_dani | `pomeriDp`: nezapočeti DP-ovi sa tih dana i naredni idu dalje u nizu (zamerka 52) |
+| GET · POST · DELETE | `/neradni-dani?godina` · `/neradni-dani` `{ od, do, naziv, vrsta, pomeriDp? }` · `/neradni-dani/{id}` | RequireKorisnik · neradni_dani | `pomeriDp`: nezapočeti DP-ovi sa tih dana i naredni idu dalje u nizu (zamerka 52); `DELETE` vraća `{ slobodanDan }` za „Povuci raspored“ (zamerka 56) |
 | GET | `/odsustva?korisnikId&status` | RequireKorisnik | bez prava odobravanja samo svoja |
 | POST | `/odsustva` `{ korisnikId, od, do, vrsta, napomena, prebacivanja[] }` | odsustva.odobravanje | unos (odmah odobreno) sa prebacivanjem; 422 preklapanje, 422 započet pregled |
 | POST | `/odsustva/zahtev` `{ od, do, vrsta, napomena }` | pregledi.popunjavanje | zahtev za sebe |
 | POST | `/odsustva/{id}/odluka` `{ odobreno, razlog?, prebacivanja[] }` | odsustva.odobravanje | |
 | GET | `/odsustva/{korisnikId}/pregledi?od&do` | odsustva.odobravanje | planirani pregledi u periodu + predlog zamene |
 | PUT | `/odsustva/{id}` `{ od, do }` | odsustva.odobravanje | izmena perioda; 422 preklapanje, 422 odbijeno/otkazano (R3.25) |
-| POST | `/odsustva/{id}/otkazi` | RequireKorisnik | status `otkazano`; bez prava odobravanja samo svoj zahtev na čekanju (403) |
+| POST | `/odsustva/{id}/otkazi` | RequireKorisnik | status `otkazano`; bez prava odobravanja samo svoj zahtev na čekanju (403); odgovor (i kod `PUT`) nosi `zaVracanje` — pregledi prebačeni zbog odsustva na dane koji više nisu u njemu |
+| POST | `/odsustva/{id}/vrati-preglede` `{ pregledIds }` | odsustva.odobravanje | vraća inženjeru preglede (zamerka 55) |
 | GET · POST | `/zahtevi-prebacivanja?status` · `/zahtevi-prebacivanja` `{ pregledId, razlog, predlozenaZamenaId? }` | RequireKorisnik · pregledi.popunjavanje | svoj planiran pregled; 403 tuđi, 422 započet |
 | POST | `/zahtevi-prebacivanja/raniji-pocetak` `{ pregledId, razlog }` | pregledi.popunjavanje | samo svoj planiran PZ posle današnjeg dana; 422 za DP (R3.24) |
 | POST | `/zahtevi-prebacivanja/{id}/otkazi` | pregledi.popunjavanje (podnosilac) | dok čeka odluku |

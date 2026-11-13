@@ -17,6 +17,7 @@ import { porukaGreske } from '../../lib/apiError';
 import { danasYmd, formatirajDatum } from '../../lib/datum';
 import { imaPravo } from '../../lib/permissions';
 import { useAuth } from '../auth/AuthProvider';
+import { PovlacenjeDijalog } from './IzmeneRasporeda';
 import { godineNeradnih } from './kalendar';
 import {
   STATUS_ODSUSTVA, VRSTE_NERADNIH, VRSTE_ODSUSTVA, useNeradniDani, useObrisiNeradni, useOdsustva, useOtkaziOdsustvo, useUnesiNeradne, useZahtevOdsustva,
@@ -115,6 +116,8 @@ export function NeradniDaniPage() {
 
   // DP-ovi zakazani u periodu (zamerka 52): pre unosa se pita da li se pomeraju dalje u nizu.
   const [dpUPeriodu, setDpUPeriodu] = useState<PregledKalendarDto[] | null>(null);
+  const [slobodan, setSlobodan] = useState<string | null>(null);
+  const smeRaspored = imaPravo(me ?? { roles: [], prava: [] }, 'raspored.uredjivanje');
 
   async function sacuvaj(pomeriDp: boolean) {
     try {
@@ -189,7 +192,11 @@ export function NeradniDaniPage() {
                   <span>{formatirajDatum(d.datum)} · {d.naziv} <span className="text-xs text-gray-500">({VRSTE_NERADNIH.find((v) => v.value === d.vrsta)?.label})</span></span>
                   {sme && (
                     <Button size="sm" variant="ghost" disabled={obrisi.isPending}
-                      onClick={() => void obrisi.mutateAsync(d.id).then(() => toast.success('Neradni dan je obrisan.'), (err) => toast.error(porukaGreske(err, 'Brisanje nije uspelo.')))}>
+                      onClick={() => void obrisi.mutateAsync(d.id).then((r) => {
+                        toast.success('Neradni dan je obrisan.');
+                        // Dan je sada prazan usred niza DP-ova — nudi se povlačenje (zamerka 56).
+                        if (r.slobodanDan && smeRaspored) setSlobodan(r.slobodanDan);
+                      }, (err) => toast.error(porukaGreske(err, 'Brisanje nije uspelo.')))}>
                       Obriši
                     </Button>
                   )}
@@ -199,6 +206,7 @@ export function NeradniDaniPage() {
           )}
         </CardBody>
       </Card>
+      {slobodan && <PovlacenjeDijalog datum={slobodan} onClose={() => setSlobodan(null)} />}
     </div>
   );
 }

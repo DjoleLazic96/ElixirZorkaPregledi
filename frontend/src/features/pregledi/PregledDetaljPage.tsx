@@ -61,6 +61,8 @@ export function PregledDetaljPage() {
   const p = pregled.data;
   const overa = imaPravo(pristup, 'overa');
   const moj = me?.user.id === p.dodeljenId;
+  // Svoj pregled se ne overava ni ne vraća na doradu, bez obzira na prava (zamerka 57).
+  const svoj = moj || p.ucesnici.some((u) => u.korisnikId === me?.user.id);
   const zahtev = p.zahteviDorade.find((z) => z.status === 'zahtev');
   const nezapocet = p.status === 'planiran';
   // Isto kao kartica u Kalendaru: ko uređuje raspored menja inženjera/datum, a na PZ-u dodaje drugog inženjera (R3.6, R3.14).
@@ -114,8 +116,8 @@ export function PregledDetaljPage() {
             </ul>
           )}
           <div className="flex flex-wrap gap-2">
-            {overa && p.status === 'ceka_overu' && <Button disabled={odluka.isPending} onClick={() => void posalji('overi', undefined, 'Pregled je overen.')}>Overio</Button>}
-            {overa && (p.status === 'ceka_overu' || p.status === 'overen') && <Button variant="secondary" onClick={() => setDijalog('vrati')}>Vrati na doradu</Button>}
+            {overa && !svoj && p.status === 'ceka_overu' && <Button disabled={odluka.isPending} onClick={() => void posalji('overi', undefined, 'Pregled je overen.')}>Overio</Button>}
+            {overa && !svoj && (p.status === 'ceka_overu' || p.status === 'overen') && <Button variant="secondary" onClick={() => setDijalog('vrati')}>Vrati na doradu</Button>}
             {overa && ['u_radu', 'ceka_overu', 'overen', 'vracen_na_doradu'].includes(p.status) && <Button variant="ghost" onClick={() => setDijalog('ponisti')}>Poništi pregled</Button>}
             {moj && !zahtev && (p.status === 'ceka_overu' || p.status === 'overen') && imaPravo(pristup, 'pregledi.popunjavanje') && (
               <Button variant="secondary" onClick={() => setDijalog('zatrazi')}>Zatraži doradu</Button>
@@ -138,7 +140,7 @@ export function PregledDetaljPage() {
               {zahtev.podneoId === me?.user.id && (
                 <OtkaziZahtev opis="zahtev za doradu" otkazi={() => odluka.mutateAsync({ putanja: 'zahtev-za-doradu/otkazi', telo: undefined })} />
               )}
-              {overa && (
+              {overa && !svoj && (
                 <span className="flex gap-2">
                   <Button size="sm" variant="ghost" onClick={() => void posalji('zahtev-za-doradu/odluka', { odobreno: false }, 'Zahtev je odbijen.').then((g) => g && toast.error(g))}>Odbij</Button>
                   <Button size="sm" onClick={() => void posalji('zahtev-za-doradu/odluka', { odobreno: true }, 'Dorada je odobrena.').then((g) => g && toast.error(g))}>Odobri</Button>

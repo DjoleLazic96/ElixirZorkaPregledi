@@ -13,7 +13,8 @@ namespace TpmPregledi.Application.Features.Korisnici.Commands;
 /// fizički — audit log i <c>created_by</c> moraju da prežive. Idempotentno.
 /// </summary>
 /// <param name="Id">GUID korisnika.</param>
-public sealed record DeaktivirajKorisnikaCommand(string Id) : IRequest<KorisnikDto>;
+/// <param name="Prebacivanja">Planirani pregledi korisnika i zamene (zamerka 54); prazno = pregledi ostaju.</param>
+public sealed record DeaktivirajKorisnikaCommand(string Id, IReadOnlyList<TpmPregledi.Application.Features.Raspored.PrebacivanjeInput>? Prebacivanja = null) : IRequest<KorisnikDto>;
 
 /// <summary>
 /// Primenjuje guardove 2 i 4, gasi nalog i revokuje sve refresh tokene — deaktiviran korisnik
@@ -23,7 +24,8 @@ public sealed class DeaktivirajKorisnikaHandler(
     UserManager<ApplicationUser> userManager,
     ICurrentUser currentUser,
     IAppDbContext db,
-    IJwtTokenService jwt)
+    IJwtTokenService jwt,
+    IDateTimeProvider? clock = null)
     : IRequestHandler<DeaktivirajKorisnikaCommand, KorisnikDto>
 {
     /// <inheritdoc />
@@ -50,6 +52,12 @@ public sealed class DeaktivirajKorisnikaHandler(
             throw IdentityGreske.KaoValidacija(result, "korisnik");
 
         await jwt.RevokeAllAsync(user.Id, ct);
+
+        if (req.Prebacivanja is { Count: > 0 } && clock is not null)
+        {
+            await TpmPregledi.Application.Features.Raspored.OdsustvaHandler.PrebaciAsync(db, clock, currentUser.UserId, req.Prebacivanja, "deaktivacija", ct);
+            await db.SaveChangesAsync(ct);
+        }
 
         return KorisnikDto.Od(user, rola, await KorisnikPrava.ProcitajAsync(db, user.Id, ct));
     }

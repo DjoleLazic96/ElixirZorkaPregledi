@@ -131,6 +131,21 @@ public class OveraTests
     }
 
     [Fact]
+    public async Task Svoj_pregled_se_ne_overava_ni_kad_inzenjer_ima_pravo_overa_zamerka_57()
+    {
+        var o = await PredatAsync();
+        await using var _ = o.H;
+        o.H.Db.KorisnikPrava.Add(new KorisnikPravo { KorisnikId = o.Ana, Pravo = Prava.Overa });
+        await o.H.Db.SaveChangesAsync();
+
+        var overi = () => Kao(o, o.Ana, Roles.Inzenjer).Handle(new OveriCommand(o.PregledId), default);
+        (await overi.Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal(PreglediHandler.PorukaSvojPregled);
+        var vrati = () => Kao(o, o.Ana, Roles.Inzenjer).Handle(new VratiNaDoraduCommand(o.PregledId, o.Ana, "x"), default);
+        (await vrati.Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal(PreglediHandler.PorukaSvojPregled);
+        (await Kao(o, o.Sup, Roles.Supervizor).Handle(new OveriCommand(o.PregledId), default)).Status.Should().Be("overen", "drugi Supervizor overava");
+    }
+
+    [Fact]
     public async Task Vrati_na_doradu_kopira_odgovore_a_dorada_ne_menja_broj_ni_aktivno_vreme()
     {
         var o = await PredatAsync();

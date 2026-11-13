@@ -110,7 +110,7 @@ describe('KorisniciPage', () => {
   });
 
   it('deaktivacija traži potvrdu i tek onda šalje POST /deaktiviraj', async () => {
-    vi.mocked(api.get).mockResolvedValue(odgovor(KORISNICI));
+    vi.mocked(api.get).mockImplementation(async (url: string) => (url.endsWith('/planirani-pregledi') ? odgovor([]) : odgovor(KORISNICI)));
     vi.mocked(api.post).mockResolvedValue(odgovor({ ...KORISNICI[0], aktivan: false }));
     renderSaProviderima(<KorisniciPage />);
     await screen.findByText('Ana Anić');
@@ -120,8 +120,24 @@ describe('KorisniciPage', () => {
     const dijalog = screen.getByRole('dialog', { name: 'Deaktivacija korisnika' });
     await userEvent.click(within(dijalog).getByRole('button', { name: 'Deaktiviraj' }));
 
-    expect(api.post).toHaveBeenCalledWith('/korisnici/u1/deaktiviraj');
+    expect(api.post).toHaveBeenCalledWith('/korisnici/u1/deaktiviraj', { prebacivanja: null });
     expect(await screen.findByText('Korisnik je deaktiviran.')).toBeInTheDocument();
+  });
+
+  it('inženjer sa zakazanim pregledima: deaktivacija nudi prebacivanje (zamerka 54)', async () => {
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url.endsWith('/planirani-pregledi')) return odgovor([{ pregled: { id: 7, broj: 'DP1-2026-0007', planiraniDatum: '2026-11-20', status: 'planiran' }, predlogZameneId: 'b2' }]);
+      if (url === '/raspored/inzenjeri') return odgovor([{ id: 'b2', ime: 'Bora Borić' }]);
+      return odgovor(KORISNICI);
+    });
+    vi.mocked(api.post).mockResolvedValue(odgovor({ ...KORISNICI[0], aktivan: false }));
+    renderSaProviderima(<KorisniciPage />);
+    await screen.findByText('Ana Anić');
+    await userEvent.click(screen.getByRole('button', { name: 'Deaktiviraj' }));
+    const dijalog = await screen.findByRole('dialog', { name: 'Deaktivacija korisnika' });
+    expect(within(dijalog).getByText(/DP1-2026-0007/)).toBeInTheDocument();
+    await userEvent.click(within(dijalog).getByRole('button', { name: 'Deaktiviraj i prebaci' }));
+    expect(api.post).toHaveBeenCalledWith('/korisnici/u1/deaktiviraj', { prebacivanja: [{ pregledId: 7, zamenaId: 'b2' }] });
   });
 
   it('reset lozinke otvara modal i šalje novu lozinku', async () => {

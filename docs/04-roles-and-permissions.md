@@ -21,7 +21,7 @@ Tačno jedna rola po korisniku. Rola određuje **samo podrazumevani skup prava**
 |---|---|---|---|---|---|
 | `pregledi.popunjavanje` | Popunjavanje pregleda | ✔ | — | — | — |
 | `analitika` | Analitika | ✔ | ✔ | ✔ | ✔ |
-| `overa` | Overa, dorada i poništavanje pregleda | — | ✔ | ✔ | — |
+| `overa` | Overa, dorada i poništavanje pregleda (ne sopstvenog — zamerka 57) | — | ✔ | ✔ | — |
 | `raspored.uredjivanje` | Raspored i PZ | — | ✔ | ✔ | — |
 | `odsustva.odobravanje` | Odsustva | — | ✔ | ✔ | — |
 | `akcije.zatvaranje` | Zatvaranje i dodela akcija | — | ✔ | ✔ | — |

@@ -6,6 +6,9 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- Deaktivacija inženjera sa zakazanim pregledima nudi prebacivanje na zamene.
+- Posle skraćenog ili otkazanog odsustva nudi se „Vrati preglede“; posle brisanja neradnog dana „Povuci raspored“.
+- Svoj pregled niko ne overava niti vraća na doradu, ni sa pravom „overa“.
 - Neradni dan na dan sa zakazanim DP-om: pre unosa spisak DP-ova i „Unesi i pomeri DP-ove“ (DP-ovi idu dalje u nizu); DP koji ipak stoji na neradnom danu je u kalendaru crveno označen.
 - Zakazivanje ili pomeranje PZ-a na dan kad je DP već započet: upozorenje da DP ostaje i da se taj dan rade oba.
 - Zatvaranje akcije van pregleda: inženjer šalje „Zahtev za zatvaranje“ (šta je urađeno, kada, ko, po želji slika; radi i bez interneta), Supervizor ili Direktor odobrava ili odbija. I zatvaranje sa ekrana sada traži šta, kada i ko; to se vidi na akciji, u istoriji i u Excelu.
