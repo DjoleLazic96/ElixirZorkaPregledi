@@ -100,7 +100,7 @@ bez row lock-a (TOCTOU) — prihvaćen rizik (`SECURITY.md`).
 ## 6. Lozinke i sesija
 
 Politika: min 8, cifra, veliko i malo slovo. Lockout 5 pokušaja / 10 min. Neuspešna prijava uvek vraća istu poruku i piše `LOGIN_FAIL` u audit.
-Access token 15 min; refresh 7 dana sa rotacijom; reset lozinke (admin), promena lozinke, deaktivacija, promena role i promena prava revokuju
+Access token 15 min; refresh 7 dana sa rotacijom (frontend obnavlja jednim pozivom u isto vreme — `obnoviSesiju` sa Web Locks između kartica, jer bi drugi poziv sa istim, već rotiranim kolačićem dobio 401 i odjavio korisnika); reset lozinke (admin), promena lozinke, deaktivacija, promena role i promena prava revokuju
 sve refresh tokene. Korisničko ime je nepromenljivo; korisnici se ne brišu nego deaktiviraju.
 
 ## 7. Inicijalni admin
