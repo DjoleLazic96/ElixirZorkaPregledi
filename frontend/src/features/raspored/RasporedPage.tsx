@@ -21,8 +21,9 @@ import { useAuth } from '../auth/AuthProvider';
 import {
   STATUS_ODSUSTVA, VRSTE_ODSUSTVA, useInzenjeri, useIzmeniOdsustvo, useOtkaziOdsustvo, useOdluciOdsustvo, useOdluciPrebacivanje, useOdsustva, usePotvrdi, usePredlog,
   usePreglediUOdsustvu, useRaspored, useSledeciPz, useUnesiOdsustvo, useZahteviPrebacivanja, useZakaziPz,
-  type OdsustvoDto, type PredlogStavka, type PregledKalendarDto, type ZahtevPrebacivanjaDto,
+  useDpKojiSePomera, type OdsustvoDto, type PredlogStavka, type PregledKalendarDto, type ZahtevPrebacivanjaDto,
 } from './hooks';
+import { UpozorenjeDp } from './IzmeneRasporeda';
 import { PregledKartica } from './KalendarPage';
 import { bojaPregleda, ivicaPregleda, oznakaPomeranja, oznakaPregleda, preracunajTipove, stavkeDana } from './kalendar';
 
@@ -207,6 +208,7 @@ function PzModal({ onClose }: { onClose: () => void }) {
   const [greska, setGreska] = useState<string | null>(null);
   const izabraniTip = tip ?? sledeci.data ?? null;
   const promena = sledeci.data !== undefined && izabraniTip !== sledeci.data;
+  const dp = useDpKojiSePomera(datum);
 
   async function potvrdi(e: FormEvent) {
     e.preventDefault();
@@ -230,6 +232,7 @@ function PzModal({ onClose }: { onClose: () => void }) {
         <FormField label="Inženjer" htmlFor="pz-inz">
           <Select id="pz-inz" value={inz} onChange={setInz} placeholder="Izaberite inženjera" options={(inzenjeri.data ?? []).map((i) => ({ value: i.id, label: i.ime }))} />
         </FormField>
+        {dp && <UpozorenjeDp dp={dp} radnja="zakažete" />}
         {promena && (
           <FormField label="Napomena (nije obavezno)" htmlFor="pz-nap">
             <Input id="pz-nap" value={napomena} onChange={(e) => setNapomena(e.target.value)} />
@@ -238,7 +241,9 @@ function PzModal({ onClose }: { onClose: () => void }) {
         {greska && <p role="alert" className="text-sm text-red-600">{greska}</p>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>Odustani</Button>
-          <Button type="submit" disabled={zakazi.isPending}>{promena ? 'Promeni PZ i zakaži' : 'Zakaži'}</Button>
+          <Button type="submit" disabled={zakazi.isPending}>
+            {promena ? (dp ? 'Promeni PZ, zakaži i pomeri DP-ove' : 'Promeni PZ i zakaži') : dp ? 'Zakaži i pomeri DP-ove' : 'Zakaži'}
+          </Button>
         </div>
       </form>
     </Modal>
@@ -282,6 +287,7 @@ function OdlukaPrebacivanja({ zahtev, onClose }: { zahtev: ZahtevPrebacivanjaDto
   const [greska, setGreska] = useState<string | null>(null);
 
   const raniji = zahtev.vrsta === 'raniji_pocetak';
+  const dp = useDpKojiSePomera(raniji ? danasYmd() : null);
 
   async function posalji(odobreno: boolean) {
     try {
@@ -307,9 +313,10 @@ function OdlukaPrebacivanja({ zahtev, onClose }: { zahtev: ZahtevPrebacivanjaDto
         </FormField>
       )}
       {greska && <p role="alert" className="mt-3 text-sm text-red-600">{greska}</p>}
+      {dp && <div className="mt-3"><UpozorenjeDp dp={dp} radnja="odobrite" /></div>}
       <div className="flex justify-end gap-2 pt-4">
         <Button variant="ghost" onClick={() => void posalji(false)} disabled={odluci.isPending}>Odbij</Button>
-        <Button onClick={() => void posalji(true)} disabled={odluci.isPending || (!raniji && !zamena)}>Odobri</Button>
+        <Button onClick={() => void posalji(true)} disabled={odluci.isPending || (!raniji && !zamena)}>{dp ? 'Odobri i pomeri DP-ove' : 'Odobri'}</Button>
       </div>
     </Modal>
   );
@@ -532,9 +539,10 @@ function OdsustvoModal({ zahtev, onClose }: { zahtev?: OdsustvoDto; onClose: () 
             <ul className="space-y-1">
               {pregledi.data!.map((x) => (
                 <li key={x.pregled.id} className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="w-40 whitespace-nowrap">{x.pregled.broj} · {formatirajDatum(x.pregled.planiraniDatum)}</span>
+                  {/* Tekst dobija koliko mu treba (zamerka 45); na uskom ekranu polje ide ispod, preko cele širine. */}
+                  <span className="w-full sm:w-auto sm:shrink-0 sm:whitespace-nowrap">{x.pregled.broj} · {kratakDan(x.pregled.planiraniDatum)}, {formatirajDatum(x.pregled.planiraniDatum)}</span>
                   {x.pregled.status === 'planiran' ? (
-                    <Select className="min-w-0 flex-1" aria-label={`Zamena za ${x.pregled.broj}`} value={zamenaZa(x.pregled.id, x.predlogZameneId)}
+                    <Select className="w-full min-w-0 sm:w-auto sm:flex-1" aria-label={`Zamena za ${x.pregled.broj}`} value={zamenaZa(x.pregled.id, x.predlogZameneId)}
                       nullable placeholder="Ne prebacuj" options={opcije} onChange={(v) => setZamene({ ...zamene, [x.pregled.id]: v })} />
                   ) : (
                     <span className="text-xs text-amber-700">započet — ne prebacuje se automatski</span>

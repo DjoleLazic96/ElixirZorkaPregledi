@@ -31,6 +31,7 @@
 | `sporan_unos` | operacije stigle posle prebacivanja/poništavanja (R6.8) | `ToTable` |
 | `zahtev_dorade` | zahtevi inženjera za doradu (R6.6) | `ToTable` |
 | `akcija`, `akcija_dogadjaj` | potrebne akcije i njihova istorija (R7.x) | `ToTable` |
+| `zahtev_zatvaranja_akcije` | zahtevi inženjera za zatvaranje akcije (R7.16) | `ToTable` |
 | `kvar` | kvarovi na stavkama, otvaraju se i zatvaraju iz predaje (R8.7) | `ToTable` |
 | `obavestenje` | zvono i red za isporuku push-a i mejla (R9.1) | `ToTable` |
 | `push_pretplata` | Web Push pretplate uređaja | `ToTable` |
@@ -158,8 +159,9 @@ Ključ je par (naziv, oznaka), ne sama oznaka: DP1, DP2 i PZ1 su prepisani doslo
 `pregled` dobija u fazi 04: `zapocet_at`, `predat_at`, `aktivno_sekundi`, `delova`, `dorada`; u fazi 05 `uredjaj_klijenta` (telefon koji je započeo); u fazi 06 `overio_id`, `overeno_at`, `overio_direktor`, `ponisten_razlog`, `ponistio_id`. `zahtev_dorade` — `pregled_id`, `podneo_id`, `razlog`, `status`, `odlucio_id`, vremena; `[Auditable]`.
 
 ### `akcija`, `akcija_dogadjaj`, `kvar` (faza 07)
-- `akcija` — `broj` unique (`A-2026-0031`), `pregled_id` (izvor), `uredjaj_id`, `aktivnost_id`, `stavka_kljuc`, `vrsta` (`ocistiti`/`podmazati`/`zameniti`/`popraviti`/`ostalo`), `hitnost` (`hitno`/`7_dana`/`sledeci_pz`/`pratiti`), `opis`, `rok` (iz hitnosti), `status` (`otvorena`/`zatvorena`/`otkazana`), `zaduzen`, `kreirao_id`, `kreirano_at`, `zatvorio_id`, `zatvoreno_at`, `razlog`, `stavka_sada_ispravna`; `[Auditable]`.
-- `akcija_dogadjaj` — `akcija_id`, `vrsta` (`otvorena`, `ostaje_otvorena`, `zaduzen`, `zatvorena`, `otkazana`), `tekst`, `korisnik_id`, `pregled_id`, `at`.
+- `akcija` — `broj` unique (`A-2026-0031`), `pregled_id` (izvor), `uredjaj_id`, `aktivnost_id`, `stavka_kljuc`, `vrsta` (`ocistiti`/`podmazati`/`zameniti`/`popraviti`/`ostalo`), `hitnost` (`hitno`/`7_dana`/`sledeci_pz`/`pratiti`), `opis`, `rok` (iz hitnosti), `status` (`otvorena`/`zatvorena`/`otkazana`), `zaduzen`, `kreirao_id`, `kreirano_at`, `zatvorio_id`, `zatvoreno_at`, `razlog` (otkazivanje), `stavka_sada_ispravna`, `uradjeno`, `uradjeno_datum`, `izvrsilac`, `zatvaranje_fajl_id` (zatvaranje, R7.5, R7.16); `[Auditable]`.
+- `zahtev_zatvaranja_akcije` — `akcija_id`, `klijent_id` unique (ponovljeno slanje sa telefona), `podneo_id`, `uradjeno`, `datum`, `izvrsilac`, `fajl_id`, `status` (`zahtev`/`odobreno`/`odbijeno`/`otkazano`), `razlog` (odbijanje), `odlucio_id`, `kreirano_at`, `odluceno_at`; `[Auditable]`.
+- `akcija_dogadjaj` — `akcija_id`, `vrsta` (`otvorena`, `ostaje_otvorena`, `zaduzen`, `zatvorena`, `otkazana`, `zahtev_zatvaranja`, `zahtev_odbijen`, `zahtev_otkazan`), `tekst`, `korisnik_id`, `pregled_id`, `at`.
 - `predlog_izmene` (faza 10) — `sablon_id`, `vrsta` (`dodavanje`/`izbacivanje`/`ispravka`), `stavka_id` (set null), `opis`, `razlog`, `podneo_id`, `kreirano_at`, `status` (`zahtev`/`odobren`/`odbijen`), `odlucio_id`, `odluceno_at`, `odgovor`, `verzija_id` (verzija u kojoj je sproveden); `[Auditable]`. `aktivnost.uputstvo_slike bigint[]` (do 3 fajla). `sablon_verzija.status` dobija `zakazana` (objavljena sa budućim datumom).
 - `obavestenje` (faza 09) — `korisnik_id` (FK, cascade), `vrsta`, `naslov`, `tekst`, `link`, `kljuc` (idempotentnost; unique sa `korisnik_id` kad nije null), `kreirano_at`, `procitano_at`, `isporuceno_at` (null = čeka push i mejl; delimični indeks), `pokusaja`. `push_pretplata` — `korisnik_id`, `endpoint` unique, `p256dh`, `auth`, `uredjaj_klijenta`, `kreirano_at`. Primaoci po vrsti su u `podesavanje.primaociObavestenja` (JSON).
 - `kvar` — `broj` unique (`K-2026-0087`), `uredjaj_id`, `aktivnost_id`, `stavka_kljuc`, `otvorio_pregled_id`, `zatvorio_pregled_id`, `poslednji_pregled_id`, `otvoren`, `zatvoren` (date), `prijava`, `poslednja_napomena`. `refresh_token.dugotrajan` (faza 05) — „Zapamti me“. `sporan_unos` — `pregled_id`, `korisnik_id`, `operacija jsonb`, `razlog`, `primljeno_at`, `odluka` (null = čeka).

@@ -344,6 +344,10 @@ public sealed record PodnesiZahtevPrebacivanjaCommand(int PregledId, string Razl
 /// <param name="ZamenaId">Izabrana zamena (obavezna uz odobrenje).</param>
 public sealed record OdluciOPrebacivanjuCommand(int Id, bool Odobreno, string? ZamenaId) : IRequest<ZahtevPrebacivanjaDto>;
 
+/// <summary>Inženjer otkazuje svoj zahtev za prebacivanje ili raniji početak dok čeka odluku (zamerka 47).</summary>
+/// <param name="Id">Zahtev.</param>
+public sealed record OtkaziZahtevPrebacivanjaCommand(int Id) : IRequest<ZahtevPrebacivanjaDto>;
+
 /// <summary>Inženjer traži da započne PZ pre zakazanog dana (odluka 2026-11-10); DP se radi samo na svoj dan.</summary>
 /// <param name="PregledId">PZ.</param>
 /// <param name="Razlog">Razlog (obavezan).</param>
@@ -370,8 +374,22 @@ public sealed class ZahteviPrebacivanjaHandler(IAppDbContext db, ICurrentUser cu
     IRequestHandler<GetZahteviPrebacivanjaQuery, IReadOnlyList<ZahtevPrebacivanjaDto>>,
     IRequestHandler<PodnesiZahtevPrebacivanjaCommand, ZahtevPrebacivanjaDto>,
     IRequestHandler<OdluciOPrebacivanjuCommand, ZahtevPrebacivanjaDto>,
-    IRequestHandler<PodnesiZahtevRanijegPocetkaCommand, ZahtevPrebacivanjaDto>
+    IRequestHandler<PodnesiZahtevRanijegPocetkaCommand, ZahtevPrebacivanjaDto>,
+    IRequestHandler<OtkaziZahtevPrebacivanjaCommand, ZahtevPrebacivanjaDto>
 {
+    /// <inheritdoc />
+    public async Task<ZahtevPrebacivanjaDto> Handle(OtkaziZahtevPrebacivanjaCommand req, CancellationToken ct)
+    {
+        var z = await db.ZahteviPrebacivanja.FirstOrDefaultAsync(x => x.Id == req.Id, ct) ?? throw new NotFoundException("Zahtev ne postoji.");
+        if (z.PodneoId != currentUser.UserId) throw new ForbiddenException("Zahtev otkazuje samo onaj ko ga je poslao.");
+        if (z.Status != "zahtev") throw new BusinessRuleException("Otkazuje se samo zahtev koji čeka odluku.");
+        var p = await db.Pregledi.Include(x => x.Ucesnici).FirstAsync(x => x.Id == z.PregledId, ct);
+        (z.Status, z.OdlucenoAt) = ("otkazano", clock.UtcNow);
+        PregledIstorija.Dodaj(db, p, "zahtev_otkazan", new { vrsta = z.Vrsta == "raniji_pocetak" ? "raniji početak" : "prebacivanje" }, currentUser.UserId, clock.UtcNow);
+        await db.SaveChangesAsync(ct);
+        return Dto(z, p, await RasporedKontekst.UcitajAsync(db, ct));
+    }
+
     /// <summary>Poruka: raniji početak se traži samo za PZ.</summary>
     public const string PorukaRanijiSamoPz = "Raniji početak se traži samo za PZ. DP se radi na svoj dan; ako tada niste tu, zatražite prebacivanje.";
 
@@ -500,6 +518,8 @@ public sealed class ZahteviPrebacivanjaHandler(IAppDbContext db, ICurrentUser cu
             odobreno ? $"{p.Broj} možete da započnete danas." : $"Zahtev za raniji početak {p.Broj} je odbijen.",
             odobreno ? $"/pregled/{p.Id}/popuni" : "/kalendar", null, sada, ct);
         await db.SaveChangesAsync(ct);
+        // PZ je sada danas: nezapočet DP danas i naredni idu dan napred, kao kod zakazivanja PZ-a (R3.9, zamerka 43).
+        if (odobreno && !k.DpNaDanPz) await RasporedHandler.PomeriDpOdAsync(db, clock, danas, "pz", ct);
         return Dto(z, p, k);
     }
 

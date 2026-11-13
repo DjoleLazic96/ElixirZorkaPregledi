@@ -16,7 +16,14 @@ Na sledećem pregledu sa tim uređajem iznad aktivnosti piše akcija i pitanje *
 
 Levi meni → **Akcije**: otvorene akcije po hitnosti, sa filterima (status, hitnost, sekcija, **Stavka sada ispravna**). Istekao rok
 je crven. Klik na broj pregleda otvara pregled, klik na akciju otvara njen ekran sa istorijom. Supervizor i Direktor tu biraju
-**zaduženog** (Održavanje, Elektro, Mašinska, Spoljni izvođač) i **Zatvori** ili **Otkaži** uz razlog. **Preuzmi Excel** izvozi filtrirano.
+**zaduženog** (Održavanje, Elektro, Mašinska, Spoljni izvođač), **Zatvori** (upisuje se šta je urađeno, kada i ko je uradio) ili **Otkaži** uz razlog.
+**Preuzmi Excel** izvozi filtrirano, sa kolonama kako je akcija zatvorena. Na telefonu su filteri iza dugmeta **Filteri**; izabrane vrednosti
+stoje kao oznake, a **×** skida filter.
+
+**Zahtev za zatvaranje (inženjer).** Kad je akcija urađena van pregleda, na njenom ekranu izaberite **Zahtev za zatvaranje** i upišite šta je
+urađeno, kada i ko je uradio (vi, drugi inženjer ili služba); slika nije obavezna. Radi i bez interneta — zahtev se pošalje kad se veza vrati.
+Supervizor ili Direktor dobija obaveštenje, a zahtev vidi na vrhu ekrana **Akcije** („Zahtevi za zatvaranje“) i na ekranu akcije bira
+**Odobri i zatvori** ili **Odbij** (uz razlog). Dok zahtev čeka odluku, možete ga **otkazati** i poslati nov.
 
 ## 5.3 Neispravnosti
 

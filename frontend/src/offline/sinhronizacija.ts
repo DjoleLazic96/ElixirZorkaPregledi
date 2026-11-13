@@ -3,6 +3,7 @@ import Dexie, { liveQuery, type Table } from 'dexie';
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import type { Operacija, PopunjavanjeDto, SinhronizacijaRezultat } from '../features/popunjavanje/hooks';
+import { porukaGreske } from '../lib/apiError';
 import { primeniLokalno } from './lokalno';
 
 /**
@@ -48,8 +49,22 @@ export interface OdbijenaOperacija {
   izvor?: 'kamera' | 'galerija';
 }
 
+/** Zahtev za zatvaranje akcije koji čeka slanje (zamerka 49) — šalje se i kad se veza vrati. */
+export interface ZahtevZatvaranjaUCekanju {
+  klijentId: string;
+  korisnikId: string;
+  akcijaId: number;
+  uradjeno: string;
+  datum: string;
+  izvrsilac: string;
+  slika?: Blob;
+  /** Razlog kad ga server trajno odbije (prikazuje se na stranici akcije). */
+  greska?: string;
+}
+
 class TpmDb extends Dexie {
   pregledi!: Table<PopunjavanjeDto, number>;
+  zahteviAkcija!: Table<ZahtevZatvaranjaUCekanju, string>;
   red!: Table<StavkaReda, number>;
   slike!: Table<SlikaUCekanju, string>;
   odbijene!: Table<OdbijenaOperacija, number>;
@@ -69,6 +84,7 @@ class TpmDb extends Dexie {
       slike: 'klijentId, pregledId, korisnikId',
       odbijene: '++id, pregledId, korisnikId',
     });
+    this.version(3).stores({ zahteviAkcija: 'klijentId, korisnikId, akcijaId' });
   }
 }
 
@@ -230,7 +246,53 @@ async function posaljiSlike(korisnikId: string, pregledId?: number): Promise<voi
   }
 }
 
+/**
+ * Zahtev za zatvaranje akcije (zamerka 49): staje u red na telefonu i šalje se odmah ako ima veze, inače kad se veza vrati.
+ * Vraća „poslat“, „ceka“ (nema veze) ili poruku greške sa servera.
+ */
+export async function posaljiZahtevZatvaranja(z: Omit<ZahtevZatvaranjaUCekanju, 'klijentId' | 'korisnikId'>): Promise<{ stanje: 'poslat' | 'ceka' } | { greska: string }> {
+  const korisnikId = prijavljen();
+  const klijentId = noviId();
+  await db.zahteviAkcija.add({ ...z, klijentId, korisnikId });
+  await sinhronizuj().catch(() => undefined);
+  const ostao = await db.zahteviAkcija.get(klijentId);
+  if (!ostao) return { stanje: 'poslat' };
+  if (ostao.greska) {
+    await db.zahteviAkcija.delete(klijentId);
+    return { greska: ostao.greska };
+  }
+  return { stanje: 'ceka' };
+}
+
+/** Zahtevi za zatvaranje ove akcije koji čekaju slanje ili ih je server odbio. */
+export function useNeposlatiZahtevi(akcijaId: number): ZahtevZatvaranjaUCekanju[] {
+  return useLokalno(() => db.zahteviAkcija.where('akcijaId').equals(akcijaId).toArray(), [akcijaId], []);
+}
+
+export async function odbaciZahtevZatvaranja(klijentId: string): Promise<void> {
+  await db.zahteviAkcija.delete(klijentId);
+}
+
+async function posaljiZahteveZatvaranja(korisnikId: string): Promise<void> {
+  for (const z of await db.zahteviAkcija.where('korisnikId').equals(korisnikId).filter((x) => !x.greska).toArray()) {
+    const telo = new FormData();
+    telo.append('klijentId', z.klijentId);
+    telo.append('uradjeno', z.uradjeno);
+    telo.append('datum', z.datum);
+    telo.append('izvrsilac', z.izvrsilac);
+    if (z.slika) telo.append('fajl', z.slika, 'slika.jpg');
+    try {
+      await api.post(`/akcije/${z.akcijaId}/zahtev-zatvaranja`, telo);
+      await db.zahteviAkcija.delete(z.klijentId);
+    } catch (err) {
+      if (privremena(err)) throw err;
+      await db.zahteviAkcija.update(z.klijentId, { greska: porukaGreske(err, 'Zahtev nije primljen.') });
+    }
+  }
+}
+
 async function posalji(korisnikId: string): Promise<void> {
+  await posaljiZahteveZatvaranja(korisnikId);
   const odbijenihPre = await db.odbijene.where('korisnikId').equals(korisnikId).count();
   // 1) Operacije redom, u paketima. Predaja pregleda čeka da se pošalju njegove slike — server posle predaje slike ne prima.
   for (;;) {
@@ -323,7 +385,8 @@ export async function odbaciOdbijenuSliku(id: number): Promise<void> {
 export async function obrisiLokalno(): Promise<boolean> {
   const k = korisnik;
   if (!k) return true;
-  const ceka = (await db.red.where('korisnikId').equals(k).count()) + (await db.slike.where('korisnikId').equals(k).count());
+  const ceka = (await db.red.where('korisnikId').equals(k).count()) + (await db.slike.where('korisnikId').equals(k).count())
+    + (await db.zahteviAkcija.where('korisnikId').equals(k).filter((x) => !x.greska).count());
   if (ceka > 0) return false;
   await db.transaction('rw', db.pregledi, db.odbijene, db.meta, async () => {
     await db.pregledi.clear();

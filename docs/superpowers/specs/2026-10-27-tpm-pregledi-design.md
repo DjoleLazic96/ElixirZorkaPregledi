@@ -446,7 +446,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R3.6** Posle pomeranja Supervizor i Direktor mogu ručno da menjaju raspored. Pomeranje ide u istoriju; obaveštenje dobijaju Supervizor, Direktor i inženjeri kojima se promenio pregled. U kalendaru propušten dan ostaje crven, uz „nije urađen – prenet na …“. *[O]*
 - **R3.7** PZ dobija fiksni datum, koji zadaje Supervizor ili Direktor; aplikacija sama zna koji PZ je sledeći na redu. *[K]*
 - **R3.8** Pri zakazivanju aplikacija ponudi sledeći PZ po redu; Supervizor ili Direktor može da klikne „Promeni PZ“, izabere drugi i upiše napomenu (nije obavezna). Promena ide u istoriju, a redosled se nastavlja od zakazanog PZ-a. *[O]*
-- **R3.9** Na dan PZ-a DP se ne radi. To je podešavanje u admin panelu („Na dan PZ-a DP se: ne radi / radi“). *[O]*
+- **R3.9** Na dan PZ-a DP se ne radi. To je podešavanje u admin panelu („Na dan PZ-a DP se: ne radi / radi“). Kad se PZ zakazuje ili pomera na dan sa nezapočetim DP-om, taj DP i naredni idu dan napred; ekran pre potvrde upozorava. *[O]* (dopuna 2026-11-13)
 - **R3.10** Aplikacija nedelju dana unapred predlaže raspored: DP dodeljuje redom aktivnim inženjerima (rotacija) i preskače odsutne. Supervizor ili Direktor potvrđuje ili menja. *[O]*
 - **R3.11** Inženjer može da zatraži prebacivanje pregleda na drugog (i da predloži na koga); tek kad Supervizor ili Direktor odobri, drugi inženjer može da počne. *[Z]*
 - **R3.12** Zahtev za prebacivanje inženjer šalje iz „Moje aktivnosti“ (dugme uz svaki planirani DP ili PZ), sa razlogom (obavezan) i predlogom zamene (nije obavezan); kod PZ-a sa dva inženjera prebacuju se samo njegove sekcije. Zahtev stiže u „Čeka moju odluku“; Supervizor ili Direktor bira zamenu i odobrava ili odbija. *[O]*
@@ -479,7 +479,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R4.4** Ispod svake stavke stoje tri dugmeta: Napomena · Akcija · Foto. Napomena je moguća uz svaki odgovor, a obavezna uz neispravan. *[K]*
 - **R4.5** Slika: „Fotografiši“ ili „Iz galerije“, nije obavezna i nema poseban komentar (ide uz napomenu stavke). Aplikacija je smanjuje na oko 1–2 MB; najviše 5 slika po stavci. Slika pamti pregled, tip, verziju šablona, sekciju, uređaj, stavku, ko ju je dodao i kada, i da li je iz kamere ili galerije. *[Z]*
 - **R4.6** „Nije u funkciji“ se označava za ceo uređaj i važi samo za taj pregled; klikne se svaki put. Ako je uređaj prošli put bio van funkcije, piše „Prošli put: nije u funkciji“ uz dugme „I dalje nije u funkciji“. Pregled može da se preda, a takvi uređaji se posle predaje prikazuju posebno. *[K]*
-- **R4.7** Kad inženjer dođe do uređaja sa otvorenom potrebnom akcijom, iskače pop-up: da li je akcija urađena (da / ne). *[K]*
+- **R4.7** Kad inženjer dođe do uređaja sa otvorenom potrebnom akcijom iz ranijeg pregleda, iskače pop-up: da li je akcija urađena (da / ne). Akcija otvorena na ovom pregledu se samo prikazuje uz stavku, a posle „ne“ pitanje se ne ponavlja do kraja pregleda. *[K]* (dopuna 2026-11-13)
 - **R4.8** „Predaj pregled“ prvo prikazuje rezime (ispravne i neispravne stavke, uređaji van funkcije, otvorene akcije, slike, spisak neispravnih) sa „Predaj“ i „Vrati se“. Predat pregled ima „Pogledaj pregled“; u arhivi inženjer podrazumevano vidi svoje preglede. *[O]* (odluka 2026-11-13)
 
 ### A.5 Merenje vremena i kontrola
@@ -519,7 +519,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R7.2** Hitnost: Hitno (do kraja smene ili sutra; odmah ide obaveštenje) / U narednih 7 dana / U sledećem planskom zastoju / Pratiti (bez roka). *[O]*
 - **R7.3** Ekran „Potrebne akcije“ (i na Dashboardu) prikazuje sve otvorene akcije, sa filterima po hitnosti, sekciji i uređaju. *[K]*
 - **R7.4** Akciju zatvara inženjer kroz pop-up na sledećem pregledu koji sadrži taj uređaj (i kad je akcija nastala u PZ-u); ako nije urađena, ostaje otvorena. *[K]*
-- **R7.5** Supervizor i Direktor mogu sa ekrana „Potrebne akcije“ da zatvore ili otkažu akciju, uz razlog. *[O]*
+- **R7.5** Supervizor i Direktor mogu sa ekrana „Potrebne akcije“ da zatvore akciju (šta je urađeno, kada, ko je uradio) ili da je otkažu (razlog). *[O]* (dopuna 2026-11-13)
 - **R7.6** Ekran „Potrebne akcije“ ima kolonu „Pregled“; klik na broj pregleda otvara pregled. Klik na akciju otvara ekran akcije: podaci (uređaj, aktivnost, vrsta, opis, hitnost, rok, ko je prijavio, iz kog pregleda, kvar na stavci) i istorija akcije; Supervizor i Direktor tu mogu da je zatvore ili otkažu. *[O]*
 - **R7.7** Svaki ekran detalja (akcija, pregled, uređaj) ima dugme „Nazad“ koje vraća na ekran sa kog je otvoren. Klik na logo u zaglavlju uvek vodi na početnu stranu. *[O]*
 - **R7.8** Kad akciji istekne rok, postaje crvena na Dashboardu i ide jedno obaveštenje. *[O]*
@@ -530,6 +530,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R7.13** Akcija i kvar su vezani preko iste stavke (uređaj + aktivnost): akcija pokazuje stanje kvara na toj stavci, kvar pokazuje akcije nastale iz njega; isto se vidi u dosijeu uređaja. *[O]*
 - **R7.14** Ako inženjer kroz pop-up zatvori akciju kao urađenu, a na istoj stavci izabere neispravan odgovor, aplikacija ga upozori i ponudi novu akciju (nije obavezno; kvar ostaje otvoren). *[O]*
 - **R7.15** Ako se kvar zatvori, a akcija na toj stavci je još otvorena, akcija dobija oznaku „stavka sada ispravna“ (ekran „Potrebne akcije“ i Dashboard, uz filter), da Supervizor ili Direktor odluči da li je zatvara ili otkazuje. *[O]*
+- **R7.16** Inženjer van pregleda šalje „Zahtev za zatvaranje“ akcije: šta je urađeno, kada, ko (on, drugi inženjer, služba) i po želji sliku; radi i bez interneta. Supervizor ili Direktor odobrava (akcija se zatvara sa tim podacima) ili odbija uz razlog; dok čeka odluku, inženjer može da ga otkaže. *[O]* (odluka 2026-11-13)
 
 ### A.8 Neispravnosti, ekran uređaja, analitika i Dashboard
 

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using TpmPregledi.Application.Common.Exceptions;
 using TpmPregledi.Application.Features.Akcije;
 using TpmPregledi.Application.Features.Popunjavanje;
+using TpmPregledi.Application.Features.Pregledi;
 using TpmPregledi.Application.Features.Sabloni;
 using TpmPregledi.Application.UnitTests.Common;
 using TpmPregledi.Application.UnitTests.Common.Fakes;
@@ -142,6 +143,127 @@ public class AkcijeIKvaroviTests
         kvar.Zatvoren.Should().Be(new DateOnly(2026, 11, 11));
         kvar.TrajanjeDana.Should().Be(2);
         (await Ekran(o).Handle(new GetKvarQuery(kvar.Id), default)).Prijave.Single().Napomena.Should().Be("7 rolni");
+    }
+
+    [Fact]
+    public async Task Akcija_ne_pita_na_pregledu_na_kom_je_otvorena_a_posle_odgovora_Ne_ne_pita_ponovo_zamerka_46()
+    {
+        var o = await PripremiAsync();
+        await using var _ = o.H;
+        var citaj = (int id) => new PopunjavanjeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana }, new FakeClock(FakeClock.PosleRasporeda), o.Brojac)
+            .Handle(new GetPopunjavanjeQuery(id), default);
+        var p1 = await NoviPregledAsync(o, "DP1-2026-0001", new DateOnly(2026, 11, 9));
+        await PosaljiAsync(o, p1, ("zapocni", new { }), ("akcija", new { stavkaId = o.Stavke[0], vrsta = "zameniti", hitnost = "7_dana", opis = "Rolne" }));
+
+        var u1 = (await citaj(p1)).Sekcije[0].Uredjaji[0];
+        u1.OtvoreneAkcije.Should().BeEmpty("akcija otvorena na ovom pregledu ne pravi pitanje");
+        u1.AkcijeOvogPregleda!.Single().Broj.Should().Be("A-2026-0001");
+        await PosaljiAsync(o, p1, ("odgovor", new { stavkaId = o.Stavke[0], vrednost = 0 }), ("odgovor", new { stavkaId = o.Stavke[1], vrednost = 0 }), ("predaja", new { }));
+
+        var p2 = await NoviPregledAsync(o, "DP1-2026-0002", new DateOnly(2026, 11, 10));
+        await PosaljiAsync(o, p2, ("zapocni", new { }));
+        var akcijaId = (await citaj(p2)).Sekcije[0].Uredjaji[0].OtvoreneAkcije.Single().Id;
+        await PosaljiAsync(o, p2, ("akcija_odgovor", new { akcijaId, uradjeno = false }));
+        (await citaj(p2)).Sekcije[0].Uredjaji[0].OtvoreneAkcije.Should().BeEmpty("na „Ne“ je već odgovoreno na ovom pregledu");
+
+        var p3 = await NoviPregledAsync(o, "DP1-2026-0003", new DateOnly(2026, 11, 11));
+        await PosaljiAsync(o, p3, ("zapocni", new { }));
+        (await citaj(p3)).Sekcije[0].Uredjaji[0].OtvoreneAkcije.Should().ContainSingle("sledeći pregled pita ponovo");
+    }
+
+    [Fact]
+    public async Task Detalj_pregleda_nosi_akcije_ispod_stavke_i_odgovore_na_ranije_akcije_zamerka_48()
+    {
+        var o = await PripremiAsync();
+        await using var _ = o.H;
+        var detalj = (int id) => new PreglediHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana, Roles = [Roles.Supervizor] }, new FakeClock(FakeClock.PosleRasporeda))
+            .Handle(new GetPregledQuery(id), default);
+        var p1 = await NoviPregledAsync(o, "DP1-2026-0001", new DateOnly(2026, 11, 9));
+        await PosaljiAsync(o, p1, ("zapocni", new { }), ("akcija", new { stavkaId = o.Stavke[1], vrsta = "podmazati", hitnost = "hitno", opis = "Mast" }));
+
+        var d1 = await detalj(p1);
+        d1.Akcije!.Single().Should().BeEquivalentTo(new { Broj = "A-2026-0001", StavkaId = o.Stavke[1], Vrsta = "podmazati", Hitnost = "hitno", Opis = "Mast" });
+        new TpmPregledi.Infrastructure.Izvestaji.IzvestajPregleda().Pdf(d1).Should().NotBeEmpty();
+        new TpmPregledi.Infrastructure.Izvestaji.IzvestajPregleda().Docx(d1).Should().NotBeEmpty();
+
+        var p2 = await NoviPregledAsync(o, "DP1-2026-0002", new DateOnly(2026, 11, 10));
+        await PosaljiAsync(o, p2, ("zapocni", new { }), ("akcija_odgovor", new { akcijaId = d1.Akcije![0].Id, uradjeno = true }));
+        var d2 = await detalj(p2);
+        d2.Akcije.Should().BeEmpty();
+        d2.OdgovoriNaAkcije!.Single().Should().BeEquivalentTo(new { Broj = "A-2026-0001", Uradjena = true });
+    }
+
+    private sealed class Skladiste : IFajlSkladiste
+    {
+        public Task<Fajl> SacuvajAsync(byte[] sadrzaj, string mime, CancellationToken ct) =>
+            Task.FromResult(new Fajl { Putanja = Guid.NewGuid() + ".jpg", Mime = mime, Velicina = sadrzaj.Length, Sha256 = "x", KreiranoAt = DateTime.UtcNow });
+
+        public Stream Otvori(Fajl fajl) => new MemoryStream([1]);
+    }
+
+    [Fact]
+    public async Task Zahtev_za_zatvaranje_odobren_zatvara_akciju_sa_podacima_a_odbijen_je_ostavlja_otvorenom_zamerka_49()
+    {
+        var o = await PripremiAsync();
+        await using var _ = o.H;
+        var sup = await o.H.SeedUserAsync("sup", "Supervizor2026!", Roles.Supervizor);
+        o.H.Db.KorisnikPrava.Add(new KorisnikPravo { KorisnikId = sup.Id, Pravo = Prava.AkcijeZatvaranje });
+        await o.H.Db.SaveChangesAsync();
+        var sat = new FakeClock(FakeClock.PosleRasporeda);
+        var inz = new ZatvaranjeAkcijeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana, Roles = [Roles.Inzenjer] }, sat, new Skladiste());
+        var nadredjeni = new ZatvaranjeAkcijeHandler(o.H.Db, new FakeCurrentUser { UserId = sup.Id, Roles = [Roles.Supervizor] }, sat, new Skladiste());
+        var p1 = await NoviPregledAsync(o, "DP1-2026-0001", new DateOnly(2026, 11, 9));
+        await PosaljiAsync(o, p1, ("zapocni", new { }), ("akcija", new { stavkaId = o.Stavke[0], vrsta = "zameniti", hitnost = "7_dana" }));
+        var akcijaId = (await o.H.Db.Akcije.SingleAsync()).Id;
+        var danas = sat.Today;
+
+        // Prvi zahtev: odbijen uz razlog — akcija ostaje otvorena.
+        var d = await inz.Handle(new PodnesiZahtevZatvaranjaCommand(akcijaId, Guid.NewGuid(), "Zamenjena traka", danas, "Ana"), default);
+        d.Akcija.ZahtevZatvaranja!.Uradjeno.Should().Be("Zamenjena traka");
+        (await FluentActions.Awaiting(() => inz.Handle(new PodnesiZahtevZatvaranjaCommand(akcijaId, Guid.NewGuid(), "Opet", danas, "Ana"), default))
+            .Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal("Zahtev za zatvaranje ove akcije već čeka odluku.");
+        new OdluciOZahtevuZatvaranjaValidator().Validate(new OdluciOZahtevuZatvaranjaCommand(1, false, null)).IsValid.Should().BeFalse();
+        d = await nadredjeni.Handle(new OdluciOZahtevuZatvaranjaCommand(d.Akcija.ZahtevZatvaranja.Id, false, "Traka nije zamenjena"), default);
+        d.Akcija.Status.Should().Be("otvorena");
+        d.Akcija.ZahtevZatvaranja.Should().BeNull();
+        (await o.H.Db.Obavestenja.Where(x => x.KorisnikId == o.Ana).Select(x => x.Naslov).ToListAsync()).Should().Contain("Zahtev za A-2026-0001 je odbijen");
+
+        // Drugi zahtev sa slikom: ponovljeno slanje istog klijentId ne pravi duplikat; odobren zatvara akciju sa podacima.
+        var klijent = Guid.NewGuid();
+        byte[] jpeg = [0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3];
+        await inz.Handle(new PodnesiZahtevZatvaranjaCommand(akcijaId, klijent, "Zamenjena traka", danas.AddDays(-1), "Služba: Mašinska", jpeg, "image/jpeg"), default);
+        d = await inz.Handle(new PodnesiZahtevZatvaranjaCommand(akcijaId, klijent, "Zamenjena traka", danas.AddDays(-1), "Služba: Mašinska", jpeg, "image/jpeg"), default);
+        (await o.H.Db.ZahteviZatvaranja.CountAsync(z => z.Status == "zahtev")).Should().Be(1);
+        d.Akcija.ZahtevZatvaranja!.ImaSliku.Should().BeTrue();
+        d = await nadredjeni.Handle(new OdluciOZahtevuZatvaranjaCommand(d.Akcija.ZahtevZatvaranja.Id, true, null), default);
+        d.Akcija.Should().BeEquivalentTo(new { Status = "zatvorena", Uradjeno = "Zamenjena traka", UradjenoDatum = danas.AddDays(-1), Izvrsilac = "Služba: Mašinska", ImaSlikuZatvaranja = true });
+        d.Istorija.Select(x => x.Vrsta).Should().Contain(["zahtev_zatvaranja", "zahtev_odbijen", "zatvorena"]);
+    }
+
+    [Fact]
+    public async Task Inzenjer_otkazuje_svoj_zahtev_a_zatvaranje_sa_ekrana_trazi_sta_kada_i_ko_zamerke_47_49()
+    {
+        var o = await PripremiAsync();
+        await using var _ = o.H;
+        var sat = new FakeClock(FakeClock.PosleRasporeda);
+        var inz = new ZatvaranjeAkcijeHandler(o.H.Db, new FakeCurrentUser { UserId = o.Ana, Roles = [Roles.Inzenjer] }, sat, new Skladiste());
+        var p1 = await NoviPregledAsync(o, "DP1-2026-0001", new DateOnly(2026, 11, 9));
+        await PosaljiAsync(o, p1, ("zapocni", new { }), ("akcija", new { stavkaId = o.Stavke[0], vrsta = "ocistiti", hitnost = "pratiti" }));
+        var akcijaId = (await o.H.Db.Akcije.SingleAsync()).Id;
+
+        var d = await inz.Handle(new PodnesiZahtevZatvaranjaCommand(akcijaId, Guid.NewGuid(), "Očišćeno", sat.Today, "Ana"), default);
+        (await FluentActions.Awaiting(() => inz.Handle(new PodnesiZahtevZatvaranjaCommand(akcijaId, Guid.NewGuid(), "x", sat.Today.AddDays(1), "Ana"), default))
+            .Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal("Zahtev za zatvaranje ove akcije već čeka odluku.");
+        d = await inz.Handle(new OtkaziZahtevZatvaranjaCommand(d.Akcija.ZahtevZatvaranja!.Id), default);
+        d.Akcija.ZahtevZatvaranja.Should().BeNull();
+        (await o.H.Db.ZahteviZatvaranja.SingleAsync()).Status.Should().Be("otkazano");
+
+        // Zahtev na čekanju se zatvara kad nadređeni zatvori akciju sa ekrana; zatvaranje traži šta, kada i ko.
+        d = await inz.Handle(new PodnesiZahtevZatvaranjaCommand(akcijaId, Guid.NewGuid(), "Očišćeno", sat.Today, "Ana"), default);
+        new ZatvoriAkcijuValidator().Validate(new ZatvoriAkcijuCommand(akcijaId, false, null, "Očišćeno", null, "Bora")).IsValid.Should().BeFalse();
+        d = await Ekran(o).Handle(new ZatvoriAkcijuCommand(akcijaId, false, null, "Očišćeno kompresorom", sat.Today, "Bora"), default);
+        d.Akcija.Should().BeEquivalentTo(new { Status = "zatvorena", Uradjeno = "Očišćeno kompresorom", Izvrsilac = "Bora" });
+        (await o.H.Db.ZahteviZatvaranja.OrderBy(z => z.Id).LastAsync()).Status.Should().Be("odbijeno");
     }
 
     [Fact]

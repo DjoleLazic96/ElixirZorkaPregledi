@@ -9,6 +9,21 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-13 — Zamerke 38–51: zatvaranje akcije, rezime, filteri, PZ i DP (odobreno)
+
+**Kontekst:** testiranje 13.11. (zamerke 38–51 u „Zamerke za doradu.md“) i pregled koda.
+**Odluka:**
+- Sinhronizacija nikad ne vraća grešku za ceo paket zbog jedne operacije: predugačak tekst se odbija pojedinačno, a posle ponovljenih neuspeha upisa odbija se samo ta operacija (zamerka 38).
+- „Poništi pregled“ obaveštava inženjera, drugog inženjera PZ-a i onoga ko je overio; zahtevi na čekanju se zatvaraju (R6.10, zamerke 39–40). Poništen pregled se ne računa kao „prošli put“ (R4.6, zamerka 41).
+- Pomeranje PZ-a (izmena rasporeda, odobren raniji početak) radi kao zakazivanje: nezapočet DP tog dana i naredni idu dan napred; započet DP ostaje na svom danu (R3.9, zamerka 43).
+- Pitanje „da li je akcija urađena“ samo za akcije iz ranijih pregleda; posle „Ne“ ne pita ponovo do kraja tog pregleda (R4.7, zamerka 46).
+- Inženjer otkazuje svoj zahtev dok čeka odluku (zamerka 47).
+- Zatvaranje akcije uvek nosi šta je urađeno, kada i ko; inženjer šalje zahtev, odlučuje Supervizor ili Direktor (pravo `akcije.zatvaranje`) (R7.5, R7.16, zamerka 49).
+- Detalj pregleda: Rezime / Ceo pregled; boje isto na ekranu, u PDF-u i Word-u (zamerka 48). Neispravnosti se ne menjaju.
+- Filteri: telefon i uspravni tablet — dugme „Filteri“ i oznake sa ×; računar — polja otvorena, oznake ispod (zamerka 51).
+**Posledice:** nova migracija `ZatvaranjeAkcije` (tabela `zahtev_zatvaranja_akcije`, kolone akcije `uradjeno`, `uradjeno_datum`, `izvrsilac`, `zatvaranje_fajl_id`); nove rute u `docs/03`, `docs/04`; IndexedDB verzija 3 (red zahteva za zatvaranje).
+**Odlučio:** vlasnik projekta (2026-11-13).
+
 ## 2026-11-13 — Zamerke 23–37: lozinka, verzija, raspored kao niz, sekcije, predlozi (odobreno)
 
 **Kontekst:** testiranje 13.11. (zamerke 23–37 u „Zamerke za doradu.md“).

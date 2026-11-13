@@ -116,6 +116,7 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 | POST | `/odsustva/{id}/otkazi` | RequireKorisnik | status `otkazano`; bez prava odobravanja samo svoj zahtev na čekanju (403) |
 | GET · POST | `/zahtevi-prebacivanja?status` · `/zahtevi-prebacivanja` `{ pregledId, razlog, predlozenaZamenaId? }` | RequireKorisnik · pregledi.popunjavanje | svoj planiran pregled; 403 tuđi, 422 započet |
 | POST | `/zahtevi-prebacivanja/raniji-pocetak` `{ pregledId, razlog }` | pregledi.popunjavanje | samo svoj planiran PZ posle današnjeg dana; 422 za DP (R3.24) |
+| POST | `/zahtevi-prebacivanja/{id}/otkazi` | pregledi.popunjavanje (podnosilac) | dok čeka odluku |
 | POST | `/zahtevi-prebacivanja/{id}/odluka` `{ odobreno, zamenaId }` | raspored.uredjivanje | kod PZ-a sa dva inženjera prebacuje se samo deo podnosioca; `raniji_pocetak` bez zamene — odobren PZ prelazi na danas |
 
 ### Popunjavanje (faza 04, pravo `pregledi.popunjavanje`)
@@ -134,13 +135,14 @@ Odbijene operacije: „Pregled još nije potpun: nedostaje N odgovora i M obavez
 | Metod | Ruta | Politika | Svrha |
 |---|---|---|---|
 | GET | `/pregledi?od&do&tip&status&inzenjerId&pretraga&stranica&velicina` | RequireKorisnik | `StranicaDto<PregledRedDto>` (sa brojem neispravnih) |
-| GET | `/pregledi/{id}` | RequireKorisnik | detalj: zaglavlje, aktivno vreme i delovi, upozorenja, sekcije sa odgovorima/poljima/slikama, istorija, sporni unosi, zahtevi za doradu, `ucesnici` (drugi inženjer PZ-a sa sekcijama) |
+| GET | `/pregledi/{id}` | RequireKorisnik | detalj: zaglavlje, aktivno vreme i delovi, upozorenja, sekcije sa odgovorima/poljima/slikama, istorija, sporni unosi, zahtevi za doradu, `ucesnici` (drugi inženjer PZ-a sa sekcijama), `akcije` (otvorene na pregledu, sa `stavkaId`), `odgovoriNaAkcije`, `predlozi` |
 | GET | `/pregledi/{id}/izvoz?format=pdf\|docx` | RequireKorisnik | izveštaj sa rezimeom problematičnih stavki |
 | GET | `/izvoz/pregledi.xlsx?…filteri` | RequireKorisnik | arhiva u Excel (filtrirano) |
 | POST | `/pregledi/{id}/overi` | overa | `ceka_overu` → `overen` |
 | POST | `/pregledi/{id}/vrati-na-doradu` `{ inzenjerId, razlog }` | overa | pre i posle overe; 422 „Pregled je overio Direktor; samo Direktor može da poništi tu overu.“ |
 | POST | `/pregledi/{id}/zahtev-za-doradu` `{ razlog }` | pregledi.popunjavanje (inženjer koji je radio) | |
 | POST | `/pregledi/{id}/zahtev-za-doradu/odluka` `{ odobreno }` | overa | posle overe: onaj ko je overio ili Direktor |
+| POST | `/pregledi/{id}/zahtev-za-doradu/otkazi` | pregledi.popunjavanje (podnosilac) | dok čeka odluku; posle toga može nov |
 | POST | `/pregledi/{id}/ponisti` `{ razlog }` | overa | u radu / čeka overu / overen / vraćen |
 | POST | `/pregledi/{id}/otkljucaj` | overa | briše vezu sa uređajem (u radu / dorada); detalj ima `vezanZaUredjaj` (R10.10) |
 | POST | `/pregledi/{id}/sporan-unos/{unosId}/odluka` `{ primeni }` | overa | sporan odgovor se upisuje u tekuću doradu ili odbacuje |
@@ -148,9 +150,12 @@ Odbijene operacije: „Pregled još nije potpun: nedostaje N odgovora i M obavez
 ### Akcije i neispravnosti (faza 07)
 | Metod | Ruta | Politika | Svrha |
 |---|---|---|---|
-| GET | `/akcije?status&hitnost&sekcijaId&uredjajId&sadaIspravna` | RequireKorisnik | `AkcijaDto[]` (rok, istekao rok, zaduženi, kvar na stavci) |
+| GET | `/akcije?status&hitnost&sekcijaId&uredjajId&sadaIspravna&saZahtevom` | RequireKorisnik | `AkcijaDto[]` (rok, istekao rok, zaduženi, kvar na stavci, kako je zatvorena, zahtev za zatvaranje na čekanju) |
 | GET | `/akcije/{id}` | RequireKorisnik | akcija sa istorijom |
-| POST | `/akcije/{id}/zatvori` · `/otkazi` `{ razlog }` | akcije.zatvaranje | 422 ako nije otvorena |
+| POST | `/akcije/{id}/zatvori` `{ uradjeno, datum, izvrsilac }` · `/otkazi` `{ razlog }` | akcije.zatvaranje | 422 ako nije otvorena ili je datum u budućnosti; zahtev na čekanju se zatvara |
+| POST | `/akcije/{id}/zahtev-zatvaranja` (multipart: `klijentId`, `uradjeno`, `datum`, `izvrsilac`, `fajl?`) | pregledi.popunjavanje | idempotentno po `klijentId`; 422 kad zahtev već čeka; obaveštenje onima sa pravom `akcije.zatvaranje` |
+| POST | `/akcije/zahtevi-zatvaranja/{id}/odluka` `{ odobreno, razlog? }` · `/otkazi` | akcije.zatvaranje · pregledi.popunjavanje (podnosilac) | odbijanje traži razlog |
+| GET | `/akcije/{id}/slika?zahtev` | RequireKorisnik | slika uz zatvaranje ili uz zahtev |
 | PUT | `/akcije/{id}/zaduzen` `{ zaduzen }` | akcije.zatvaranje | osoba ili služba, ide u istoriju |
 | GET | `/kvarovi?otvoreno&sekcijaId&uredjajId&pretraga` | RequireKorisnik | `KvarDto[]` (trajanje, prijave, otvorene akcije) |
 | GET | `/kvarovi/{id}` | RequireKorisnik | kvar sa svim datumima prijave i akcijama na stavci |

@@ -144,6 +144,24 @@ public class PopunjavanjeTests
     }
 
     [Fact]
+    public async Task Predugacka_napomena_ili_opis_akcije_odbijaju_samo_tu_operaciju_zamerka_38()
+    {
+        var o = await PripremiAsync();
+        await using var _ = o.H;
+        var sut = Sut(o, o.Ana);
+        await sut.Handle(new ZapocniPregledCommand(o.PregledId), default);
+
+        var dugaNapomena = Op(o, "odgovor", new { stavkaId = o.Stavke[0], vrednost = 1, napomena = new string('a', 2001) }, 0);
+        var dugaAkcija = Op(o, "akcija", new { stavkaId = o.Stavke[0], vrsta = "popraviti", hitnost = "pratiti", opis = new string('b', 1001) }, 1);
+        var ispravna = Op(o, "odgovor", new { stavkaId = o.Stavke[1], vrednost = 1, napomena = new string('c', 2000) }, 2);
+        var r = await sut.Handle(new SinhronizacijaCommand(null, null, [dugaNapomena, dugaAkcija, ispravna]), default);
+
+        r.Odbijene.Select(x => x.Razlog).Should().Equal("Napomena može imati najviše 2000 znakova.", "Opis akcije može imati najviše 1000 znakova.");
+        r.Prihvacene.Should().Equal(ispravna.OpId);
+        (await o.H.Db.Akcije.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
     public async Task Uredjaj_van_funkcije_ne_trazi_odgovore_i_vidi_se_na_sledecem_pregledu()
     {
         var o = await PripremiAsync();
@@ -165,6 +183,12 @@ public class PopunjavanjeTests
         var dto = await sut.Handle(new ZapocniPregledCommand(sledeci.Id), default);
         dto.Sekcije[0].Uredjaji[0].ProsliPutVanFunkcije.Should().BeTrue();
         dto.Sekcije[0].Uredjaji[0].VanFunkcije.Should().BeFalse("„nije u funkciji“ se ne prenosi");
+
+        // Zamerka 41: poništen pregled se ne računa kao „prošli put“.
+        (await o.H.Db.Pregledi.SingleAsync(x => x.Id == o.PregledId)).Status = StatusPregleda.Ponisten;
+        await o.H.Db.SaveChangesAsync();
+        o.H.Db.ChangeTracker.Clear();
+        (await sut.Handle(new GetPopunjavanjeQuery(sledeci.Id), default)).Sekcije[0].Uredjaji[0].ProsliPutVanFunkcije.Should().BeFalse();
     }
 
     [Fact]

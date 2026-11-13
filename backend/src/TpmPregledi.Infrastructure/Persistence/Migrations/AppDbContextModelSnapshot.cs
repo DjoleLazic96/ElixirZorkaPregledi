@@ -180,6 +180,11 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("hitnost");
 
+                    b.Property<string>("Izvrsilac")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("izvrsilac");
+
                     b.Property<DateTime>("KreiranoAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("kreirano_at");
@@ -222,6 +227,15 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("stavka_sada_ispravna");
 
+                    b.Property<string>("Uradjeno")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("uradjeno");
+
+                    b.Property<DateOnly?>("UradjenoDatum")
+                        .HasColumnType("date")
+                        .HasColumnName("uradjeno_datum");
+
                     b.Property<int>("UredjajId")
                         .HasColumnType("integer")
                         .HasColumnName("uredjaj_id");
@@ -236,6 +250,10 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("zaduzen");
+
+                    b.Property<long?>("ZatvaranjeFajlId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("zatvaranje_fajl_id");
 
                     b.Property<DateTime?>("ZatvorenoAt")
                         .HasColumnType("timestamp with time zone")
@@ -258,6 +276,9 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PregledId")
                         .HasDatabaseName("ix_akcija_pregled_id");
+
+                    b.HasIndex("ZatvaranjeFajlId")
+                        .HasDatabaseName("ix_akcija_zatvaranje_fajl_id");
 
                     b.HasIndex("UredjajId", "Status")
                         .HasDatabaseName("ix_akcija_uredjaj_id_status");
@@ -2051,6 +2072,89 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                     b.ToTable("zahtev_prebacivanja", (string)null);
                 });
 
+            modelBuilder.Entity("TpmPregledi.Domain.Entities.ZahtevZatvaranjaAkcije", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AkcijaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("akcija_id");
+
+                    b.Property<DateOnly>("Datum")
+                        .HasColumnType("date")
+                        .HasColumnName("datum");
+
+                    b.Property<long?>("FajlId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("fajl_id");
+
+                    b.Property<string>("Izvrsilac")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("izvrsilac");
+
+                    b.Property<Guid>("KlijentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("klijent_id");
+
+                    b.Property<DateTime>("KreiranoAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("kreirano_at");
+
+                    b.Property<DateTime?>("OdlucenoAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("odluceno_at");
+
+                    b.Property<string>("OdlucioId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("odlucio_id");
+
+                    b.Property<string>("PodneoId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("podneo_id");
+
+                    b.Property<string>("Razlog")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("razlog");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Uradjeno")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("uradjeno");
+
+                    b.HasKey("Id")
+                        .HasName("pk_zahtev_zatvaranja_akcije");
+
+                    b.HasIndex("FajlId")
+                        .HasDatabaseName("ix_zahtev_zatvaranja_akcije_fajl_id");
+
+                    b.HasIndex("KlijentId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_zahtev_zatvaranja_klijent");
+
+                    b.HasIndex("AkcijaId", "Status")
+                        .HasDatabaseName("ix_zahtev_zatvaranja_akcije_akcija_id_status");
+
+                    b.ToTable("zahtev_zatvaranja_akcije", (string)null);
+                });
+
             modelBuilder.Entity("TpmPregledi.Domain.Identity.ApplicationRole", b =>
                 {
                     b.Property<string>("Id")
@@ -2336,6 +2440,12 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_akcija_uredjaj_uredjaj_id");
+
+                    b.HasOne("TpmPregledi.Domain.Entities.Fajl", null)
+                        .WithMany()
+                        .HasForeignKey("ZatvaranjeFajlId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_akcija_fajl_zatvaranje_fajl_id");
                 });
 
             modelBuilder.Entity("TpmPregledi.Domain.Entities.AkcijaDogadjaj", b =>
@@ -2664,6 +2774,22 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_zahtev_prebacivanja_pregled_pregled_id");
+                });
+
+            modelBuilder.Entity("TpmPregledi.Domain.Entities.ZahtevZatvaranjaAkcije", b =>
+                {
+                    b.HasOne("TpmPregledi.Domain.Entities.Akcija", null)
+                        .WithMany()
+                        .HasForeignKey("AkcijaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_zahtev_zatvaranja_akcije_akcija_akcija_id");
+
+                    b.HasOne("TpmPregledi.Domain.Entities.Fajl", null)
+                        .WithMany()
+                        .HasForeignKey("FajlId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_zahtev_zatvaranja_akcije_fajl_fajl_id");
                 });
 
             modelBuilder.Entity("TpmPregledi.Domain.Identity.KorisnikPravo", b =>

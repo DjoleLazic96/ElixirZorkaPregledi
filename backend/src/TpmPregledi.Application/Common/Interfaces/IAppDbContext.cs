@@ -101,6 +101,9 @@ public interface IAppDbContext
     /// <summary>Potrebne akcije.</summary>
     DbSet<Akcija> Akcije { get; }
 
+    /// <summary>Zahtevi za zatvaranje akcije (zamerka 49).</summary>
+    DbSet<ZahtevZatvaranjaAkcije> ZahteviZatvaranja { get; }
+
     /// <summary>Istorija akcija.</summary>
     DbSet<AkcijaDogadjaj> AkcijaDogadjaji { get; }
 

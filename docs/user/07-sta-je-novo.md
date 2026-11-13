@@ -17,6 +17,11 @@
 - **Zaboravili ste lozinku?**, obavezna promena lozinke posle reseta i **Dostupna je nova verzija**.
 - **Neposlate slike** se vide sa razlogom i mogu ponovo da se pošalju, sačuvaju na telefon ili odbace.
 - **Pregled se započinje na svoj dan**; za PZ može da se zatraži raniji početak, koji odobrava Supervizor ili Direktor.
+- **Zahtev za zatvaranje akcije** van pregleda (šta, kada, ko, slika); zatvaranje uvek beleži kako je akcija završena.
+- **Rezime i Ceo pregled** na detalju pregleda; boje u PDF-u i Word-u (neispravno crveno, akcije plavo, van funkcije narandžasto).
+- **Otkaži zahtev** za doradu, prebacivanje, raniji početak i zatvaranje akcije dok čeka odluku.
+- **Filteri** na telefonu iza jednog dugmeta, sa oznakama koje se skidaju sa ×.
+- Upozorenje kad se **PZ zakazuje ili pomera na dan sa DP-om**.
 
 ## Verzija 0.1.0
 

@@ -97,6 +97,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Akcija> Akcije => Set<Akcija>();
 
     /// <inheritdoc />
+    public DbSet<ZahtevZatvaranjaAkcije> ZahteviZatvaranja => Set<ZahtevZatvaranjaAkcije>();
+
+    /// <inheritdoc />
     public DbSet<AkcijaDogadjaj> AkcijaDogadjaji => Set<AkcijaDogadjaj>();
 
     /// <inheritdoc />
@@ -477,11 +480,30 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.KreiraoId).IsRequired().HasMaxLength(64);
             e.Property(x => x.ZatvorioId).HasMaxLength(64);
             e.Property(x => x.Razlog).HasMaxLength(500);
+            e.Property(x => x.Uradjeno).HasMaxLength(1000);
+            e.Property(x => x.Izvrsilac).HasMaxLength(200);
+            e.HasOne<Fajl>().WithMany().HasForeignKey(x => x.ZatvaranjeFajlId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(x => x.Broj).IsUnique().HasDatabaseName("ux_akcija_broj");
             e.HasIndex(x => new { x.UredjajId, x.Status });
             e.HasOne<Pregled>().WithMany().HasForeignKey(x => x.PregledId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<Uredjaj>().WithMany().HasForeignKey(x => x.UredjajId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<Aktivnost>().WithMany().HasForeignKey(x => x.AktivnostId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<ZahtevZatvaranjaAkcije>(e =>
+        {
+            e.ToTable("zahtev_zatvaranja_akcije");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.PodneoId).IsRequired().HasMaxLength(64);
+            e.Property(x => x.Uradjeno).IsRequired().HasMaxLength(1000);
+            e.Property(x => x.Izvrsilac).IsRequired().HasMaxLength(200);
+            e.Property(x => x.Status).IsRequired().HasMaxLength(20);
+            e.Property(x => x.Razlog).HasMaxLength(500);
+            e.Property(x => x.OdlucioId).HasMaxLength(64);
+            e.HasIndex(x => x.KlijentId).IsUnique().HasDatabaseName("ux_zahtev_zatvaranja_klijent");
+            e.HasIndex(x => new { x.AkcijaId, x.Status });
+            e.HasOne<Akcija>().WithMany().HasForeignKey(x => x.AkcijaId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Fajl>().WithMany().HasForeignKey(x => x.FajlId).OnDelete(DeleteBehavior.Restrict);
         });
 
         b.Entity<AkcijaDogadjaj>(e =>

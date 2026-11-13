@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Camera, Check, ImagePlus, MessageSquare, Wrench } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
 import { Select } from '../../components/ui/Select';
-import { HITNOSTI, VRSTE_AKCIJA } from '../akcije/oznake';
+import { HITNOSTI, VRSTE_AKCIJA, hitnostLabela, vrstaLabela } from '../akcije/oznake';
 import { useToast } from '../../app/providers/ToastProvider';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -22,7 +22,8 @@ import { porukaGreske } from '../../lib/apiError';
 import { brojSlika } from '../../lib/broj';
 import { cn } from '../../lib/cn';
 import { danasYmd, formatirajDatum, formatirajVreme } from '../../lib/datum';
-import { useZahteviPrebacivanja, useZatraziRanijiPocetak } from '../raspored/hooks';
+import { useOtkaziZahtevPrebacivanja, useZahteviPrebacivanja, useZatraziRanijiPocetak } from '../raspored/hooks';
+import { OtkaziZahtev } from '../raspored/OtkaziZahtev';
 import { nedostaje } from '../../offline/lokalno';
 import { lokalnaSlika, obrisiSliku, useStanjeSinhronizacije, zatvoriOdbijene } from '../../offline/sinhronizacija';
 import { api } from '../../api/client';
@@ -30,7 +31,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { smanjiSliku } from '../../lib/slika';
 import {
   useOperacija, useOtpremiSliku, usePopunjavanje, useZapocni,
-  type OdgovorDto, type Operacija, type PopunjavanjeDto, type StavkaPopunjavanjaDto, type UredjajPopunjavanjaDto,
+  type AkcijaKratkoDto, type OdgovorDto, type Operacija, type PopunjavanjeDto, type StavkaPopunjavanjaDto, type UredjajPopunjavanjaDto,
 } from './hooks';
 
 /** Koliko je stavki popunjeno i koliko treba (uređaji van funkcije se ne računaju). */
@@ -247,6 +248,7 @@ export function RezimePredaje({ p, saljem, onPredaj, onNazad }: { p: Popunjavanj
       }
     }
   const akcija = p.sekcije.reduce((n, s) => n + s.uredjaji.reduce((m, u) => m + u.otvoreneAkcije.length, 0), 0);
+  const noveAkcije = p.sekcije.reduce((n, s) => n + s.uredjaji.reduce((m, u) => m + (u.akcijeOvogPregleda?.length ?? 0), 0), 0);
   return (
     <Modal open title={`Predaja ${p.broj}`} onClose={onNazad} widthClass="max-w-lg">
       <div className="space-y-3 text-sm">
@@ -254,7 +256,8 @@ export function RezimePredaje({ p, saljem, onPredaj, onNazad }: { p: Popunjavanj
           <dt className="text-gray-600">Ispravnih stavki</dt><dd className="font-semibold">{ispravno}</dd>
           <dt className="text-gray-600">Neispravnih stavki</dt><dd className={cn('font-semibold', neispravne.length > 0 && 'text-red-700')}>{neispravne.length}</dd>
           <dt className="text-gray-600">Uređaja van funkcije</dt><dd className="font-semibold">{van}</dd>
-          <dt className="text-gray-600">Otvorenih akcija na uređajima</dt><dd className="font-semibold">{akcija}</dd>
+          <dt className="text-gray-600">Novih akcija na ovom pregledu</dt><dd className="font-semibold">{noveAkcije}</dd>
+          <dt className="text-gray-600">Ranijih akcija bez odgovora</dt><dd className="font-semibold">{akcija}</dd>
           <dt className="text-gray-600">Slika</dt><dd className="font-semibold">{slika}</dd>
         </dl>
         {neispravne.length > 0 && (
@@ -298,8 +301,8 @@ export function PredlogIzPregleda({ tip, sekcija, onClose, onPosalji }: {
             options={[{ value: 'dodavanje', label: 'Dodavanje (fali uređaj ili aktivnost)' }, { value: 'izbacivanje', label: 'Izbacivanje' }, { value: 'ispravka', label: 'Ispravka teksta' }]} />
         </FormField>
         <OtvoreniPredlozi tip={tip} />
-        <FormField label="Šta treba promeniti" htmlFor="pp-opis"><Textarea id="pp-opis" rows={2} value={opis} onChange={(e) => setOpis(e.target.value)} /></FormField>
-        <FormField label="Razlog" htmlFor="pp-razlog"><Textarea id="pp-razlog" rows={2} value={razlog} onChange={(e) => setRazlog(e.target.value)} /></FormField>
+        <FormField label="Šta treba promeniti" htmlFor="pp-opis"><Textarea id="pp-opis" rows={2} maxLength={980} value={opis} onChange={(e) => setOpis(e.target.value)} /></FormField>
+        <FormField label="Razlog" htmlFor="pp-razlog"><Textarea id="pp-razlog" rows={2} maxLength={1000} value={razlog} onChange={(e) => setRazlog(e.target.value)} /></FormField>
         <div className="flex justify-end gap-2 pt-1">
           <Button variant="ghost" onClick={onClose} disabled={salje}>Odustani</Button>
           <Button disabled={salje || !opis.trim() || !razlog.trim()} onClick={() => void posalji()}>Pošalji predlog</Button>
@@ -408,7 +411,8 @@ function UredjajKartica({ pregledId, uredjaj, moja, posalji }: { pregledId: numb
             {uredjaj.stavke.map((s) => (
               // Ključ uključuje stanje sa servera: posle „sve ispravno“ ili tuđe izmene lokalni nacrt kreće od nove vrednosti.
               <StavkaRed key={`${s.stavkaId}-${s.odgovor?.vrednost}-${s.odgovor?.napomena}-${JSON.stringify(s.odgovor?.polja)}`}
-                pregledId={pregledId} stavka={s} moja={moja} posalji={posalji} />
+                pregledId={pregledId} stavka={s} moja={moja} posalji={posalji}
+                akcije={(uredjaj.akcijeOvogPregleda ?? []).filter((a) => a.stavkaId === s.stavkaId)} />
             ))}
           </ul>
         )}
@@ -418,7 +422,9 @@ function UredjajKartica({ pregledId, uredjaj, moja, posalji }: { pregledId: numb
 }
 
 /** Jedna aktivnost: dva odgovora, napomena (obavezna uz neispravan, R4.4), dodatna polja (R2.11) i slike (R4.5). */
-export function StavkaRed({ pregledId, stavka, moja, posalji }: { pregledId: number; stavka: StavkaPopunjavanjaDto; moja: boolean; posalji: Posalji }) {
+export function StavkaRed({ pregledId, stavka, moja, posalji, akcije = [] }: {
+  pregledId: number; stavka: StavkaPopunjavanjaDto; moja: boolean; posalji: Posalji; akcije?: AkcijaKratkoDto[];
+}) {
   const o = stavka.odgovor;
   const [napomena, setNapomena] = useState(o?.napomena ?? '');
   const [napomenaOtvorena, setNapomenaOtvorena] = useState(false);
@@ -472,7 +478,7 @@ export function StavkaRed({ pregledId, stavka, moja, posalji }: { pregledId: num
       ))}
 
       {(neispravan || napomenaOtvorena || napomena) && (
-        <Textarea aria-label={`Napomena — ${stavka.aktivnost}`} rows={2} value={napomena} disabled={!moja}
+        <Textarea aria-label={`Napomena — ${stavka.aktivnost}`} rows={2} value={napomena} disabled={!moja} maxLength={2000}
           placeholder={neispravan ? 'Napomena je obavezna uz neispravan odgovor.' : 'Napomena'}
           className={cn(neispravan && !napomena.trim() && 'border-red-400')}
           onChange={(e) => setNapomena(e.target.value)} onBlur={() => o && napomena !== (o.napomena ?? '') && odgovori(o.vrednost)} />
@@ -501,6 +507,12 @@ export function StavkaRed({ pregledId, stavka, moja, posalji }: { pregledId: num
       {stavka.fotografije.length > 0 && (
         <SlikeStavke pregledId={pregledId} stavkaId={stavka.stavkaId} ids={stavka.fotografije} stare={stavka.stareFotografije ?? []} moja={moja} />
       )}
+      {akcije.map((a) => (
+        <p key={a.id} className="break-words rounded-md bg-blue-50 px-2 py-1 text-xs text-blue-900">
+          {a.broj || 'Nova akcija'} · {vrstaLabela(a.vrsta)} · {hitnostLabela(a.hitnost)}{a.opis ? ` — ${a.opis}` : ''}
+          <span className="text-blue-700"> · {a.id < 0 ? 'otvorena na ovom pregledu, čeka slanje' : 'otvorena na ovom pregledu'}</span>
+        </p>
+      ))}
       {akcijaOtvorena && <NovaAkcija stavka={stavka} posalji={posalji} onClose={() => setAkcijaOtvorena(false)} />}
     </li>
   );
@@ -585,7 +597,7 @@ function NovaAkcija({ stavka, posalji, onClose }: { stavka: StavkaPopunjavanjaDt
         <p className="break-words text-sm text-gray-600">{stavka.aktivnost}</p>
         <Select aria-label="Vrsta" value={vrsta} onChange={setVrsta} options={VRSTE_AKCIJA} />
         <Select aria-label="Hitnost" value={hitnost} onChange={setHitnost} options={HITNOSTI} />
-        <Textarea aria-label="Opis (nije obavezno)" placeholder="Opis (nije obavezno)" rows={2} value={opis} onChange={(e) => setOpis(e.target.value)} />
+        <Textarea aria-label="Opis (nije obavezno)" placeholder="Opis (nije obavezno)" rows={2} value={opis} maxLength={1000} onChange={(e) => setOpis(e.target.value)} />
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Odustani</Button>
           <Button onClick={() => void posalji({ vrsta: 'akcija', podaci: { stavkaId: stavka.stavkaId, vrsta: vrsta ?? 'ostalo', hitnost: hitnost ?? 'pratiti', opis: opis.trim() || null } },
@@ -657,7 +669,8 @@ function PoljeUnos({ polje, vrednost, disabled, onChange, onBlur }: {
 export function PreDatuma({ id, pz, datum }: { id: number; pz: boolean; datum: string }) {
   const zatrazi = useZatraziRanijiPocetak();
   const zahtevi = useZahteviPrebacivanja('zahtev');
-  const poslat = (zahtevi.data ?? []).some((z) => z.pregled.id === id && z.vrsta === 'raniji_pocetak');
+  const poslat = (zahtevi.data ?? []).find((z) => z.pregled.id === id && z.vrsta === 'raniji_pocetak');
+  const otkaziZahtev = useOtkaziZahtevPrebacivanja();
   const toast = useToast();
   const [otvoren, setOtvoren] = useState(false);
   const [razlog, setRazlog] = useState('');
@@ -684,7 +697,12 @@ export function PreDatuma({ id, pz, datum }: { id: number; pz: boolean; datum: s
         <>
           <p className="text-sm text-gray-600">Ako zastoj počinje ranije, zatražite raniji početak; odobrava Supervizor ili Direktor.</p>
           {poslat
-            ? <p className="text-sm font-semibold text-amber-800">Zahtev poslat — čeka odluku.</p>
+            ? (
+              <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-amber-800">
+                Zahtev poslat — čeka odluku.
+                <OtkaziZahtev opis="zahtev za raniji početak" otkazi={() => otkaziZahtev.mutateAsync(poslat.id)} />
+              </p>
+            )
             : <Button variant="secondary" className="w-full sm:w-auto" onClick={() => { setGreska(null); setOtvoren(true); }}>Zatraži raniji početak</Button>}
         </>
       ) : (

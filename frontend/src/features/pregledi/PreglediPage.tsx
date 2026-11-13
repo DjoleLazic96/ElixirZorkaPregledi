@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FilterTraka, type AktivanFilter } from '../../components/ui/FilterTraka';
 import { Link } from 'react-router-dom';
 import { Download, FileSearch } from 'lucide-react';
 import { useToast } from '../../app/providers/ToastProvider';
@@ -37,7 +38,15 @@ export function PreglediPage() {
   const inzenjeri = useInzenjeri();
   const toast = useToast();
   const [preuzima, setPreuzima] = useState(false);
-  const postavi = (izmena: Partial<PreglediFilteri>) => setF({ ...f, ...izmena, stranica: 1 });
+  const postavi = (izmena: Partial<PreglediFilteri>) => setF((x) => ({ ...x, ...izmena, stranica: 1 }));
+  const aktivni: AktivanFilter[] = [
+    ...(f.pretraga.trim() ? [{ kljuc: 'pretraga', labela: `„${f.pretraga.trim()}“`, kucanje: true, ukloni: () => postavi({ pretraga: '' }) }] : []),
+    ...(f.od ? [{ kljuc: 'od', labela: `od ${formatirajDatum(f.od)}`, ukloni: () => postavi({ od: '' }) }] : []),
+    ...(f.do ? [{ kljuc: 'do', labela: `do ${formatirajDatum(f.do)}`, ukloni: () => postavi({ do: '' }) }] : []),
+    ...(f.tip ? [{ kljuc: 'tip', labela: TIPOVI.find((x) => x.value === f.tip)?.label ?? f.tip, ukloni: () => postavi({ tip: null }) }] : []),
+    ...(f.status ? [{ kljuc: 'status', labela: STATUSI.find((x) => x.value === f.status)?.label ?? f.status, ukloni: () => postavi({ status: null }) }] : []),
+    ...(f.inzenjerId ? [{ kljuc: 'inzenjer', labela: inzenjeri.data?.find((x) => x.id === f.inzenjerId)?.ime ?? 'Inženjer', ukloni: () => postavi({ inzenjerId: null }) }] : []),
+  ];
 
   async function excel() {
     setPreuzima(true);
@@ -56,8 +65,8 @@ export function PreglediPage() {
         title="Pregledi"
         actions={<Button variant="secondary" onClick={() => void excel()} disabled={preuzima}><Download size={14} aria-hidden /> {preuzima ? 'Preuzimanje…' : 'Preuzmi Excel'}</Button>}
       />
-      <Card>
-        <CardBody className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      <FilterTraka aktivni={aktivni} kolone="sm:grid-cols-2 lg:grid-cols-6"
+        onObrisiSve={() => postavi({ pretraga: '', od: '', do: '', tip: null, status: null, inzenjerId: null })}>
           <Input aria-label="Broj pregleda" placeholder="Broj, npr. DP1-2026-0142" value={f.pretraga} onChange={(e) => postavi({ pretraga: e.target.value })} />
           <DatePicker aria-label="Od" value={f.od} onChange={(v) => postavi({ od: v })} placeholder="Od" />
           <DatePicker aria-label="Do" value={f.do} onChange={(v) => postavi({ do: v })} placeholder="Do" min={f.od || undefined} />
@@ -65,8 +74,7 @@ export function PreglediPage() {
           <Select aria-label="Status" value={f.status} options={STATUSI} placeholder="Svi statusi" nullable onChange={(v) => postavi({ status: v })} />
           <Select aria-label="Inženjer" value={f.inzenjerId} options={(inzenjeri.data ?? []).map((i) => ({ value: i.id, label: i.ime }))}
             placeholder="Svi inženjeri" nullable onChange={(v) => postavi({ inzenjerId: v })} />
-        </CardBody>
-      </Card>
+      </FilterTraka>
 
       {pregledi.isLoading ? <Ucitavanje /> : pregledi.isError ? (
         <p role="alert" className="text-sm text-red-600">{porukaGreske(pregledi.error, 'Arhiva nije učitana.')}</p>

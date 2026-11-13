@@ -5,8 +5,8 @@ import { FormField } from '../../components/ui/FormField';
 import { Modal } from '../../components/ui/Modal';
 import { Textarea } from '../../components/ui/Textarea';
 import { porukaGreske } from '../../lib/apiError';
-import { formatirajDatum, kratakDan } from '../../lib/datum';
-import { useOtkaziPregled, usePovuci, usePromeniTipDp, type PregledKalendarDto } from './hooks';
+import { dodajDane, formatirajDatum, kratakDan } from '../../lib/datum';
+import { useOtkaziPregled, usePovuci, usePromeniTipDp, useRaspored, type PregledKalendarDto } from './hooks';
 
 /**
  * Otkazivanje planiranog pregleda (zamerka 27). Za DP dve opcije: „Pomeri raspored“ (pregled se ne gubi — on i naredni DP-ovi
@@ -58,13 +58,16 @@ export function OtkazivanjeForma({ pregled, onDone, onBack }: { pregled: Pregled
 
 /**
  * „Promeni DP“ (zamerka 31): drugi tip planiranog DP-a, uz izbor da li se naredni planirani DP-ovi usklade (smena DP1/DP2).
- * Promenjeni pregledi dobijaju nove brojeve; stari se ne koriste ponovo.
+ * Pitanje se postavlja samo kad posle tog dana ima zakazanih DP-ova (zamerka 44). Promenjeni pregledi dobijaju nove brojeve;
+ * stari se ne koriste ponovo.
  */
 export function TipDpForma({ pregled, onDone, onBack }: { pregled: PregledKalendarDto; onDone: () => void; onBack: () => void }) {
   const promeni = usePromeniTipDp();
   const toast = useToast();
   const [greska, setGreska] = useState<string | null>(null);
   const novi = pregled.tip === 'DP1' ? 'DP2' : 'DP1';
+  const posle = useRaspored(dodajDane(pregled.planiraniDatum, 1), dodajDane(pregled.planiraniDatum, 366));
+  const naredni = posle.data?.pregledi.filter((x) => x.tip.startsWith('DP') && x.status === 'planiran' && x.planiraniDatum > pregled.planiraniDatum).length;
 
   async function posalji(uskladi: boolean) {
     try {
@@ -76,18 +79,34 @@ export function TipDpForma({ pregled, onDone, onBack }: { pregled: PregledKalend
     }
   }
 
+  const zauzeto = promeni.isPending || naredni === undefined;
   return (
     <div className="space-y-4 text-sm">
-      <p>{pregled.broj} ({formatirajDatum(pregled.planiraniDatum)}) postaje <b>{novi}</b> i dobija nov broj. Uskladiti i naredne planirane DP-ove?</p>
-      <ul className="space-y-1 text-gray-700">
-        <li><b>Da</b> — naredni planirani DP-ovi se preokrenu, pa smena DP1/DP2 ostaje ispravna.</li>
-        <li><b>Ne</b> — menja se samo ovaj dan.</li>
-      </ul>
+      {naredni ? (
+        <>
+          <p>
+            {pregled.broj} ({formatirajDatum(pregled.planiraniDatum)}) postaje <b>{novi}</b> i dobija nov broj. Posle ovog dana ima još{' '}
+            {naredni} {naredni === 1 ? 'zakazan DP' : 'zakazanih DP-ova'}. Uskladiti i {naredni === 1 ? 'njega' : 'njih'}?
+          </p>
+          <ul className="space-y-1 text-gray-700">
+            <li><b>Da</b> — naredni planirani DP-ovi se preokrenu, pa smena DP1/DP2 ostaje ispravna.</li>
+            <li><b>Ne</b> — menja se samo ovaj dan.</li>
+          </ul>
+        </>
+      ) : (
+        <p>{pregled.broj} ({formatirajDatum(pregled.planiraniDatum)}) postaje <b>{novi}</b> i dobija nov broj.</p>
+      )}
       {greska && <p role="alert" className="text-red-600">{greska}</p>}
       <div className="flex flex-wrap justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onBack} disabled={promeni.isPending}>Nazad</Button>
-        <Button type="button" variant="secondary" onClick={() => void posalji(false)} disabled={promeni.isPending}>Ne, samo ovaj</Button>
-        <Button type="button" onClick={() => void posalji(true)} disabled={promeni.isPending}>Da, uskladi naredne</Button>
+        {naredni ? (
+          <>
+            <Button type="button" variant="secondary" onClick={() => void posalji(false)} disabled={zauzeto}>Ne, samo ovaj</Button>
+            <Button type="button" onClick={() => void posalji(true)} disabled={zauzeto}>Da, uskladi naredne</Button>
+          </>
+        ) : (
+          <Button type="button" onClick={() => void posalji(false)} disabled={zauzeto}>Promeni u {novi}</Button>
+        )}
       </div>
     </div>
   );
@@ -97,7 +116,7 @@ export function TipDpForma({ pregled, onDone, onBack }: { pregled: PregledKalend
  * „Povuci raspored“ (zamerka 29): posle izmene je dan ostao bez DP-a usred niza. Povlačenjem ga preuzima prvi kasniji DP,
  * svaki sledeći ide dan unazad (redosled i brojevi ostaju), a poslednji zakazani dan ostaje slobodan.
  */
-export function PovlacenjeDijalog({ datum, onClose }: { datum: string; onClose: () => void }) {
+export function PovlacenjeDijalog({ datum, pz = false, onClose }: { datum: string; pz?: boolean; onClose: () => void }) {
   const povuci = usePovuci();
   const toast = useToast();
   const [greska, setGreska] = useState<string | null>(null);
@@ -116,6 +135,7 @@ export function PovlacenjeDijalog({ datum, onClose }: { datum: string; onClose: 
     <Modal open title="Dan je ostao bez DP-a" onClose={onClose}>
       <div className="space-y-3 text-sm">
         <p>{kratakDan(datum)}, {formatirajDatum(datum)} je sada slobodan, a posle njega ima zakazanih DP-ova.</p>
+        {pz && <p>Kad je PZ zakazan, DP-ovi su pomereni za dan napred. „Povuci raspored“ ih vraća kako su bili pre tog PZ-a.</p>}
         <ul className="space-y-1 text-gray-700">
           <li><b>Povuci raspored</b> — naredni DP-ovi idu dan unazad (redosled DP1/DP2 i inženjeri po danima ostaju); poslednji zakazani dan ostaje slobodan za sledeći predlog.</li>
           <li><b>Ostavi prazno</b> — taj dan ostaje bez DP-a.</li>
@@ -127,5 +147,14 @@ export function PovlacenjeDijalog({ datum, onClose }: { datum: string; onClose: 
         </div>
       </div>
     </Modal>
+  );
+}
+
+/** Upozorenje ispod datuma (zamerka 43): koji DP se pomera i šta se dešava sa narednima. */
+export function UpozorenjeDp({ dp, radnja }: { dp: PregledKalendarDto; radnja: string }) {
+  return (
+    <p role="status" className="rounded-md border border-amber-200 bg-amber-50 p-2 text-sm text-amber-900">
+      ⚠ Na taj dan je zakazan <b>{dp.broj} ({dp.dodeljen})</b>. Ako {radnja} PZ, on i svi naredni DP-ovi se pomeraju za jedan dan napred.
+    </p>
   );
 }

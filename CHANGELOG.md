@@ -6,6 +6,12 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- Zatvaranje akcije van pregleda: inženjer šalje „Zahtev za zatvaranje“ (šta je urađeno, kada, ko, po želji slika; radi i bez interneta), Supervizor ili Direktor odobrava ili odbija. I zatvaranje sa ekrana sada traži šta, kada i ko; to se vidi na akciji, u istoriji i u Excelu.
+- Detalj pregleda: „Rezime“ (otvara se prvi) i „Ceo pregled“ sa sekcijama kao dugmadima. Rezime pokazuje i akcije otvorene na pregledu, odgovore na ranije akcije, napomene uz ispravne stavke, „Sve ispravno“ i predloge izmene šablona.
+- PDF i Word: neispravno crveno, akcija plavo ispod stavke, van funkcije narandžasto; na kraju lista akcija sa pregleda.
+- Inženjer može da otkaže svoj zahtev za doradu, prebacivanje, raniji početak ili zatvaranje akcije dok čeka odluku.
+- Filteri na telefonu skupljeni iza dugmeta „Filteri“, izabrane vrednosti kao oznake sa × (8 ekrana sa listama).
+- Upozorenje kad se PZ zakazuje ili pomera na dan sa DP-om: taj DP i naredni idu dan napred.
 - Otkazivanje planiranog pregleda uz razlog; za DP „Pomeri raspored“ ili „Otkaži, zadrži raspored“. Otkazan pregled se ne računa u ispunjenje plana.
 - „Povuci raspored“ kad dan ostane bez DP-a usred niza (npr. pomeren ili otkazan PZ).
 - Predlog rasporeda: kvačica „Zakaži“ uz svaki dan i „Umetni i pomeri naredne“ za dan usred niza.
@@ -70,6 +76,13 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Uklonjen primer „Kategorije“ iz skeleta; početni ekran je **Početna**.
 
 ### Ispravljeno
+- Predugačka napomena ili opis akcije više ne blokira slanje sa telefona: polja imaju ograničenje i brojač, a server odbija samo tu promenu.
+- „Poništi pregled“ šalje obaveštenje inženjeru i onome ko je overio, i zatvara zahteve koji su čekali odluku.
+- Poništen pregled se ne računa za „Prošli put nije bio u funkciji“.
+- Pomeranje PZ-a na dan sa DP-om (i odobren raniji početak) pomera DP-ove kao i zakazivanje.
+- Pitanje „Da li je akcija urađena?“ više ne iskače na pregledu na kom je akcija otvorena, niti se vraća posle odgovora „Ne“.
+- „Promeni DP“ ne pita za naredne DP-ove kad ih nema.
+- Neradni dani nude godine od 2026; datum u prozoru za odsustvo se više ne seče; poravnata kvačica u filterima; oznaka „stavka sada ispravna“ svuda zelena.
 - Kad server ili baza nisu dostupni, aplikacija piše „Server trenutno nije dostupan. Pokušajte ponovo za minut.“ umesto tehničke poruke na engleskom.
 - „Predloži raspored“ više ne nudi dane koji su prošli.
 - Predlog rasporeda računa DP1/DP2 od DP-a dan pre (nisu mogla da nastanu dva ista zaredom).

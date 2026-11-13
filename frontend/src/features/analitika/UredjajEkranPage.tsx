@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { FilterTraka } from '../../components/ui/FilterTraka';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, QrCode } from 'lucide-react';
 import type { Smer } from '../../api/types';
@@ -137,12 +138,15 @@ function PreglediUredjaja({ e }: { e: UredjajEkranDto }) {
       <CardBody>
         {tab === 'svi' ? (
           <div className="space-y-3">
-            <div className="grid gap-2 sm:grid-cols-3">
+            <FilterTraka ugradjeno kolone="sm:grid-cols-3" aktivni={[
+              ...(stanje ? [{ kljuc: 'stanje', labela: STANJA[stanje as keyof typeof STANJA]?.labela ?? stanje, ukloni: () => setStanje(null) }] : []),
+              ...(tip ? [{ kljuc: 'tip', labela: tip, ukloni: () => setTip(null) }] : []),
+            ]} onObrisiSve={() => { setStanje(null); setTip(null); }}>
               <Select aria-label="Stanje uređaja" value={stanje} nullable placeholder="Sva stanja" onChange={setStanje}
                 options={Object.entries(STANJA).map(([value, s]) => ({ value, label: s.labela }))} />
               <Select aria-label="Tip pregleda" value={tip} nullable placeholder="Svi tipovi" onChange={setTip} options={tipovi.map((t) => ({ value: t, label: t }))} />
               <div className="sm:justify-self-end"><IzvozDugme url={`/uredjaji/${e.id}/pregledi.xlsx`} ime={`Pregledi ${e.prikaz}.xlsx`} /></div>
-            </div>
+            </FilterTraka>
             {lista.length === 0 ? <p className="text-sm text-gray-500">Nema pregleda.</p> : (
               <>
               {/* Na telefonu kartice (§8.1 t. 4), redosled je po datumu. */}

@@ -71,6 +71,22 @@ public class RasporedIzmeneTests
     }
 
     [Fact]
+    public async Task Pomeren_PZ_na_dan_sa_DP_om_pomera_DP_ove_kao_zakazivanje_zamerka_43()
+    {
+        var (h, ana, bora, ceca) = await HarnessAsync();
+        await using var _ = h;
+        // Pon DP1, uto DP2, sre DP1, čet DP2; PZ u petak.
+        await Sut(h, Pon).Handle(new PotvrdiRasporedCommand([new StavkaRasporeda(Pon, "DP1", ana), new StavkaRasporeda(Pon.AddDays(1), "DP2", bora),
+            new StavkaRasporeda(Pon.AddDays(2), "DP1", ana), new StavkaRasporeda(Pon.AddDays(3), "DP2", bora)]), default);
+        var pz = await Sut(h, Pon).Handle(new ZakaziPzCommand(Pon.AddDays(4), null, ceca, null), default);
+
+        var r = await Sut(h, Pon).Handle(new IzmeniDodeluCommand(pz.Id, null, Pon.AddDays(1)), default);
+
+        (await NizAsync(h)).Should().Equal((Pon, "DP1"), (Pon.AddDays(2), "DP2"), (Pon.AddDays(3), "DP1"), (Pon.AddDays(4), "DP2"));
+        r.SlobodanDan.Should().BeNull("petak je popunio pomereni niz");
+    }
+
+    [Fact]
     public async Task Otkazan_DP_sa_zadrzanim_rasporedom_se_ponistava_a_zahtev_se_zatvara()
     {
         var (h, ana, bora, _) = await HarnessAsync();

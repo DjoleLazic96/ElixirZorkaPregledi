@@ -49,11 +49,17 @@ export interface PregledDetaljDto {
   sekcije: { sifra: string; uredjaji: { uredjajId: number; naziv: string; vanFunkcije: boolean; stavke: DetaljStavkaDto[] }[] }[];
   istorija: { vrsta: string; opis: string; korisnik: string; at: string }[];
   sporniUnosi: { id: number; korisnik: string; opis: string; razlog: string; primljenoAt: string; odluka: string | null }[];
-  zahteviDorade: { id: number; podneo: string; razlog: string; status: string; kreiranoAt: string }[];
+  zahteviDorade: { id: number; podneo: string; podneoId?: string | null; razlog: string; status: string; kreiranoAt: string }[];
   /** Drugi inženjer na PZ-u sa svojim sekcijama (R3.14). */
   ucesnici: { korisnikId: string; ime: string; sekcije: string[] }[];
   /** Pregled u radu je vezan za uređaj na kome je započet (R10.5); Supervizor ga može otključati (zamerka 8). */
   vezanZaUredjaj?: boolean;
+  /** Akcije otvorene na ovom pregledu (zamerka 48). */
+  akcije?: { id: number; broj: string; stavkaId: number | null; uredjaj: string; aktivnost: string; vrsta: string; hitnost: string; opis: string | null; status: string }[];
+  /** Odgovori na pitanje „da li je akcija urađena“ dati na ovom pregledu. */
+  odgovoriNaAkcije?: { broj: string; uredjaj: string; aktivnost: string; uradjena: boolean }[];
+  /** Predlozi izmene šablona poslati sa ovog pregleda. */
+  predlozi?: { id: number; vrsta: string; opis: string; status: string }[];
 }
 
 export interface PreglediFilteri {

@@ -11,8 +11,10 @@ Klik na broj otvara pregled.
 ## 3.2 Detalj pregleda
 
 Gore su šablon i verzija, datumi, inženjer, početak i predaja, **aktivno vreme** i broj delova. Supervizor i Direktor vide i
-**upozorenja** (npr. sat telefona je odstupao, „Sve neoznačeno je ispravno“ upotrebljeno). Zatim **Problematične stavke** (sa
-napomenama, dodatnim poljima i slikama — klik na **Slika**), ceo pregled po sekcijama i **Istorija**. **PDF** i **Word** preuzimaju izveštaj (dok pregled ne počne, ne mogu da se kliknu).
+**upozorenja** (npr. sat telefona je odstupao, „Sve neoznačeno je ispravno“ upotrebljeno). Zatim kartica sa dva prikaza: **Rezime**
+(otvara se prvi: neispravne stavke sa napomenom, poljima, slikama i akcijom, uređaji van funkcije, akcije otvorene na pregledu, odgovori na
+ranije akcije, napomene uz ispravne stavke, „Sve ispravno“ i predlozi izmene šablona) i **Ceo pregled** (sekcije kao dugmad na vrhu —
+crvena ima neispravnu stavku; neispravno je crveno, akcija plavo, van funkcije narandžasto). Ispod je **Istorija**. **PDF** i **Word** preuzimaju izveštaj (dok pregled ne počne, ne mogu da se kliknu).
 Za planiran ili započet pregled Supervizor i Direktor ovde imaju i **Promeni u rasporedu** (inženjer, datum), a za PZ **Dodaj inženjera** — isto kao u Kalendaru.
 
 ## 3.3 Odluke (Supervizor, Direktor)
@@ -20,7 +22,7 @@ Za planiran ili započet pregled Supervizor i Direktor ovde imaju i **Promeni u 
 - **Overio** — pregled dobija status „Overen“; pamti se ko i kada.
 - **Vrati na doradu** — pre i posle overe; izaberite inženjera (predlaže se isti) i upišite razlog. Broj ostaje isti, dodaje se
   oznaka „dorada 1“; prethodna verzija ostaje u istoriji, a posle dorade pregled opet ide na overu.
-- **Poništi pregled** — uz razlog; pregled ostaje u arhivi kao „Poništen“.
+- **Poništi pregled** — uz razlog; pregled ostaje u arhivi kao „Poništen“. Inženjer i onaj ko je overio dobijaju obaveštenje, a zahtevi koji su čekali odluku se zatvaraju.
 - Supervizor ne može da vrati ni da poništi pregled koji je overio Direktor.
 - **Sporni unosi** — ako je inženjer bez interneta radio pregled koji je u međuvremenu prebačen ili poništen, njegovi odgovori
   čekaju ovde: **Primeni** ili **Odbaci**. Primeniti se može samo na pregled koji je u radu ili na doradi; ako je pregled
@@ -32,3 +34,4 @@ Za planiran ili započet pregled Supervizor i Direktor ovde imaju i **Promeni u 
 
 Na svom predatom ili overenom pregledu: **Zatraži doradu** uz razlog. Pre overe odlučuje Supervizor ili Direktor, posle overe onaj
 ko je overio ili Direktor. Kad je odobreno, pregled se otvara za izmene (**Popuni pregled**); vreme dorade se ne računa u aktivno vreme.
+Dok zahtev čeka odluku, možete ga **otkazati** (dugme uz zahtev) i poslati nov. Isto važi za zahtev za prebacivanje i raniji početak PZ-a.

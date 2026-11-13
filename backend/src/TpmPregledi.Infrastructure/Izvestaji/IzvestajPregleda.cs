@@ -6,12 +6,15 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using TpmPregledi.Application.Features.Pregledi;
+using TpmPregledi.Domain.Entities;
 
 namespace TpmPregledi.Infrastructure.Izvestaji;
 
 /// <summary>
 /// Izveštaji pregleda (R6.1, R11.1, R11.2): PDF (QuestPDF) i Word (OpenXML) sa istim sadržajem — zaglavlje sa verzijom
 /// šablona, rezime problematičnih stavki na početku, pa ceo pregled po sekcijama; Excel arhive (ClosedXML).
+/// Boje kao na ekranu (zamerka 48): neispravno crveno, akcija otvorena na pregledu plavo (ispod svoje stavke), van funkcije
+/// narandžasto; na kraju lista akcija otvorenih na pregledu i odgovori na ranije akcije.
 /// </summary>
 public sealed class IzvestajPregleda : IIzvestajPregleda
 {
@@ -43,6 +46,19 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
         ("Overio", p.Overio is null ? "—" : $"{p.Overio}, {Vreme(p.OverenoAt)}"),
     ];
 
+    private const string Crvena = "A00000";
+    private const string Plava = "1D4ED8";
+    private const string Narandzasta = "B45309";
+
+    /// <summary>„A-2026-0001 · Zameniti · Hitno — opis“.</summary>
+    private static string OpisAkcije(AkcijaNaPregleduDto a) =>
+        $"{a.Broj} · {AkcijaPravila.VrstaLabela.GetValueOrDefault(a.Vrsta, a.Vrsta)} · {AkcijaPravila.HitnostLabela.GetValueOrDefault(a.Hitnost, a.Hitnost)}{(a.Opis is null ? "" : $" — {a.Opis}")}";
+
+    private static string OpisOdgovora(OdgovorNaAkcijuDto o) =>
+        $"{o.Broj} ({o.Uredjaj} · {o.Aktivnost}): {(o.Uradjena ? "urađena" : "nije urađena, ostaje otvorena")}";
+
+    private static ILookup<int?, AkcijaNaPregleduDto> AkcijePoStavci(PregledDetaljDto p) => (p.Akcije ?? []).ToLookup(a => a.StavkaId);
+
     private static IEnumerable<(string Sekcija, DetaljUredjajDto Uredjaj, DetaljStavkaDto Stavka)> Problematicne(PregledDetaljDto p) =>
         p.Sekcije.SelectMany(s => s.Uredjaji.SelectMany(u => u.Stavke.Where(x => x.Neispravan).Select(x => (s.Sifra, u, x))));
 
@@ -68,8 +84,9 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
             foreach (var (sek, u, s) in problemi)
                 col.Item().Text($"Sekcija {sek} · {u.Naziv} · {s.Aktivnost}: {s.Odgovor}. {s.Napomena} {string.Join("; ", s.Polja)} {(s.Fotografije.Count > 0 ? $"({s.Fotografije.Count} slika)" : "")}".Trim());
             var van = p.Sekcije.SelectMany(s => s.Uredjaji.Where(u => u.VanFunkcije)).Select(u => u.Naziv).ToList();
-            if (van.Count > 0) col.Item().Text($"Nije u funkciji: {string.Join(", ", van)}");
+            if (van.Count > 0) col.Item().Text($"Nije u funkciji: {string.Join(", ", van)}").FontColor(Colors.Orange.Darken3);
 
+            var poStavci = AkcijePoStavci(p);
             foreach (var sek in p.Sekcije)
             {
                 col.Item().PaddingTop(8).Text($"Sekcija {sek.Sifra}").FontSize(11).SemiBold();
@@ -84,10 +101,24 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
                             t.Cell().Padding(2).Text(u.Naziv);
                             t.Cell().Padding(2).Text(s.Aktivnost);
                             var odg = t.Cell().Padding(2).Text(u.VanFunkcije ? "nije u funkciji" : s.Odgovor ?? "—");
-                            if (s.Neispravan) odg.FontColor(Colors.Red.Darken2).SemiBold();
-                            t.Cell().Padding(2).Text(string.Join(" ", new[] { s.Napomena, string.Join("; ", s.Polja) }.Where(x => !string.IsNullOrEmpty(x))));
+                            if (u.VanFunkcije) odg.FontColor(Colors.Orange.Darken3);
+                            else if (s.Neispravan) odg.FontColor(Colors.Red.Darken2).SemiBold();
+                            var nap = t.Cell().Padding(2).Text(string.Join(" ", new[] { s.Napomena, string.Join("; ", s.Polja) }.Where(x => !string.IsNullOrEmpty(x))));
+                            if (s.Neispravan) nap.FontColor(Colors.Red.Darken2);
+                            foreach (var a in poStavci[s.StavkaId])
+                                t.Cell().ColumnSpan(4).PaddingLeft(12).PaddingVertical(1).Text($"Akcija {OpisAkcije(a)}").FontColor(Colors.Blue.Darken2);
                         }
                 });
+            }
+
+            var akcije = p.Akcije ?? [];
+            col.Item().PaddingTop(8).Text($"Akcije otvorene na ovom pregledu ({akcije.Count})").FontSize(11).SemiBold();
+            if (akcije.Count == 0) col.Item().Text("Nema.");
+            foreach (var a in akcije) col.Item().Text($"{OpisAkcije(a)} ({a.Uredjaj} · {a.Aktivnost})").FontColor(Colors.Blue.Darken2);
+            if (p.OdgovoriNaAkcije is { Count: > 0 } odgovori)
+            {
+                col.Item().PaddingTop(4).Text("Odgovori na ranije akcije").SemiBold();
+                foreach (var o in odgovori) col.Item().Text(OpisOdgovora(o));
             }
         });
         page.Footer().AlignRight().Text(x => { x.Span("Strana "); x.CurrentPageNumber(); x.Span(" od "); x.TotalPages(); });
@@ -135,16 +166,33 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
             body.Append(Par($"Problematične stavke ({problemi.Count})", true, "24"));
             if (problemi.Count == 0) body.Append(Par("Nema neispravnih stavki."));
             foreach (var (sek, u, s) in problemi)
-                body.Append(Par($"Sekcija {sek} · {u.Naziv} · {s.Aktivnost}: {s.Odgovor}. {s.Napomena} {string.Join("; ", s.Polja)}".Trim(), false, null, "A00000"));
+                body.Append(Par($"Sekcija {sek} · {u.Naziv} · {s.Aktivnost}: {s.Odgovor}. {s.Napomena} {string.Join("; ", s.Polja)}".Trim(), false, null, Crvena));
+            var vanFunkcije = p.Sekcije.SelectMany(s => s.Uredjaji.Where(u => u.VanFunkcije)).Select(u => u.Naziv).ToList();
+            if (vanFunkcije.Count > 0) body.Append(Par($"Nije u funkciji: {string.Join(", ", vanFunkcije)}", false, null, Narandzasta));
+            var poStavci = AkcijePoStavci(p);
             foreach (var sek in p.Sekcije)
             {
                 body.Append(Par($"Sekcija {sek.Sifra}", true, "24"));
-                var redovi = new List<string[]> { new[] { "Uređaj", "Aktivnost", "Odgovor", "Napomena" } };
+                var t = Tabela([["Uređaj", "Aktivnost", "Odgovor", "Napomena"]], true);
                 foreach (var u in sek.Uredjaji)
                     foreach (var s in u.Stavke)
-                        redovi.Add([u.Naziv, s.Aktivnost, u.VanFunkcije ? "nije u funkciji" : s.Odgovor ?? "—",
-                            string.Join(" ", new[] { s.Napomena, string.Join("; ", s.Polja) }.Where(x => !string.IsNullOrEmpty(x)))]);
-                body.Append(Tabela(redovi, true));
+                    {
+                        var boja = u.VanFunkcije ? Narandzasta : s.Neispravan ? Crvena : null;
+                        t.Append(new W.TableRow(Celija(u.Naziv), Celija(s.Aktivnost), Celija(u.VanFunkcije ? "nije u funkciji" : s.Odgovor ?? "—", s.Neispravan, boja),
+                            Celija(string.Join(" ", new[] { s.Napomena, string.Join("; ", s.Polja) }.Where(x => !string.IsNullOrEmpty(x))), false, s.Neispravan ? Crvena : null)));
+                        foreach (var a in poStavci[s.StavkaId])
+                            t.Append(new W.TableRow(new W.TableCell(new W.TableCellProperties(new W.GridSpan { Val = 4 }), Par($"Akcija {OpisAkcije(a)}", false, null, Plava))));
+                    }
+                body.Append(t);
+            }
+            var akcije = p.Akcije ?? [];
+            body.Append(Par($"Akcije otvorene na ovom pregledu ({akcije.Count})", true, "24"));
+            if (akcije.Count == 0) body.Append(Par("Nema."));
+            foreach (var a in akcije) body.Append(Par($"{OpisAkcije(a)} ({a.Uredjaj} · {a.Aktivnost})", false, null, Plava));
+            if (p.OdgovoriNaAkcije is { Count: > 0 } odgovori)
+            {
+                body.Append(Par("Odgovori na ranije akcije", true));
+                foreach (var o in odgovori) body.Append(Par(OpisOdgovora(o)));
             }
             body.Append(new W.SectionProperties(new W.PageSize { Width = 11906, Height = 16838 }, new W.PageMargin { Top = 720, Bottom = 720, Left = 720, Right = 720 }));
         }
