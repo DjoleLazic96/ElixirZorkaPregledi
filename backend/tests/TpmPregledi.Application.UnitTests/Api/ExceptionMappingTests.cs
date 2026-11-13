@@ -28,6 +28,9 @@ public class ExceptionMappingTests
         [new BusinessRuleException("Pravilo."),                              422],
         [new Microsoft.AspNetCore.Http.BadHttpRequestException("Telo."),     400],
         [new InvalidOperationException("boom"),                              500],
+        [new Microsoft.EntityFrameworkCore.Storage.RetryLimitExceededException("x"), 503],
+        [new InvalidOperationException("transient", new Npgsql.NpgsqlException("x", new System.Net.Sockets.SocketException())), 503],
+        [new Npgsql.NpgsqlException("x"),                                    500],
     ];
 
     [Theory]
@@ -108,6 +111,21 @@ public class ExceptionMappingTests
 
         telo.GetProperty("detail").GetString().Should().Be("boom");
         telo.TryGetProperty("stack", out _).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Production")]
+    public async Task Nedostupna_baza_vraca_503_sa_srpskom_porukom_u_svakom_okruzenju(string okruzenje)
+    {
+        var ex = new InvalidOperationException("An exception has been raised that is likely due to a transient failure.",
+            new Npgsql.NpgsqlException("Failed to connect", new System.Net.Sockets.SocketException()));
+
+        var (status, telo) = await PokreniAsync(ex, okruzenje);
+
+        status.Should().Be(503);
+        telo.GetProperty("detail").GetString().Should().Be("Server trenutno nije dostupan. Pokušajte ponovo za minut.");
+        telo.TryGetProperty("stack", out _).Should().BeFalse();
     }
 
     [Fact]
