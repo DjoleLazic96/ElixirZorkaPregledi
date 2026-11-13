@@ -6,7 +6,7 @@
 
 - Osnova `/api/v1`; JSON camelCase; enumi camelCase stringovi; `Authorization: Bearer <jwt>`; refresh preko cookie-ja `tpm-pregledi.refresh` (Path `/api/v1/auth`).
 - Greške RFC 7807 `{ type, title, status, detail, traceId, errors?, greske? }`: **400** = validacija oblika (`errors{ Polje: [poruke] }`),
-  **422** = poslovno pravilo (`greske: [rečenice]`), 401 ista poruka za sve razloge, 403, 404, 409, 429, 500 (`detail` sa kodom za podršku).
+  **422** = poslovno pravilo (`greske: [rečenice]`), 401 ista poruka za sve razloge, 403, 404, 409, 429, 500 (`detail` sa kodom za podršku), 503 kad baza nije dostupna (`detail` „Server trenutno nije dostupan…“ u svakom okruženju).
 - Paginacija: `?stranica=1&velicina=50&sort=<polje>&smer=asc|desc&pretraga=` → `{ stavke, ukupno, stranica, velicina }`; `velicina` max 200.
 - Datumi: trenuci ISO UTC `Z`; dani `YYYY-MM-DD`.
 - Politike: `RequireAdmin` (Admin), `RequireKorisnik` (Admin ili Korisnik), `Authenticated` (bilo ko ulogovan), anonimno.

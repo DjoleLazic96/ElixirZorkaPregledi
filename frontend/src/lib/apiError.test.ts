@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { greskePoPolju, porukaGreske } from './apiError';
+import { greskePoPolju, PORUKA_SERVER_NEDOSTUPAN, porukaGreske } from './apiError';
 import { apiGreska } from '../test/utils';
 
 describe('lib/apiError — porukaGreske', () => {
@@ -25,6 +25,12 @@ describe('lib/apiError — porukaGreske', () => {
   it('vraća fallback kad odgovor nema telo (mreža, timeout)', () => {
     expect(porukaGreske(new Error('Network Error'), 'Prijava nije uspela.')).toBe('Prijava nije uspela.');
     expect(porukaGreske(undefined, 'fallback')).toBe('fallback');
+  });
+
+  it('server nedostupan: axios bez odgovora ili 502/503/504 bez problem+json tela', () => {
+    expect(porukaGreske({ isAxiosError: true }, 'Prijava nije uspela.')).toBe(PORUKA_SERVER_NEDOSTUPAN);
+    expect(porukaGreske({ isAxiosError: true, response: { status: 504, data: 'Gateway Timeout' } }, 'x')).toBe(PORUKA_SERVER_NEDOSTUPAN);
+    expect(porukaGreske({ isAxiosError: true, response: { status: 500, data: '' } }, 'x')).toBe('x');
   });
 
   it('za 500 vraća detail kakav jeste — kod za podršku je već u njemu', () => {

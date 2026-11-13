@@ -70,6 +70,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Uklonjen primer „Kategorije“ iz skeleta; početni ekran je **Početna**.
 
 ### Ispravljeno
+- Kad server ili baza nisu dostupni, aplikacija piše „Server trenutno nije dostupan. Pokušajte ponovo za minut.“ umesto tehničke poruke na engleskom.
 - „Predloži raspored“ više ne nudi dane koji su prošli.
 - Predlog rasporeda računa DP1/DP2 od DP-a dan pre (nisu mogla da nastanu dva ista zaredom).
 - Greška pri prijavi se najavljuje čitaču ekrana.

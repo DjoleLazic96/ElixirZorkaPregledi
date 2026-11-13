@@ -3,6 +3,8 @@ using System.Text.Json;
 using TpmPregledi.Api.Common;
 using TpmPregledi.Application.Common.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Npgsql;
 
 namespace TpmPregledi.Api.Middleware;
 
@@ -32,6 +34,9 @@ public sealed class ExceptionHandlingMiddleware(
     /// <summary>Poruka za 500 van Development-a; <c>{0}</c> je traceId.</summary>
     public const string Poruka500 = "Došlo je do neočekivane greške. Navedite ovaj kod podršci: {0}";
 
+    /// <summary>Detalj za 503 kad baza nije dostupna — ista rečenica u svim okruženjima (EF-ova poruka je tehnička i na engleskom).</summary>
+    public const string PorukaServerNedostupan = "Server trenutno nije dostupan. Pokušajte ponovo za minut.";
+
     /// <summary>Pokreće ostatak pipeline-a i pretvara izuzetak u problem+json odgovor.</summary>
     public async Task InvokeAsync(HttpContext ctx)
     {
@@ -57,20 +62,36 @@ public sealed class ExceptionHandlingMiddleware(
         BusinessRuleException         => (HttpStatusCode.UnprocessableEntity, "Poslovno pravilo nije ispunjeno"),
         // Telo koje framework ne može da pročita (npr. multipart bez fajla) je greška klijenta, ne servera.
         BadHttpRequestException       => (HttpStatusCode.BadRequest,          "Neispravan zahtev"),
+        _ when BazaNedostupna(ex)     => (HttpStatusCode.ServiceUnavailable,  "Server nije dostupan"),
         _                             => (HttpStatusCode.InternalServerError, "Neočekivana greška"),
     };
+
+    /// <summary>
+    /// Baza ne odgovara (ugašena, mreža): EF posle ponovnih pokušaja baca <see cref="RetryLimitExceededException"/> ili
+    /// <see cref="InvalidOperationException"/> sa <see cref="NpgsqlException"/> unutra, pa se gleda ceo lanac.
+    /// </summary>
+    public static bool BazaNedostupna(Exception? ex)
+    {
+        for (; ex is not null; ex = ex.InnerException)
+            if (ex is RetryLimitExceededException or NpgsqlException { IsTransient: true })
+                return true;
+        return false;
+    }
 
     private async Task HandleAsync(HttpContext ctx, Exception ex)
     {
         var (status, title) = MapStatus(ex);
         var traceId = TraceId.Trenutni(ctx);
 
-        if (status == HttpStatusCode.InternalServerError)
+        if (status >= HttpStatusCode.InternalServerError)
             logger.LogError(ex, "Neočekivana greška tokom obrade zahteva.");
 
-        var detail = status == HttpStatusCode.InternalServerError && !env.IsDevelopment()
-            ? string.Format(Poruka500, traceId)
-            : ex is DbUpdateConcurrencyException ? PorukaIstovremenaIzmena : ex.Message;
+        var detail = status switch
+        {
+            HttpStatusCode.ServiceUnavailable => PorukaServerNedostupan,
+            HttpStatusCode.InternalServerError when !env.IsDevelopment() => string.Format(Poruka500, traceId),
+            _ => ex is DbUpdateConcurrencyException ? PorukaIstovremenaIzmena : ex.Message,
+        };
 
         var problem = new Dictionary<string, object?>
         {

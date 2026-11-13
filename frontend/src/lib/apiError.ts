@@ -8,15 +8,21 @@ import type { ApiProblem } from '../api/types';
  *  2. `errors`   — 400 validacija: mapa polje → poruke, spoji sve
  *  3. `detail`   — RFC 7807 detalj (za 500 backend već u njemu navodi kod za podršku)
  *  4. `title`    — RFC 7807 naslov (generičan)
- *  5. `fallback` — kad odgovor ne nosi ništa od gore navedenog (mreža, timeout)
+ *  5. server nedostupan — axios bez odgovora ili 502/503/504 bez problem+json (API ili proxy ugašen)
+ *  6. `fallback` — kad odgovor ne nosi ništa od gore navedenog
  */
+export const PORUKA_SERVER_NEDOSTUPAN = 'Server trenutno nije dostupan. Pokušajte ponovo za minut.';
+
 export function porukaGreske(err: unknown, fallback: string): string {
-  const data = (err as { response?: { data?: ApiProblem } } | undefined)?.response?.data;
+  const e = err as { isAxiosError?: boolean; response?: { status?: number; data?: ApiProblem | string } } | undefined;
+  const data = typeof e?.response?.data === 'object' ? e.response.data : undefined;
   if (data?.greske && data.greske.length > 0) return data.greske.join(' ');
   if (data?.errors && Object.keys(data.errors).length > 0) {
     return Object.values(data.errors).flat().join(' ');
   }
-  return data?.detail || data?.title || fallback;
+  if (data?.detail || data?.title) return (data.detail || data.title)!;
+  if (e?.isAxiosError && (!e.response || [502, 503, 504].includes(e.response.status ?? 0))) return PORUKA_SERVER_NEDOSTUPAN;
+  return fallback;
 }
 
 /**
