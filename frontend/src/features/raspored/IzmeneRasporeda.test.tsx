@@ -5,7 +5,7 @@ import { api } from '../../api/client';
 import { odgovor, renderSaProviderima } from '../../test/utils';
 import type { PregledKalendarDto } from './hooks';
 import { danasYmd } from '../../lib/datum';
-import { godineNeradnih, oznakaPomeranja, preracunajTipove } from './kalendar';
+import { godineNeradnih, oznakaPomeranja, oznakaPregleda, preracunajTipove } from './kalendar';
 import { PregledKartica } from './KalendarPage';
 import { RasporedPage } from './RasporedPage';
 
@@ -44,6 +44,10 @@ describe('raspored — tipovi i oznake (zamerke 29, 30)', () => {
   it('crveno „nije urađen“ samo za propušten pregled, inače sivo „pomeren na“', () => {
     expect(oznakaPomeranja({ propusten: true }).tekst).toBe('nije urađen – prenet na');
     expect(oznakaPomeranja({ propusten: false }).tekst).toBe('pomeren na');
+  });
+
+  it('DP na neradnom danu dobija crvenu oznaku (zamerka 52)', () => {
+    expect(oznakaPregleda({ naNeradniDan: true, inzenjerOdsutan: true })?.tekst).toBe('na neradni dan');
   });
 
   it('neradni dani nude godine od 2026 do sledeće (zamerka 42)', () => {
@@ -148,6 +152,18 @@ describe('PZ na dan sa DP-om (zamerka 43)', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Zakaži PZ' }));
     const dijalog = await screen.findByRole('dialog', { name: 'Zakaži PZ' });
     expect(within(dijalog).queryByText(/Na taj dan je zakazan/)).not.toBeInTheDocument();
+    expect(within(dijalog).getByRole('button', { name: 'Zakaži' })).toBeInTheDocument();
+  });
+
+  it('započet DP ostaje — upozorenje to kaže, a dugme ostaje „Zakaži“ (zamerka 53)', async () => {
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url === '/raspored') return odgovor({ pregledi: [{ ...DP, status: 'u_radu', planiraniDatum: danasYmd() }], neradniDani: [], odsustva: [], dpNaDanPz: false });
+      return odgovor([]);
+    });
+    renderSaProviderima(<RasporedPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Zakaži PZ' }));
+    const dijalog = await screen.findByRole('dialog', { name: 'Zakaži PZ' });
+    expect(await within(dijalog).findByText(/je već započet i ostaje tog dana/)).toBeInTheDocument();
     expect(within(dijalog).getByRole('button', { name: 'Zakaži' })).toBeInTheDocument();
   });
 });

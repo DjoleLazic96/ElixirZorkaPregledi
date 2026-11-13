@@ -24,7 +24,7 @@ import {
   useZahteviPrebacivanja, type PregledKalendarDto, type RasporedDto,
 } from './hooks';
 import { OtkaziZahtev } from './OtkaziZahtev';
-import { STATUS_LABELA, bojaPregleda, ivicaPregleda, oznakaPomeranja, oznakaPregleda, stavkeDana } from './kalendar';
+import { STATUS_LABELA, bojaPregleda, ivicaPregleda, oznakaPomeranja, oznakaPregleda, pomeraSe, stavkeDana } from './kalendar';
 import { OtkazivanjeForma, PovlacenjeDijalog, TipDpForma, UpozorenjeDp } from './IzmeneRasporeda';
 
 /**
@@ -312,7 +312,7 @@ export function IzmenaForma({ pregled, onDone, onBack }: { pregled: PregledKalen
       {greska && <p role="alert" className="text-sm text-red-600">{greska}</p>}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onBack}>Nazad</Button>
-        <Button type="submit" disabled={izmeni.isPending}>{izmeni.isPending ? 'Čuvanje…' : dp ? 'Sačuvaj i pomeri DP-ove' : 'Sačuvaj'}</Button>
+        <Button type="submit" disabled={izmeni.isPending}>{izmeni.isPending ? 'Čuvanje…' : pomeraSe(dp) ? 'Sačuvaj i pomeri DP-ove' : 'Sačuvaj'}</Button>
       </div>
     </form>
   );

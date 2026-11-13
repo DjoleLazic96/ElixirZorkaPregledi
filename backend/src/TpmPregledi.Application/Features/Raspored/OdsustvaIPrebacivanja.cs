@@ -27,7 +27,8 @@ public sealed record GetNeradniDaniQuery(int Godina) : IRequest<IReadOnlyList<Ne
 /// <param name="Do">Poslednji dan.</param>
 /// <param name="Naziv">Naziv.</param>
 /// <param name="Vrsta">Vrsta.</param>
-public sealed record UnesiNeradneDaneCommand(DateOnly Od, DateOnly Do, string Naziv, string Vrsta) : IRequest<IReadOnlyList<NeradniDanDto>>;
+/// <param name="PomeriDp">Nezapočeti DP-ovi sa tih dana i naredni idu dalje u nizu (zamerka 52); ekran pita pre unosa.</param>
+public sealed record UnesiNeradneDaneCommand(DateOnly Od, DateOnly Do, string Naziv, string Vrsta, bool PomeriDp = false) : IRequest<IReadOnlyList<NeradniDanDto>>;
 
 /// <summary>Brisanje neradnog dana (pogrešan unos).</summary>
 /// <param name="Id">ID.</param>
@@ -47,7 +48,7 @@ public sealed class UnesiNeradneDaneValidator : AbstractValidator<UnesiNeradneDa
 }
 
 /// <summary>Neradni dani.</summary>
-public sealed class NeradniDaniHandler(IAppDbContext db, ICurrentUser currentUser) :
+public sealed class NeradniDaniHandler(IAppDbContext db, ICurrentUser currentUser, IDateTimeProvider clock) :
     IRequestHandler<GetNeradniDaniQuery, IReadOnlyList<NeradniDanDto>>,
     IRequestHandler<UnesiNeradneDaneCommand, IReadOnlyList<NeradniDanDto>>,
     IRequestHandler<ObrisiNeradniDanCommand>
@@ -68,6 +69,7 @@ public sealed class NeradniDaniHandler(IAppDbContext db, ICurrentUser currentUse
         var novi = dani.Select(d => new NeradniDan { Datum = d, Naziv = req.Naziv.Trim(), Vrsta = req.Vrsta, UneoId = currentUser.UserId }).ToList();
         db.NeradniDani.AddRange(novi);
         await db.SaveChangesAsync(ct);
+        if (req.PomeriDp) await RasporedHandler.PomeriDpSaNeradnihAsync(db, clock, req.Od, ct);
         return novi.Select(n => new NeradniDanDto(n.Id, n.Datum, n.Naziv, n.Vrsta)).ToList();
     }
 

@@ -25,7 +25,7 @@ import {
 } from './hooks';
 import { UpozorenjeDp } from './IzmeneRasporeda';
 import { PregledKartica } from './KalendarPage';
-import { bojaPregleda, ivicaPregleda, oznakaPomeranja, oznakaPregleda, preracunajTipove, stavkeDana } from './kalendar';
+import { bojaPregleda, ivicaPregleda, oznakaPomeranja, oznakaPregleda, pomeraSe, preracunajTipove, stavkeDana } from './kalendar';
 
 /**
  * „Raspored“ (Supervizor, Direktor): nedelja, predlog i potvrda DP-a (R3.10), zakazivanje PZ-a (R3.7, R3.8),
@@ -242,7 +242,7 @@ function PzModal({ onClose }: { onClose: () => void }) {
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>Odustani</Button>
           <Button type="submit" disabled={zakazi.isPending}>
-            {promena ? (dp ? 'Promeni PZ, zakaži i pomeri DP-ove' : 'Promeni PZ i zakaži') : dp ? 'Zakaži i pomeri DP-ove' : 'Zakaži'}
+            {promena ? (pomeraSe(dp) ? 'Promeni PZ, zakaži i pomeri DP-ove' : 'Promeni PZ i zakaži') : pomeraSe(dp) ? 'Zakaži i pomeri DP-ove' : 'Zakaži'}
           </Button>
         </div>
       </form>
@@ -316,7 +316,7 @@ function OdlukaPrebacivanja({ zahtev, onClose }: { zahtev: ZahtevPrebacivanjaDto
       {dp && <div className="mt-3"><UpozorenjeDp dp={dp} radnja="odobrite" /></div>}
       <div className="flex justify-end gap-2 pt-4">
         <Button variant="ghost" onClick={() => void posalji(false)} disabled={odluci.isPending}>Odbij</Button>
-        <Button onClick={() => void posalji(true)} disabled={odluci.isPending || (!raniji && !zamena)}>{dp ? 'Odobri i pomeri DP-ove' : 'Odobri'}</Button>
+        <Button onClick={() => void posalji(true)} disabled={odluci.isPending || (!raniji && !zamena)}>{pomeraSe(dp) ? 'Odobri i pomeri DP-ove' : 'Odobri'}</Button>
       </div>
     </Modal>
   );

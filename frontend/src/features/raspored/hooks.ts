@@ -30,6 +30,8 @@ export interface PregledKalendarDto {
   propusten?: boolean;
   /** Posle izmene: dan koji je ostao bez DP-a usred niza — nudi se „Povuci raspored“ (zamerka 29). */
   slobodanDan?: string | null;
+  /** DP stoji na neradnom danu (zamerka 52). */
+  naNeradniDan?: boolean;
 }
 
 export interface RasporedDto {
@@ -346,7 +348,7 @@ export function useNeradniDani(godina: number) {
 export function useUnesiNeradne() {
   const inv = useInvalidiraj();
   return useMutation({
-    mutationFn: async (v: { od: string; do: string; naziv: string; vrsta: string }) =>
+    mutationFn: async (v: { od: string; do: string; naziv: string; vrsta: string; pomeriDp?: boolean }) =>
       (await api.post<NeradniDanDto[]>('/neradni-dani', v)).data,
     onSuccess: inv,
   });
@@ -363,11 +365,11 @@ export function useObrisiNeradni() {
 }
 
 /**
- * Nezapočet DP na dan za koji se zakazuje ili na koji se pomera PZ (zamerka 43): na dan PZ-a DP se ne radi (R3.9), pa taj DP
- * i svi naredni idu dan napred. Null kad tog dana nema DP-a ili se DP radi i na dan PZ-a (podešavanje).
+ * DP na dan za koji se zakazuje ili na koji se pomera PZ: nezapočet se pomera napred (R3.9, zamerka 43), a započet ostaje
+ * i taj dan se rade i DP i PZ (zamerka 53). Null kad tog dana nema DP-a ili se DP radi i na dan PZ-a (podešavanje).
  */
 export function useDpKojiSePomera(datum: string | null): PregledKalendarDto | null {
   const r = useRaspored(datum ?? '', datum ?? '', datum !== null);
   if (!datum || !r.data || r.data.dpNaDanPz) return null;
-  return r.data.pregledi.find((p) => p.tip.startsWith('DP') && p.status === 'planiran' && p.planiraniDatum === datum) ?? null;
+  return r.data.pregledi.find((p) => p.tip.startsWith('DP') && (p.status === 'planiran' || p.status === 'u_radu') && p.planiraniDatum === datum) ?? null;
 }

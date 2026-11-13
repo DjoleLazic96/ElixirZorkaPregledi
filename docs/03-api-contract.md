@@ -106,7 +106,7 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 | POST | `/pregledi/{id}/ucesnici` `{ korisnikId, sekcije[] }` | raspored.uredjivanje | drugi inženjer na PZ-u (prazne sekcije = ukloni) |
 | POST | `/pregledi/{id}/otkazi` `{ razlog, pomeri }` | raspored.uredjivanje | otkazivanje planiranog; DP + `pomeri` = pomeri raspored; odgovor može imati `slobodanDan` (ponuditi povlačenje); 422 nije planiran |
 | PUT | `/pregledi/{id}/tip` `{ tip, uskladi }` | raspored.uredjivanje | „Promeni DP“; nov broj; `uskladi` preokreće naredne planirane DP-ove |
-| GET · POST · DELETE | `/neradni-dani?godina` · `/neradni-dani` `{ od, do, naziv, vrsta }` · `/neradni-dani/{id}` | RequireKorisnik · neradni_dani | |
+| GET · POST · DELETE | `/neradni-dani?godina` · `/neradni-dani` `{ od, do, naziv, vrsta, pomeriDp? }` · `/neradni-dani/{id}` | RequireKorisnik · neradni_dani | `pomeriDp`: nezapočeti DP-ovi sa tih dana i naredni idu dalje u nizu (zamerka 52) |
 | GET | `/odsustva?korisnikId&status` | RequireKorisnik | bez prava odobravanja samo svoja |
 | POST | `/odsustva` `{ korisnikId, od, do, vrsta, napomena, prebacivanja[] }` | odsustva.odobravanje | unos (odmah odobreno) sa prebacivanjem; 422 preklapanje, 422 započet pregled |
 | POST | `/odsustva/zahtev` `{ od, do, vrsta, napomena }` | pregledi.popunjavanje | zahtev za sebe |
