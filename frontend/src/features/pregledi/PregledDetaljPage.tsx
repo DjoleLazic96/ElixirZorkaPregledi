@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, FileText } from 'lucide-react';
+import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import { useToast } from '../../app/providers/ToastProvider';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -23,6 +23,7 @@ import { OtkazivanjeForma, PovlacenjeDijalog, TipDpForma } from '../raspored/Izm
 import { OtkaziZahtev } from '../raspored/OtkaziZahtev';
 import { statusLabela, tonStatusa, useOdluka, usePregled, type PregledDetaljDto } from './hooks';
 import { CeoPregled, RezimePregleda, UredjajStavke } from './PrikazPregleda';
+import { IzvozDugme } from './IzvozDugme';
 
 type Dijalog = null | 'vrati' | 'ponisti' | 'zatrazi' | 'raspored' | 'ucesnik' | 'otkazi' | 'tip';
 
@@ -84,12 +85,11 @@ export function PregledDetaljPage() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Button variant="ghost" onClick={() => navigate(-1)}><ArrowLeft size={14} aria-hidden /> Nazad</Button>
         <div className="flex flex-wrap gap-2" title={nezapocet ? 'Izveštaj postoji kad pregled počne.' : undefined}>
-          <Button variant="secondary" disabled={nezapocet} onClick={() => void preuzmiFajl(`/pregledi/${p.id}/izvoz`, { format: 'pdf' }, `${p.broj}.pdf`).catch((e) => toast.error(porukaGreske(e, 'Izvoz nije uspeo.')))}>
-            <FileText size={14} aria-hidden /> PDF
-          </Button>
-          <Button variant="secondary" disabled={nezapocet} onClick={() => void preuzmiFajl(`/pregledi/${p.id}/izvoz`, { format: 'docx' }, `${p.broj}.docx`).catch((e) => toast.error(porukaGreske(e, 'Izvoz nije uspeo.')))}>
-            <FileText size={14} aria-hidden /> Word
-          </Button>
+          {(['pdf', 'docx'] as const).map((format) => (
+            <IzvozDugme key={format} oznaka={format === 'pdf' ? 'PDF' : 'Word'} disabled={nezapocet}
+              onIzaberi={(prikaz) => void preuzmiFajl(`/pregledi/${p.id}/izvoz`, { format, prikaz }, `${p.broj}${prikaz === 'rezime' ? '-rezime' : ''}.${format}`)
+                .catch((e) => toast.error(porukaGreske(e, 'Izvoz nije uspeo.')))} />
+          ))}
         </div>
       </div>
 

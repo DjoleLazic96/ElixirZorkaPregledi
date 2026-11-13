@@ -31,7 +31,8 @@ obaveštenja stižu kad se veza vrati. Ista obaveštenja stižu i mejlom. Kad se
 | Obaveštenje | Kada |
 |---|---|
 | Pregled nije započet | DP ili PZ nije započet do vremena upozorenja (podrazumevano 13:00) |
-| Dnevni rezime | posle kraja radnog dana: predato, propušteno, čeka overu, hitne akcije, novi kvarovi |
+| Dnevni rezime | svakog radnog dana posle kraja radnog dana: predato, propušteno, koji je DP prenet i kome, čeka overu, hitne akcije, novi kvarovi; ako tog dana nije bilo pregleda — „Danas nije bilo zakazanih pregleda. Proverite raspored.“ Klik otvara kalendar. Vikendom i na neradne dane bez pregleda ne stiže. |
+| Sporni unosi | inženjer je bez interneta radio pregled koji je u međuvremenu prebačen ili poništen; unos čeka **Primeni** / **Odbaci** (dobijaju ga i onaj ko je prebacio, novi inženjer i sam inženjer) |
 | Podsetnik za overu | pregled čeka overu duže od roka (sati radnih dana, vikend se ne broji) |
 | Hitna akcija | na pregledu je otvorena akcija „Hitno“ |
 | Istekao rok akcije | jednom, kad akciji istekne rok |

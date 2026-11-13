@@ -347,6 +347,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                         PregledId = op.PregledId, KorisnikId = currentUser.UserId!, Razlog = razlog, PrimljenoAt = clock.UtcNow,
                         Operacija = JsonSerializer.Serialize(op, Json),
                     });
+                    await ObavestiOSpornomAsync(op.PregledId, razlog == "Pregled je poništen.", ct);
                     await db.SaveChangesAsync(ct);
                 }
                 return razlog;
@@ -367,6 +368,30 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 if (pokusaj >= NajvisePokusaja) return PorukaNijeSacuvana;
             }
         }
+    }
+
+    /// <summary>
+    /// Zamerka 60: stigli su sporni unosi — primaocima (podrazumevano Supervizor i Direktor), onome ko je prebacio ili poništio
+    /// pregled, novom inženjeru i samom inženjeru. Jednom dnevno po pregledu i inženjeru, ma koliko operacija stiglo.
+    /// </summary>
+    private async Task ObavestiOSpornomAsync(int pregledId, bool ponisten, CancellationToken ct)
+    {
+        var ja = currentUser.UserId!;
+        var p = await db.Pregledi.AsNoTracking().Where(x => x.Id == pregledId).Select(x => new { x.Broj, x.DodeljenId }).FirstAsync(ct);
+        var ime = await db.Users.Where(u => u.Id == ja).Select(u => u.FullName).FirstOrDefaultAsync(ct) ?? "Inženjer";
+        var ko = await db.PregledDogadjaji.AsNoTracking()
+            .Where(d => d.PregledId == pregledId && d.KorisnikId != null && d.KorisnikId != ja
+                        && (d.Vrsta == "izmena_rasporeda" || d.Vrsta == "prebacivanje" || d.Vrsta == "ponistavanje"))
+            .OrderByDescending(d => d.At).Select(d => d.KorisnikId).FirstOrDefaultAsync(ct);
+        var sta = ponisten ? "poništen" : "dodeljen drugom inženjeru";
+        var kljuc = $"sporan_unos:{pregledId}:{ja}:{clock.Today:yyyy-MM-dd}";
+        var drugi = ponisten || p.DodeljenId == ja ? null : p.DodeljenId;
+        var primaoci = (await Obavesti.PrimaociAsync(db, VrsteObavestenja.SporanUnos, ct)).Append(ko).Append(drugi).Where(x => x != ja);
+        await Obavesti.DodajAsync(db, primaoci, VrsteObavestenja.SporanUnos, $"Sporni unosi: {p.Broj}",
+            $"{ime} je bez interneta radio {p.Broj}, a pregled je u međuvremenu {sta}. Unos čeka odluku na stranici pregleda (Primeni / Odbaci).",
+            $"/pregledi/{pregledId}", kljuc, clock.UtcNow, ct);
+        await Obavesti.DodajAsync(db, [ja], VrsteObavestenja.SporanUnos, $"{p.Broj} je {sta}",
+            $"Pregled {p.Broj} je u međuvremenu {sta} — vaš unos čeka odluku Supervizora ili Direktora.", $"/pregledi/{pregledId}", kljuc, clock.UtcNow, ct);
     }
 
     /// <summary>Sat telefona koji odstupa više od dozvoljenog (R5.1) se beleži kontroloru; inženjer ne vidi poruku.</summary>

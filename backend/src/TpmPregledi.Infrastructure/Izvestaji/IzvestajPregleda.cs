@@ -14,7 +14,8 @@ namespace TpmPregledi.Infrastructure.Izvestaji;
 /// Izveštaji pregleda (R6.1, R11.1, R11.2): PDF (QuestPDF) i Word (OpenXML) sa istim sadržajem — zaglavlje sa verzijom
 /// šablona, rezime problematičnih stavki na početku, pa ceo pregled po sekcijama; Excel arhive (ClosedXML).
 /// Boje kao na ekranu (zamerka 48): neispravno crveno, akcija otvorena na pregledu plavo (ispod svoje stavke), van funkcije
-/// narandžasto; na kraju lista akcija otvorenih na pregledu i odgovori na ranije akcije.
+/// narandžasto; na kraju lista akcija otvorenih na pregledu i odgovori na ranije akcije. Neispravno je i podebljano, da se vidi
+/// na crno-belom papiru (zamerka 62). „Rezime“ ima isto što i rezime na ekranu, bez tabela po sekcijama.
 /// </summary>
 public sealed class IzvestajPregleda : IIzvestajPregleda
 {
@@ -62,13 +63,32 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
     private static IEnumerable<(string Sekcija, DetaljUredjajDto Uredjaj, DetaljStavkaDto Stavka)> Problematicne(PregledDetaljDto p) =>
         p.Sekcije.SelectMany(s => s.Uredjaji.SelectMany(u => u.Stavke.Where(x => x.Neispravan).Select(x => (s.Sifra, u, x))));
 
+    private static string OpisProblema(string sek, DetaljUredjajDto u, DetaljStavkaDto s) =>
+        $"Sekcija {sek} · {u.Naziv} · {s.Aktivnost}: {s.Odgovor}. {s.Napomena} {string.Join("; ", s.Polja)} {(s.Fotografije.Count > 0 ? $"({s.Fotografije.Count} slika)" : "")}".Trim();
+
+    /// <summary>Napomene uz ispravne stavke (samo u rezimeu, kao na ekranu).</summary>
+    private static IEnumerable<string> NapomeneUzIspravne(PregledDetaljDto p) =>
+        p.Sekcije.SelectMany(s => s.Uredjaji.Where(u => !u.VanFunkcije).SelectMany(u => u.Stavke
+            .Where(x => !x.Neispravan && !string.IsNullOrEmpty(x.Napomena)).Select(x => $"Sekcija {s.Sifra} · {u.Naziv} · {x.Aktivnost}: {x.Napomena}")));
+
+    private static readonly Dictionary<string, string> StatusPredloga = new() { ["zahtev"] = "čeka odluku", ["odobren"] = "odobren", ["odbijen"] = "odbijen", ["duplikat"] = "duplikat" };
+
+    /// <summary>Dodatni odeljci rezimea: naslov i redovi (prazni se ne prikazuju).</summary>
+    private static IEnumerable<(string Naslov, IReadOnlyList<string> Redovi)> OstatakRezimea(PregledDetaljDto p) =>
+        new (string Naslov, IReadOnlyList<string> Redovi)[]
+        {
+            ("Napomene uz ispravne stavke", NapomeneUzIspravne(p).ToList()),
+            ("„Sve ispravno“", p.Istorija.Where(d => d.Vrsta == "sve_ispravno").Select(d => d.Opis).ToList()),
+            ("Predlozi izmene šablona sa ovog pregleda", (p.Predlozi ?? []).Select(x => $"{x.Opis} · {StatusPredloga.GetValueOrDefault(x.Status, x.Status)}").ToList()),
+        }.Where(x => x.Redovi.Count > 0);
+
     /// <inheritdoc />
-    public byte[] Pdf(PregledDetaljDto p) => QuestPDF.Fluent.Document.Create(doc => doc.Page(page =>
+    public byte[] Pdf(PregledDetaljDto p, bool rezime = false) => QuestPDF.Fluent.Document.Create(doc => doc.Page(page =>
     {
         page.Size(PageSizes.A4);
         page.Margin(28);
         page.DefaultTextStyle(t => t.FontSize(9));
-        page.Header().Text($"TPM pregled {p.Broj}").FontSize(14).SemiBold();
+        page.Header().Text($"TPM pregled {p.Broj}{(rezime ? " — rezime" : "")}").FontSize(14).SemiBold();
         page.Content().PaddingVertical(8).Column(col =>
         {
             col.Spacing(6);
@@ -81,13 +101,18 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
             var problemi = Problematicne(p).ToList();
             col.Item().PaddingTop(6).Text($"Problematične stavke ({problemi.Count})").FontSize(11).SemiBold();
             if (problemi.Count == 0) col.Item().Text("Nema neispravnih stavki.");
+            var poStavci = AkcijePoStavci(p);
             foreach (var (sek, u, s) in problemi)
-                col.Item().Text($"Sekcija {sek} · {u.Naziv} · {s.Aktivnost}: {s.Odgovor}. {s.Napomena} {string.Join("; ", s.Polja)} {(s.Fotografije.Count > 0 ? $"({s.Fotografije.Count} slika)" : "")}".Trim());
+            {
+                col.Item().Text(OpisProblema(sek, u, s)).FontColor(Colors.Red.Darken2).Bold();
+                if (rezime)
+                    foreach (var a in poStavci[s.StavkaId])
+                        col.Item().PaddingLeft(12).Text($"Akcija {OpisAkcije(a)}").FontColor(Colors.Blue.Darken2);
+            }
             var van = p.Sekcije.SelectMany(s => s.Uredjaji.Where(u => u.VanFunkcije)).Select(u => u.Naziv).ToList();
             if (van.Count > 0) col.Item().Text($"Nije u funkciji: {string.Join(", ", van)}").FontColor(Colors.Orange.Darken3);
 
-            var poStavci = AkcijePoStavci(p);
-            foreach (var sek in p.Sekcije)
+            foreach (var sek in rezime ? [] : p.Sekcije)
             {
                 col.Item().PaddingTop(8).Text($"Sekcija {sek.Sifra}").FontSize(11).SemiBold();
                 col.Item().Table(t =>
@@ -102,9 +127,9 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
                             t.Cell().Padding(2).Text(s.Aktivnost);
                             var odg = t.Cell().Padding(2).Text(u.VanFunkcije ? "nije u funkciji" : s.Odgovor ?? "—");
                             if (u.VanFunkcije) odg.FontColor(Colors.Orange.Darken3);
-                            else if (s.Neispravan) odg.FontColor(Colors.Red.Darken2).SemiBold();
+                            else if (s.Neispravan) odg.FontColor(Colors.Red.Darken2).Bold();
                             var nap = t.Cell().Padding(2).Text(string.Join(" ", new[] { s.Napomena, string.Join("; ", s.Polja) }.Where(x => !string.IsNullOrEmpty(x))));
-                            if (s.Neispravan) nap.FontColor(Colors.Red.Darken2);
+                            if (s.Neispravan) nap.FontColor(Colors.Red.Darken2).Bold();
                             foreach (var a in poStavci[s.StavkaId])
                                 t.Cell().ColumnSpan(4).PaddingLeft(12).PaddingVertical(1).Text($"Akcija {OpisAkcije(a)}").FontColor(Colors.Blue.Darken2);
                         }
@@ -112,20 +137,29 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
             }
 
             var akcije = p.Akcije ?? [];
-            col.Item().PaddingTop(8).Text($"Akcije otvorene na ovom pregledu ({akcije.Count})").FontSize(11).SemiBold();
-            if (akcije.Count == 0) col.Item().Text("Nema.");
-            foreach (var a in akcije) col.Item().Text($"{OpisAkcije(a)} ({a.Uredjaj} · {a.Aktivnost})").FontColor(Colors.Blue.Darken2);
+            if (!rezime || akcije.Count > 0)
+            {
+                col.Item().PaddingTop(8).Text($"Akcije otvorene na ovom pregledu ({akcije.Count})").FontSize(11).SemiBold();
+                if (akcije.Count == 0) col.Item().Text("Nema.");
+                foreach (var a in akcije) col.Item().Text($"{OpisAkcije(a)} ({a.Uredjaj} · {a.Aktivnost})").FontColor(Colors.Blue.Darken2);
+            }
             if (p.OdgovoriNaAkcije is { Count: > 0 } odgovori)
             {
                 col.Item().PaddingTop(4).Text("Odgovori na ranije akcije").SemiBold();
                 foreach (var o in odgovori) col.Item().Text(OpisOdgovora(o));
             }
+            if (rezime)
+                foreach (var (naslov, redovi) in OstatakRezimea(p))
+                {
+                    col.Item().PaddingTop(8).Text(naslov).FontSize(11).SemiBold();
+                    foreach (var r in redovi) col.Item().Text(r);
+                }
         });
         page.Footer().AlignRight().Text(x => { x.Span("Strana "); x.CurrentPageNumber(); x.Span(" od "); x.TotalPages(); });
     })).GeneratePdf();
 
     /// <inheritdoc />
-    public byte[] Docx(PregledDetaljDto p)
+    public byte[] Docx(PregledDetaljDto p, bool rezime = false)
     {
         using var ms = new MemoryStream();
         using (var w = WordprocessingDocument.Create(ms, WordprocessingDocumentType.Document))
@@ -160,17 +194,21 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
                 return t;
             }
 
-            body.Append(Par($"TPM pregled {p.Broj}", true, "32"));
+            body.Append(Par($"TPM pregled {p.Broj}{(rezime ? " — rezime" : "")}", true, "32"));
             body.Append(Tabela(Zaglavlje(p).Select(z => new[] { z.Labela, z.Vrednost }), false));
             var problemi = Problematicne(p).ToList();
             body.Append(Par($"Problematične stavke ({problemi.Count})", true, "24"));
             if (problemi.Count == 0) body.Append(Par("Nema neispravnih stavki."));
+            var poStavci = AkcijePoStavci(p);
             foreach (var (sek, u, s) in problemi)
-                body.Append(Par($"Sekcija {sek} · {u.Naziv} · {s.Aktivnost}: {s.Odgovor}. {s.Napomena} {string.Join("; ", s.Polja)}".Trim(), false, null, Crvena));
+            {
+                body.Append(Par(OpisProblema(sek, u, s), true, null, Crvena));
+                if (rezime)
+                    foreach (var a in poStavci[s.StavkaId]) body.Append(Par($"    Akcija {OpisAkcije(a)}", false, null, Plava));
+            }
             var vanFunkcije = p.Sekcije.SelectMany(s => s.Uredjaji.Where(u => u.VanFunkcije)).Select(u => u.Naziv).ToList();
             if (vanFunkcije.Count > 0) body.Append(Par($"Nije u funkciji: {string.Join(", ", vanFunkcije)}", false, null, Narandzasta));
-            var poStavci = AkcijePoStavci(p);
-            foreach (var sek in p.Sekcije)
+            foreach (var sek in rezime ? [] : p.Sekcije)
             {
                 body.Append(Par($"Sekcija {sek.Sifra}", true, "24"));
                 var t = Tabela([["Uređaj", "Aktivnost", "Odgovor", "Napomena"]], true);
@@ -179,21 +217,30 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
                     {
                         var boja = u.VanFunkcije ? Narandzasta : s.Neispravan ? Crvena : null;
                         t.Append(new W.TableRow(Celija(u.Naziv), Celija(s.Aktivnost), Celija(u.VanFunkcije ? "nije u funkciji" : s.Odgovor ?? "—", s.Neispravan, boja),
-                            Celija(string.Join(" ", new[] { s.Napomena, string.Join("; ", s.Polja) }.Where(x => !string.IsNullOrEmpty(x))), false, s.Neispravan ? Crvena : null)));
+                            Celija(string.Join(" ", new[] { s.Napomena, string.Join("; ", s.Polja) }.Where(x => !string.IsNullOrEmpty(x))), s.Neispravan, s.Neispravan ? Crvena : null)));
                         foreach (var a in poStavci[s.StavkaId])
                             t.Append(new W.TableRow(new W.TableCell(new W.TableCellProperties(new W.GridSpan { Val = 4 }), Par($"Akcija {OpisAkcije(a)}", false, null, Plava))));
                     }
                 body.Append(t);
             }
             var akcije = p.Akcije ?? [];
-            body.Append(Par($"Akcije otvorene na ovom pregledu ({akcije.Count})", true, "24"));
-            if (akcije.Count == 0) body.Append(Par("Nema."));
-            foreach (var a in akcije) body.Append(Par($"{OpisAkcije(a)} ({a.Uredjaj} · {a.Aktivnost})", false, null, Plava));
+            if (!rezime || akcije.Count > 0)
+            {
+                body.Append(Par($"Akcije otvorene na ovom pregledu ({akcije.Count})", true, "24"));
+                if (akcije.Count == 0) body.Append(Par("Nema."));
+                foreach (var a in akcije) body.Append(Par($"{OpisAkcije(a)} ({a.Uredjaj} · {a.Aktivnost})", false, null, Plava));
+            }
             if (p.OdgovoriNaAkcije is { Count: > 0 } odgovori)
             {
                 body.Append(Par("Odgovori na ranije akcije", true));
                 foreach (var o in odgovori) body.Append(Par(OpisOdgovora(o)));
             }
+            if (rezime)
+                foreach (var (naslov, redovi) in OstatakRezimea(p))
+                {
+                    body.Append(Par(naslov, true, "24"));
+                    foreach (var r in redovi) body.Append(Par(r));
+                }
             body.Append(new W.SectionProperties(new W.PageSize { Width = 11906, Height = 16838 }, new W.PageMargin { Top = 720, Bottom = 720, Left = 720, Right = 720 }));
         }
         return ms.ToArray();

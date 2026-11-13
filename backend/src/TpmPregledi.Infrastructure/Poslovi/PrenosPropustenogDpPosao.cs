@@ -1,3 +1,4 @@
+using System.Text.Json;
 using TpmPregledi.Application.Common.Interfaces;
 using TpmPregledi.Application.Features.Podesavanja;
 using TpmPregledi.Application.Features.Raspored;
@@ -13,13 +14,14 @@ namespace TpmPregledi.Infrastructure.Poslovi;
 /// <summary>
 /// Prenos propuštenog DP-a (R3.3): jednom dnevno, posle „Kraja radnog dana“ (podešavanje, po beogradskom vremenu),
 /// današnji DP koji nije započet ide na sledeći radni dan, a raspored se pomera. Idempotentno: poslednji obrađen dan
-/// se pamti u <c>podesavanje._poslednjiPrenos</c>, a i sam prenos dira samo DP koji je i dalje na današnjem danu.
+/// se pamti u <c>podesavanje._poslednjiPrenos</c>, a i sam prenos dira samo DP koji je i dalje na tom danu. Dani kada
+/// server nije radio u vreme kraja radnog dana obrađuju se posle paljenja (zamerka 59, <see cref="PrenosPropustenog"/>).
 /// Bez Hangfire/Quartz (spec §5.2).
 /// </summary>
 public sealed class PrenosPropustenogDpPosao(IServiceScopeFactory scopes, ILogger<PrenosPropustenogDpPosao> log) : BackgroundService
 {
     /// <summary>Ključ u <c>podesavanje</c> (nije deo <see cref="PodesavanjaDto"/>, pa ga forma ne prikazuje).</summary>
-    public const string KljucPoslednji = "_poslednjiPrenos";
+    public const string KljucPoslednji = PrenosPropustenog.KljucPoslednji;
 
     private static readonly TimeZoneInfo Beograd = TimeZoneInfo.FindSystemTimeZoneById(
         OperatingSystem.IsWindows() ? "Central European Standard Time" : "Europe/Belgrade");
@@ -42,7 +44,7 @@ public sealed class PrenosPropustenogDpPosao(IServiceScopeFactory scopes, ILogge
         }
     }
 
-    /// <summary>Jedan prolaz: ako je prošao kraj radnog dana i danas još nije obrađen, prenosi.</summary>
+    /// <summary>Jedan prolaz: obrađuje dane posle poslednjeg obrađenog (danas tek kad prođe kraj radnog dana).</summary>
     public async Task JednomAsync(CancellationToken ct)
     {
         await using var scope = scopes.CreateAsyncScope();
@@ -51,18 +53,20 @@ public sealed class PrenosPropustenogDpPosao(IServiceScopeFactory scopes, ILogge
 
         var podesavanja = await new PodesavanjaHandler(db).Handle(new GetPodesavanjaQuery(), ct);
         var lokalno = TimeZoneInfo.ConvertTimeFromUtc(clock.UtcNow, Beograd);
-        if (TimeOnly.FromDateTime(lokalno) < podesavanja.KrajRadnogDana) return;
-
         var danas = clock.Today;
-        var oznaka = $"\"{danas:yyyy-MM-dd}\"";
         var red = await db.Podesavanja.FirstOrDefaultAsync(p => p.Kljuc == KljucPoslednji, ct);
-        if (red?.Vrednost == oznaka) return;
+        DateOnly? poslednji = red is null ? null : JsonSerializer.Deserialize<DateOnly>(red.Vrednost);
+        var dani = PrenosPropustenog.DaniZaObradu(poslednji, danas, TimeOnly.FromDateTime(lokalno) >= podesavanja.KrajRadnogDana);
 
-        var broj = await scope.ServiceProvider.GetRequiredService<IMediator>().Send(new PrenesiCommand(danas), ct);
-        if (red is null) db.Podesavanja.Add(new Podesavanje { Kljuc = KljucPoslednji, Vrednost = oznaka });
-        else red.Vrednost = oznaka;
-        await db.SaveChangesAsync(ct);
-
-        if (broj > 0) log.LogInformation("Prenos propuštenog DP-a za {Dan}: pomereno {Broj} pregleda.", danas, broj);
+        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+        foreach (var dan in dani)
+        {
+            var broj = await mediator.Send(new PrenesiCommand(dan), ct);
+            var oznaka = JsonSerializer.Serialize(dan);
+            if (red is null) db.Podesavanja.Add(red = new Podesavanje { Kljuc = KljucPoslednji, Vrednost = oznaka });
+            else red.Vrednost = oznaka;
+            await db.SaveChangesAsync(ct);
+            if (broj > 0) log.LogInformation("Prenos propuštenog DP-a za {Dan}: pomereno {Broj} pregleda.", dan, broj);
+        }
     }
 }

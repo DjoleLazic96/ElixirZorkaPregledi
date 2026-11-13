@@ -104,9 +104,12 @@ public static class VrsteObavestenja
     /// <summary>Novi predlog izmene šablona (Direktoru i Adminu).</summary>
     public const string PredlogSablona = "predlog_sablona";
 
+    /// <summary>Stigli su sporni unosi (zamerka 60): pregled je prebačen ili poništen dok ga je inženjer radio bez interneta.</summary>
+    public const string SporanUnos = "sporan_unos";
+
     /// <summary>Probno obaveštenje (provera push-a na telefonu).</summary>
     public const string Probno = "probno";
 
     /// <summary>Vrste čije primaoce bira Admin.</summary>
-    public static readonly IReadOnlyList<string> Podesive = [NijeZapocet, Rezime, RokOvere, HitnaAkcija, RokAkcije, PonovljeniKvar, VanFunkcije, PredlogRasporeda];
+    public static readonly IReadOnlyList<string> Podesive = [NijeZapocet, Rezime, RokOvere, HitnaAkcija, RokAkcije, PonovljeniKvar, VanFunkcije, PredlogRasporeda, SporanUnos];
 }

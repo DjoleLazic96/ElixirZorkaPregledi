@@ -151,6 +151,43 @@ public class ObavestenjaTests
     }
 
     [Fact]
+    public async Task Rezime_navodi_preneti_DP_i_stize_radnim_danom_i_bez_pregleda_zamerka_61()
+    {
+        var o = await PripremiAsync();
+        await using var _ = o.H;
+        // Utorak 10.11.: DP1 nije ni započet i prenet je na sredu (Bora); prenos za danas je obrađen.
+        var p = await PregledAsync(o, "DP1-2026-0001", new DateOnly(2026, 11, 10));
+        TpmPregledi.Application.Features.Raspored.PregledIstorija.Dodaj(o.H.Db, p, "prenos",
+            new { razlog = "propusten", stari = new { datum = new DateOnly(2026, 11, 10), inzenjer = "Ana Anić" }, novi = new { datum = new DateOnly(2026, 11, 11), inzenjer = "Bora Borić" } },
+            null, new DateTime(2026, 11, 10, 14, 0, 0, DateTimeKind.Utc));
+        p.PlaniraniDatum = new DateOnly(2026, 11, 11);
+        o.H.Db.Podesavanja.Add(new Podesavanje { Kljuc = PrenosPropustenog.KljucPoslednji, Vrednost = "\"2026-11-10\"" });
+        await o.H.Db.SaveChangesAsync();
+
+        await new ZakazaneProvereHandler(o.H.Db, Sat(10, 14, 1)).Handle(new PokreniProvereCommand(), default);
+        var rezime = (await SvaAsync(o)).First(x => x.Vrsta == VrsteObavestenja.Rezime);
+        rezime.Tekst.Should().Contain("Preneto: DP1-2026-0001 (Ana Anić) → sre 11.11. Bora Borić; naredni DP-ovi pomereni za dan.");
+        rezime.Link.Should().Be("/kalendar");
+
+        // Četvrtak bez pregleda: rezime ipak stiže (posle 15 min i bez zapisa prenosa); subota bez pregleda: ne.
+        await new ZakazaneProvereHandler(o.H.Db, Sat(12, 14, 20)).Handle(new PokreniProvereCommand(), default);
+        (await SvaAsync(o)).Should().Contain(x => x.Kljuc == "rezime:2026-11-12" && x.Tekst == "Danas nije bilo zakazanih pregleda. Proverite raspored.");
+        await new ZakazaneProvereHandler(o.H.Db, Sat(14, 14, 20)).Handle(new PokreniProvereCommand(), default);
+        (await SvaAsync(o)).Should().NotContain(x => x.Kljuc == "rezime:2026-11-14");
+    }
+
+    [Theory]
+    [InlineData(null, "2026-11-10", true, new[] { "2026-11-10" })]
+    [InlineData(null, "2026-11-10", false, new string[0])]
+    [InlineData("2026-11-09", "2026-11-10", false, new string[0])]
+    [InlineData("2026-11-10", "2026-11-10", true, new string[0])]
+    [InlineData("2026-11-06", "2026-11-10", false, new[] { "2026-11-07", "2026-11-08", "2026-11-09" })]
+    [InlineData("2026-11-06", "2026-11-10", true, new[] { "2026-11-07", "2026-11-08", "2026-11-09", "2026-11-10" })]
+    public void Prenos_obradjuje_i_dane_kad_server_nije_radio_zamerka_59(string? poslednji, string danas, bool prosaoKraj, string[] ocekivano) =>
+        PrenosPropustenog.DaniZaObradu(poslednji is null ? null : DateOnly.Parse(poslednji), DateOnly.Parse(danas), prosaoKraj)
+            .Should().Equal(ocekivano.Select(DateOnly.Parse));
+
+    [Fact]
     public async Task Promena_dodele_i_ishod_odsustva_obavestavaju_inzenjera()
     {
         var o = await PripremiAsync();

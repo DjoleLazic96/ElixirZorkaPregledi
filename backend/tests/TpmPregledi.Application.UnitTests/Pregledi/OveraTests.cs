@@ -75,6 +75,14 @@ public class OveraTests
         var izv = new IzvestajPregleda();
         izv.Pdf(d).Should().HaveCountGreaterThan(1000);
         izv.Docx(d).Should().HaveCountGreaterThan(1000);
+        // Zamerka 62: rezime je kraći od celog pregleda (bez tabela po sekcijama), ali ima neispravnu stavku.
+        izv.Pdf(d, rezime: true).Length.Should().BeLessThan(izv.Pdf(d).Length);
+        using (var w = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(new MemoryStream(izv.Docx(d, rezime: true)), false))
+        {
+            var tekst = w.MainDocumentPart!.Document.Body!.InnerText;
+            tekst.Should().Contain("— rezime").And.Contain("Ne okreće").And.NotContain("Uređaj" + "Aktivnost");
+            w.MainDocumentPart.Document.Body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Table>().Should().HaveCount(1, "samo zaglavlje");
+        }
         var arhiva = await Kao(o, o.Sup, Roles.Supervizor).Handle(new GetPreglediQuery(new PreglediFilteri(null, null, null, null, null, null)), default);
         arhiva.Stavke.Single().Neispravnih.Should().Be(1);
         izv.Excel(arhiva.Stavke).Should().HaveCountGreaterThan(1000);

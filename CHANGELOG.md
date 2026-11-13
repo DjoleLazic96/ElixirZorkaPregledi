@@ -6,6 +6,9 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- PDF i Word: izbor „Rezime“ ili „Ceo pregled“; neispravno je podebljano, pa se vidi i na crno-belom papiru.
+- Dnevni rezime stiže svakog radnog dana, navodi koji je DP prenet i kome, i javlja kad tog dana nije bilo pregleda; klik otvara kalendar.
+- Obaveštenje „Sporni unosi“ kad stigne unos inženjera za pregled koji je u međuvremenu prebačen ili poništen.
 - Deaktivacija inženjera sa zakazanim pregledima nudi prebacivanje na zamene.
 - Posle skraćenog ili otkazanog odsustva nudi se „Vrati preglede“; posle brisanja neradnog dana „Povuci raspored“.
 - Svoj pregled niko ne overava niti vraća na doradu, ni sa pravom „overa“.
@@ -81,6 +84,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Uklonjen primer „Kategorije“ iz skeleta; početni ekran je **Početna**.
 
 ### Ispravljeno
+- Ako server nije radio u vreme kraja radnog dana, propušten DP se prenese čim se server upali.
 - DP koji je započet, a predat posle kraja radnog dana, više se ne prenosi kao propušten i ne pomera raspored narednih DP-ova; u ispunjenju plana broji se kao „kasnije“.
 - Kad se telefon probudi ili su otvorene dve kartice, korisnik više ne biva povremeno izbačen uz „Sesija je istekla“ (obnove prijave idu jedna po jedna).
 - Predugačka napomena ili opis akcije više ne blokira slanje sa telefona: polja imaju ograničenje i brojač, a server odbija samo tu promenu.
