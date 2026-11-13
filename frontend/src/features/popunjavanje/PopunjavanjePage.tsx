@@ -113,6 +113,10 @@ export function PopunjavanjePage() {
       toast.error(`Pregled još nije potpun: nedostaje ${n.odgovora} odgovora i ${n.napomena} obaveznih napomena.`);
       return;
     }
+    if (n.polja.length > 0) {
+      toast.error(`Nedostaje ${n.polja.length} ${n.polja.length === 1 ? 'obavezno polje' : 'obaveznih polja'} (${n.polja.slice(0, 5).join('; ')}${n.polja.length > 5 ? '; …' : ''}).`);
+      return;
+    }
     if (await posalji({ vrsta: 'predaja', podaci: {} }, navigator.onLine ? 'Pregled je predat.' : 'Predato – čeka slanje.')) {
       // Kalendar, Početna i lista još drže stari status (keš 30 s); posle predaje sve se učitava iznova.
       void qc.invalidateQueries();
@@ -391,7 +395,9 @@ export function StavkaRed({ pregledId, stavka, moja, posalji }: { pregledId: num
             onChange={(e) => { void slika(e.target.files?.[0], 'galerija'); e.target.value = ''; }} />
         </div>
       )}
-      {stavka.fotografije.length > 0 && <SlikeStavke pregledId={pregledId} stavkaId={stavka.stavkaId} ids={stavka.fotografije} moja={moja} />}
+      {stavka.fotografije.length > 0 && (
+        <SlikeStavke pregledId={pregledId} stavkaId={stavka.stavkaId} ids={stavka.fotografije} stare={stavka.stareFotografije ?? []} moja={moja} />
+      )}
       {akcijaOtvorena && <NovaAkcija stavka={stavka} posalji={posalji} onClose={() => setAkcijaOtvorena(false)} />}
     </li>
   );
@@ -401,7 +407,7 @@ export function StavkaRed({ pregledId, stavka, moja, posalji }: { pregledId: num
  * Sličice dodatih slika (zamerka 5). Dodir otvara sliku, a iz nje se briše (uz potvrdu) dok pregled nije predat.
  * Neposlata slika se čita sa telefona, poslata sa servera.
  */
-function SlikeStavke({ pregledId, stavkaId, ids, moja }: { pregledId: number; stavkaId: number; ids: number[]; moja: boolean }) {
+function SlikeStavke({ pregledId, stavkaId, ids, stare, moja }: { pregledId: number; stavkaId: number; ids: number[]; stare: number[]; moja: boolean }) {
   const [otvorena, setOtvorena] = useState<{ id: number; src: string } | null>(null);
   const toast = useToast();
   function obrisi(id: number) {
@@ -416,7 +422,8 @@ function SlikeStavke({ pregledId, stavkaId, ids, moja }: { pregledId: number; st
         <Modal open title="Slika" onClose={() => setOtvorena(null)}>
           <img src={otvorena.src} alt="Slika uz stavku" className="mx-auto max-h-[60vh] rounded-lg object-contain" />
           <div className="flex justify-end gap-2 pt-4">
-            {moja && <Button variant="danger" onClick={() => obrisi(otvorena.id)}>Obriši sliku</Button>}
+            {moja && !stare.includes(otvorena.id) && <Button variant="danger" onClick={() => obrisi(otvorena.id)}>Obriši sliku</Button>}
+            {stare.includes(otvorena.id) && <span className="self-center text-xs text-gray-500">Slika iz predate verzije se ne briše.</span>}
             <Button variant="ghost" onClick={() => setOtvorena(null)}>Zatvori</Button>
           </div>
         </Modal>

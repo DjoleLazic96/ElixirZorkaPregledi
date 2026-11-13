@@ -14,6 +14,9 @@ public interface IFajlSkladiste
 
     /// <summary>Otvara fajl za čitanje.</summary>
     Stream Otvori(Fajl fajl);
+
+    /// <summary>Briše fajl sa diska (posle uspešnog brisanja zapisa iz baze); nepostojeći fajl nije greška.</summary>
+    void Obrisi(Fajl fajl) { }
 }
 
 /// <summary>Slika uz stavku (R4.5).</summary>
@@ -51,8 +54,13 @@ public sealed class FotografijeHandler(IAppDbContext db, IFajlSkladiste skladist
         if (p.DodeljenId != currentUser.UserId && p.Ucesnici.All(u => u.KorisnikId != currentUser.UserId))
             throw new ForbiddenException("Ovaj pregled je dodeljen drugom inženjeru.");
         if (p.Status is not (StatusPregleda.URadu or StatusPregleda.VracenNaDoradu)) throw new BusinessRuleException("Predat pregled se menja samo kroz doradu.");
-        if (!await db.SablonStavke.AnyAsync(s => s.Id == req.StavkaId && s.VerzijaId == p.SablonVerzijaId, ct))
-            throw new BusinessRuleException("Stavka nije u ovom pregledu.");
+        var sekcija = await db.SablonStavke.Where(s => s.Id == req.StavkaId && s.VerzijaId == p.SablonVerzijaId)
+            .Select(s => db.Sekcije.Where(x => x.Id == s.SekcijaId).Select(x => x.Sifra).First()).FirstOrDefaultAsync(ct)
+            ?? throw new BusinessRuleException("Stavka nije u ovom pregledu.");
+        // PZ sa dva inženjera: slika ide samo u svoju sekciju, kao i odgovor (zamerka 16).
+        var radi = p.Ucesnici.FirstOrDefault(u => u.Sekcije.Contains(sekcija))?.KorisnikId ?? p.DodeljenId;
+        if (radi != currentUser.UserId) throw new BusinessRuleException($"Sekciju {sekcija} radi drugi inženjer.");
+        if (!JeSlika(req.Sadrzaj)) throw new BusinessRuleException("Fajl nije slika (dozvoljeni su JPG, PNG i WebP).");
         if (await db.Fotografije.CountAsync(f => f.PregledId == p.Id && f.StavkaId == req.StavkaId, ct) >= NajviseSlika)
             throw new BusinessRuleException("Najviše 5 slika po stavci.");
 
@@ -61,7 +69,7 @@ public sealed class FotografijeHandler(IAppDbContext db, IFajlSkladiste skladist
         var f = new Fotografija
         {
             PregledId = p.Id, StavkaId = req.StavkaId, Izvor = req.Izvor == "galerija" ? "galerija" : "kamera",
-            KorisnikId = currentUser.UserId!, KlijentId = req.KlijentId, KreiranoAt = clock.UtcNow,
+            KorisnikId = currentUser.UserId!, KlijentId = req.KlijentId, KreiranoAt = clock.UtcNow, Dorada = p.Dorada,
         };
         await db.SaveChangesAsync(ct);
         f.FajlId = fajl.Id;
@@ -69,6 +77,12 @@ public sealed class FotografijeHandler(IAppDbContext db, IFajlSkladiste skladist
         await db.SaveChangesAsync(ct);
         return f.Id;
     }
+
+    /// <summary>Stvarni format po prvim bajtovima (JPEG, PNG, WebP) — tip koji pošalje telefon se ne uzima na reč (zamerka 16).</summary>
+    public static bool JeSlika(byte[] b) =>
+        (b.Length >= 3 && b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF)
+        || (b.Length >= 8 && b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47 && b[4] == 0x0D && b[5] == 0x0A && b[6] == 0x1A && b[7] == 0x0A)
+        || (b.Length >= 12 && b[0] == 0x52 && b[1] == 0x49 && b[2] == 0x46 && b[3] == 0x46 && b[8] == 0x57 && b[9] == 0x45 && b[10] == 0x42 && b[11] == 0x50);
 
     /// <inheritdoc />
     public async Task<(Stream Sadrzaj, string Mime)> Handle(GetFotografijaQuery req, CancellationToken ct)

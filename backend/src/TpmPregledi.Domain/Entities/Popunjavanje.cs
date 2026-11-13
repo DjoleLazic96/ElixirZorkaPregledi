@@ -82,6 +82,9 @@ public class Fotografija
     /// <summary>ID sa klijenta — ponovljeno slanje iste slike ne pravi duplikat.</summary>
     public Guid KlijentId { get; set; }
 
+    /// <summary>Dorada u kojoj je slika dodata (0 = prvo popunjavanje); u doradi se brišu samo slike te dorade (zamerka 15).</summary>
+    public int Dorada { get; set; }
+
     /// <summary>Kada je primljena (UTC).</summary>
     public DateTime KreiranoAt { get; set; }
 }

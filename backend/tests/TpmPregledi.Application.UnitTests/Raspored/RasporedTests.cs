@@ -319,6 +319,24 @@ public class RasporedTests
     }
 
     [Fact]
+    public async Task Ne_moze_se_zakazati_ni_pomeriti_na_dan_koji_je_prosao()
+    {
+        var (h, ana, _, _) = await HarnessAsync();
+        await using var __ = h;
+        var sut = new RasporedHandler(h.Db, new FakeBrojac(), new FakeCurrentUser(), new FakeClock(new DateTime(2026, 11, 10, 9, 0, 0, DateTimeKind.Utc)));
+        const string poruka = RasporedHandler.PorukaProsliDan;
+
+        (await FluentActions.Awaiting(() => sut.Handle(new PotvrdiRasporedCommand([new StavkaRasporeda(Pon, "DP1", ana)]), default))
+            .Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Contain(poruka);
+        (await FluentActions.Awaiting(() => sut.Handle(new ZakaziPzCommand(Pon, "PZ1", ana, null), default))
+            .Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal(poruka);
+
+        var danas = (await sut.Handle(new PotvrdiRasporedCommand([new StavkaRasporeda(Pon.AddDays(1), "DP1", ana)]), default)).Single();
+        (await FluentActions.Awaiting(() => sut.Handle(new IzmeniDodeluCommand(danas.Id, null, Pon), default))
+            .Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal(poruka);
+    }
+
+    [Fact]
     public void Podesavanja_imaju_DP_na_dan_PZ_iskljuceno_podrazumevano()
         => PodesavanjaDto.Podrazumevana.DpNaDanPz.Should().BeFalse();
 }

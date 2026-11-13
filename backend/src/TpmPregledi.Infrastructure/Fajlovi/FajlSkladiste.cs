@@ -39,4 +39,11 @@ public sealed class FajlSkladiste(IConfiguration config, IDateTimeProvider clock
         if (!puna.StartsWith(Koren, StringComparison.Ordinal)) throw new InvalidOperationException("Neispravna putanja fajla.");
         return File.OpenRead(puna);
     }
+
+    /// <inheritdoc />
+    public void Obrisi(Fajl fajl)
+    {
+        var puna = Path.GetFullPath(Path.Combine(Koren, fajl.Putanja));
+        if (puna.StartsWith(Koren, StringComparison.Ordinal) && File.Exists(puna)) File.Delete(puna);
+    }
 }

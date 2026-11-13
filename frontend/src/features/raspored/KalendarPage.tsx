@@ -282,7 +282,7 @@ export function IzmenaForma({ pregled, onDone, onBack }: { pregled: PregledKalen
         <Select id="izm-inz" value={inz} onChange={setInz} options={(inzenjeri.data ?? []).map((i) => ({ value: i.id, label: i.ime }))} />
       </FormField>
       <FormField label="Datum" htmlFor="izm-datum" hint={pregled.status === 'u_radu' ? 'Započetom pregledu se menja samo inženjer.' : undefined}>
-        <DatePicker id="izm-datum" value={datum} onChange={setDatum} clearable={false} disabled={pregled.status !== 'planiran'} />
+        <DatePicker id="izm-datum" value={datum} onChange={setDatum} min={danasYmd()} clearable={false} disabled={pregled.status !== 'planiran'} />
       </FormField>
       {greska && <p role="alert" className="text-sm text-red-600">{greska}</p>}
       <div className="flex justify-end gap-2">

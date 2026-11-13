@@ -194,6 +194,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
         var greske = new List<string>();
         foreach (var s in req.Stavke)
         {
+            if (s.Datum < clock.Today) greske.Add(PorukaProsliDan);
             if (!k.JeDanZaDp(s.Datum)) greske.Add($"{s.Datum:dd.MM.yyyy} nije dan za DP (vikend, neradni dan ili dan PZ-a).");
             if (zauzeti.Contains(s.Datum) || dani.Count(d => d == s.Datum) > 1) greske.Add($"Za {s.Datum:dd.MM.yyyy} DP je već u rasporedu.");
             if (s.InzenjerId is null || !k.Inzenjeri.Contains(s.InzenjerId)) greske.Add($"Za {s.Datum:dd.MM.yyyy} izaberite aktivnog inženjera.");
@@ -211,7 +212,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
                 PrvobitniDatum = s.Datum, DodeljenId = s.InzenjerId!, KreiranoAt = sada,
             };
             db.Pregledi.Add(p);
-            PregledIstorija.Dodaj(db, p, "dodela", new { inzenjer = k.Ime(p.DodeljenId), datum = p.PlaniraniDatum }, currentUser.UserId, sada);
+            PregledIstorija.Dodaj(db, p, "dodela", new { inzenjer = k.Ime(p.DodeljenId), inzenjerId = p.DodeljenId, datum = p.PlaniraniDatum }, currentUser.UserId, sada);
             novi.Add(p);
         }
         foreach (var g in novi.GroupBy(p => p.DodeljenId))
@@ -231,10 +232,17 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
     /// <inheritdoc />
     public async Task<string> Handle(SledeciPzQuery _, CancellationToken ct) => RasporedPravila.SledeciPz(await PoslednjiPzAsync(ct));
 
+    /// <summary>
+    /// Zakazivanje i pomeranje u prošlost nije dozvoljeno (zamerka 18): takav pregled bi se odmah započeo, a sve bi se upisalo
+    /// kao urađeno tog dana (kvarovi, ispunjenje plana, istorija uređaja). Promena samo inženjera na starom pregledu ostaje dozvoljena.
+    /// </summary>
+    public const string PorukaProsliDan = "Ne može se zakazati za dan koji je prošao.";
+
     /// <inheritdoc />
     public async Task<PregledKalendarDto> Handle(ZakaziPzCommand req, CancellationToken ct)
     {
         var k = await RasporedKontekst.UcitajAsync(db, ct);
+        if (req.Datum < clock.Today) throw new BusinessRuleException(PorukaProsliDan);
         k.ProveriInzenjera(req.InzenjerId);
         k.ProveriDostupnost(req.InzenjerId, req.Datum);
         var sledeci = RasporedPravila.SledeciPz(await PoslednjiPzAsync(ct));
@@ -253,7 +261,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
         };
         db.Pregledi.Add(p);
         PregledIstorija.Dodaj(db, p, tip == sledeci ? "dodela" : "promena_pz",
-            new { inzenjer = k.Ime(p.DodeljenId), datum = p.PlaniraniDatum, sledeciPoRedu = sledeci, napomena = p.Napomena }, currentUser.UserId, sada);
+            new { inzenjer = k.Ime(p.DodeljenId), inzenjerId = p.DodeljenId, datum = p.PlaniraniDatum, sledeciPoRedu = sledeci, napomena = p.Napomena }, currentUser.UserId, sada);
         await Obavesti.DodajAsync(db, [p.DodeljenId], VrsteObavestenja.Dodela, $"Zakazan {p.Broj}", $"Dodeljen vam je {p.Broj} za {p.PlaniraniDatum:dd.MM.yyyy}.", "/kalendar", null, sada, ct);
         await db.SaveChangesAsync(ct);
 
@@ -276,7 +284,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
         if (p.Status is not (StatusPregleda.Planiran or StatusPregleda.URadu))
             throw new BusinessRuleException("Dodela se menja samo pregledu koji nije predat.");
 
-        var stari = new { inzenjer = k.Ime(p.DodeljenId), datum = p.PlaniraniDatum };
+        var stari = new { inzenjer = k.Ime(p.DodeljenId), inzenjerId = p.DodeljenId, datum = p.PlaniraniDatum };
         var stariId = p.DodeljenId;
         var stariDatum = p.PlaniraniDatum;
         if (req.InzenjerId is not null)
@@ -286,6 +294,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
         }
         if (req.Datum is { } d)
         {
+            if (d < clock.Today) throw new BusinessRuleException(PorukaProsliDan);
             if (p.JeDp && !k.JeDanZaDp(d)) throw new BusinessRuleException($"{d:dd.MM.yyyy} nije dan za DP.");
             if (p.JeDp && await db.Pregledi.AnyAsync(x => x.Id != p.Id && x.Tip.StartsWith("DP") && x.PlaniraniDatum == d && x.Status != StatusPregleda.Ponisten, ct))
                 throw new BusinessRuleException($"Za {d:dd.MM.yyyy} DP je već u rasporedu.");
@@ -322,7 +331,7 @@ public sealed class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICu
         }
         else postojeci.Sekcije = [.. req.Sekcije];
 
-        PregledIstorija.Dodaj(db, p, "ucesnik", new { inzenjer = k.Ime(req.KorisnikId), sekcije = req.Sekcije }, currentUser.UserId, clock.UtcNow);
+        PregledIstorija.Dodaj(db, p, "ucesnik", new { inzenjer = k.Ime(req.KorisnikId), inzenjerId = req.KorisnikId, sekcije = req.Sekcije }, currentUser.UserId, clock.UtcNow);
         await db.SaveChangesAsync(ct);
         return Dto(p, k);
     }

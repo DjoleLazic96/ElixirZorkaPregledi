@@ -9,6 +9,13 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-13 — Kvar određuje najnoviji predat pregled; zakazivanje u prošlost zabranjeno (odobreno)
+
+**Kontekst:** testiranje 13.11. (zamerke 11 i 18): dorada ili kasna predaja starijeg pregleda je ponovo otvarala kvar koji je noviji pregled zatvorio, a pregled se mogao zakazati za prošli dan.
+**Odluka:** stanje kvara za stavku (uređaj + aktivnost) menja samo najnoviji predat pregled (po planiranom danu, pa po vremenu predaje); stariji samo ostaje u istoriji pregleda. Zakazivanje i pomeranje na prošli dan je zabranjeno (R3.27).
+**Posledice:** `ObradiKvaroveAsync` preskače stavke za koje postoji noviji predat pregled; 422 „Ne može se zakazati za dan koji je prošao.“ na potvrdi predloga, PZ-u i promeni datuma.
+**Odlučio:** vlasnik projekta (2026-11-13).
+
 ## 2026-11-10 — Izmena i otkazivanje odsustva; spisak svih odsustava (odobreno)
 
 **Kontekst:** uneto ili odobreno odsustvo nije moglo da se promeni ni otkaže, a Direktor nije imao mesto gde vidi sva odsustva.

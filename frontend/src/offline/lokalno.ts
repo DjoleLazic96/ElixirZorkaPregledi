@@ -52,14 +52,24 @@ export function primeniLokalno(p: PopunjavanjeDto, op: Operacija, sada: string):
 }
 
 /** Ono što predaja traži, izračunato lokalno — da inženjer i bez interneta vidi šta nedostaje. */
-export function nedostaje(p: PopunjavanjeDto): { odgovora: number; napomena: number } {
+export function nedostaje(p: PopunjavanjeDto): { odgovora: number; napomena: number; polja: string[] } {
   let odgovora = 0;
   let napomena = 0;
+  const polja: string[] = [];
   for (const s of p.sekcije)
     for (const u of s.uredjaji.filter((x) => !x.vanFunkcije))
       for (const st of u.stavke) {
-        if (!st.odgovor) odgovora++;
-        else if (st.odgovor.vrednost === 1 && !st.odgovor.napomena?.trim()) napomena++;
+        if (!st.odgovor) {
+          odgovora++;
+          continue;
+        }
+        if (st.odgovor.vrednost === 1 && !st.odgovor.napomena?.trim()) napomena++;
+        // Obavezna dodatna polja koja se vide uz ovaj odgovor (zamerka 13), isto kao na serveru.
+        for (const pd of st.polja.filter((x) => x.obavezno && (x.prikaz === 'uvek' || st.odgovor!.vrednost === 1))) {
+          const v = st.odgovor.polja?.[String(pd.id)];
+          const ima = Array.isArray(v) ? v.length > 0 && v.every((x) => x !== null && String(x).trim() !== '') : v !== undefined && v !== null && String(v).trim() !== '';
+          if (!ima) polja.push(`${pd.naziv} – ${u.naziv} ${u.oznaka}`.trim());
+        }
       }
-  return { odgovora, napomena };
+  return { odgovora, napomena, polja };
 }

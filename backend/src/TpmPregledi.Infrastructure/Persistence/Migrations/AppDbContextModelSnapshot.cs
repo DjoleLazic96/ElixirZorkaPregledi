@@ -631,6 +631,10 @@ namespace TpmPregledi.Infrastructure.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<int>("Dorada")
+                        .HasColumnType("integer")
+                        .HasColumnName("dorada");
+
                     b.Property<long>("FajlId")
                         .HasColumnType("bigint")
                         .HasColumnName("fajl_id");
