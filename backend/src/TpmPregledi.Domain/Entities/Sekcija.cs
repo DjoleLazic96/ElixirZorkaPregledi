@@ -1,8 +1,11 @@
+using TpmPregledi.Domain.Common;
+
 namespace TpmPregledi.Domain.Entities;
 
 /// <summary>
-/// Sekcija pogona kao na obrascima („10“…„70“). Seed u migraciji; menja se retko, pa nema ekrana za izmenu.
+/// Sekcija pogona kao na obrascima („10“…„70“). Početne su seed u migraciji; nove dodaje i uređuje Admin (zamerka 33).
 /// </summary>
+[Auditable]
 public class Sekcija
 {
     /// <summary>PK.</summary>
@@ -16,4 +19,9 @@ public class Sekcija
 
     /// <summary>Redosled prikaza.</summary>
     public int Redosled { get; set; }
+
+    /// <summary>
+    /// Neaktivna sekcija se ne nudi za nove uređaje (zamerka 33); ne briše se, jer na nju pokazuju uređaji i stari pregledi.
+    /// </summary>
+    public bool Aktivna { get; set; } = true;
 }

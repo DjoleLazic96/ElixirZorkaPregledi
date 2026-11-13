@@ -53,3 +53,9 @@ na telefonu dok se on ponovo ne prijavi.
 ## 2.5 PZ sa dva inženjera
 
 Svako vidi sve sekcije, a upisuje samo u svoje; kod tuđe sekcije piše ko je radi.
+
+**Predaja.** **Predaj pregled** prvo prikazuje rezime: broj ispravnih i neispravnih stavki, uređaja van funkcije, otvorenih akcija i slika,
+i spisak neispravnih. **Predaj** predaje, **Vrati se** vraća na popunjavanje. Predat pregled ima dugme **Pogledaj pregled** (ceo pregled
+sa odgovorima i slikama). U meniju **Pregledi** inženjer podrazumevano vidi samo svoje preglede (filter **Inženjer** može da se ukloni).
+
+**Nešto fali u šablonu?** Na dnu sekcije link **Nešto fali u šablonu? Predloži izmenu** šalje predlog izmene šablona (vidi poglavlje 8.6).

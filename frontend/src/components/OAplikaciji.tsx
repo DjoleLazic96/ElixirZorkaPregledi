@@ -11,6 +11,8 @@ export const NAZIV_APLIKACIJE = 'TPM pregledi';
 interface OAplikacijiProps {
   open: boolean;
   onClose: () => void;
+  /** Tehnički podaci (verzija servera, build, okruženje, Git SHA) su za podršku — vidi ih samo Admin (zamerka 24). */
+  tehnicki?: boolean;
 }
 
 /**
@@ -18,7 +20,7 @@ interface OAplikacijiProps {
  * servera (`GET /version`). Kad se razlikuju, korisnik drži keširani stari
  * bundle posle deploy-a → žuto upozorenje da osveži (Ctrl+F5).
  */
-export function OAplikaciji({ open, onClose }: OAplikacijiProps) {
+export function OAplikaciji({ open, onClose, tehnicki = false }: OAplikacijiProps) {
   const upit = useQuery({
     queryKey: ['version'],
     queryFn: async () => (await api.get<VersionDto>('/version')).data,
@@ -37,14 +39,18 @@ export function OAplikaciji({ open, onClose }: OAplikacijiProps) {
         <dl className="divide-y divide-gray-100 text-sm">
           <Red naziv="Naziv aplikacije" vrednost={NAZIV_APLIKACIJE} />
           <Red naziv="Verzija aplikacije" vrednost={VERZIJA} />
-          <Red naziv="Verzija servera" vrednost={serverVrednost(server?.verzija)} />
-          <Red
-            naziv="Build"
-            vrednost={serverVrednost(server?.buildUtc ? formatirajVremeUtc(server.buildUtc) : null)}
-          />
-          <Red naziv="Okruženje" vrednost={serverVrednost(server?.okruzenje)} />
-          <Red naziv="Git SHA (frontend)" vrednost={<code>{GIT_SHA}</code>} />
-          <Red naziv="Git SHA (server)" vrednost={<code>{serverVrednost(server?.gitSha)}</code>} />
+          {tehnicki && (
+            <>
+              <Red naziv="Verzija servera" vrednost={serverVrednost(server?.verzija)} />
+              <Red
+                naziv="Build"
+                vrednost={serverVrednost(server?.buildUtc ? formatirajVremeUtc(server.buildUtc) : null)}
+              />
+              <Red naziv="Okruženje" vrednost={serverVrednost(server?.okruzenje)} />
+              <Red naziv="Git SHA (frontend)" vrednost={<code>{GIT_SHA}</code>} />
+              <Red naziv="Git SHA (server)" vrednost={<code>{serverVrednost(server?.gitSha)}</code>} />
+            </>
+          )}
         </dl>
 
         {verzijeSeRazlikuju && (

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { UputstvoDugme } from '../sabloni/UputstvoDijalog';
+import { OtvoreniPredlozi } from '../sabloni/OtvoreniPredlozi';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Camera, Check, ImagePlus, MessageSquare, Wrench } from 'lucide-react';
@@ -59,6 +60,8 @@ export function PopunjavanjePage() {
   const operacija = useOperacija(id);
   const [sekcija, setSekcija] = useState<string | null>(null);
   const [nastavak, setNastavak] = useState<'pitaj' | 'gotovo'>('pitaj');
+  const [rezime, setRezime] = useState(false);
+  const [predlog, setPredlog] = useState<string | null>(null);
 
   async function posalji(op: Operacija, uspeh?: string) {
     try {
@@ -105,9 +108,13 @@ export function PopunjavanjePage() {
       </div>
     );
   if (p.status !== 'u_radu' && p.status !== 'vracen_na_doradu')
-    return <PageHeader title={p.broj} description="Pregled je predat; menja se samo kroz doradu." />;
+    return (
+      <PageHeader title={p.broj} description="Pregled je predat; menja se samo kroz doradu."
+        actions={<Button onClick={() => navigate(`/pregledi/${p.id}`)}>Pogledaj pregled</Button>} />
+    );
 
-  async function predaj() {
+  /** Prvi korak predaje: provera potpunosti, pa rezime sa „Predaj“ / „Vrati se“ (zamerka 35). */
+  function proveriPredaju() {
     const n = nedostaje(p);
     if (n.odgovora > 0 || n.napomena > 0) {
       toast.error(`Pregled još nije potpun: nedostaje ${n.odgovora} odgovora i ${n.napomena} obaveznih napomena.`);
@@ -117,6 +124,10 @@ export function PopunjavanjePage() {
       toast.error(`Nedostaje ${n.polja.length} ${n.polja.length === 1 ? 'obavezno polje' : 'obaveznih polja'} (${n.polja.slice(0, 5).join('; ')}${n.polja.length > 5 ? '; …' : ''}).`);
       return;
     }
+    setRezime(true);
+  }
+
+  async function predaj() {
     if (await posalji({ vrsta: 'predaja', podaci: {} }, navigator.onLine ? 'Pregled je predat.' : 'Predato – čeka slanje.')) {
       // Kalendar, Početna i lista još drže stari status (keš 30 s); posle predaje sve se učitava iznova.
       void qc.invalidateQueries();
@@ -193,16 +204,108 @@ export function PopunjavanjePage() {
             window.scrollTo({ top: 0, behavior: 'smooth' });
             document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
           }} />
+          {/* Retko se koristi, pa je mali link, a ne dugme pored „Sledeća sekcija“ (zamerka 34). */}
+          <p className="pt-2 text-center">
+            <button type="button" className="text-xs text-gray-500 underline-offset-2 hover:underline" onClick={() => setPredlog(sek.sifra)}>
+              Nešto fali u šablonu? Predloži izmenu
+            </button>
+          </p>
         </div>
       )}
 
       {/* Predaja je uvek pri ruci (mockup `.sticky`); na telefonu iznad donjeg menija. */}
       <div className="fixed inset-x-0 bottom-16 z-30 border-t border-gray-200 bg-gray-50 px-3 py-2.5 md:sticky md:bottom-0 md:z-10 md:px-0">
-        <Button className="w-full md:w-auto" disabled={operacija.isPending} onClick={() => void predaj()}>
+        <Button className="w-full md:w-auto" disabled={operacija.isPending} onClick={proveriPredaju}>
           Predaj pregled ({ukupno.gotovo}/{ukupno.ukupno})
         </Button>
       </div>
+      {rezime && <RezimePredaje p={p} saljem={operacija.isPending} onPredaj={() => { setRezime(false); void predaj(); }} onNazad={() => setRezime(false)} />}
+      {predlog && (
+        <PredlogIzPregleda tip={p.tip} sekcija={predlog} onClose={() => setPredlog(null)}
+          onPosalji={(podaci) => posalji({ vrsta: 'predlog_izmene', podaci }, navigator.onLine ? 'Predlog je poslat.' : 'Predlog čeka slanje.')} />
+      )}
     </div>
+  );
+}
+
+/**
+ * Rezime pre predaje (zamerka 35): jedan pogrešan dodir više ne predaje pregled. Inženjer vidi koliko je ispravnih i
+ * neispravnih stavki, uređaja van funkcije i slika, i spisak neispravnih, pa bira „Predaj“ ili „Vrati se“.
+ */
+export function RezimePredaje({ p, saljem, onPredaj, onNazad }: { p: PopunjavanjeDto; saljem: boolean; onPredaj: () => void; onNazad: () => void }) {
+  let ispravno = 0;
+  let slika = 0;
+  let van = 0;
+  const neispravne: string[] = [];
+  for (const s of p.sekcije)
+    for (const u of s.uredjaji) {
+      if (u.vanFunkcije) { van++; continue; }
+      for (const st of u.stavke) {
+        slika += st.fotografije.length;
+        if (st.odgovor?.vrednost === 0) ispravno++;
+        else if (st.odgovor?.vrednost === 1) neispravne.push(`${s.sifra} · ${u.naziv} ${u.oznaka} · ${st.aktivnost}`.replace(/\s+/g, ' '));
+      }
+    }
+  const akcija = p.sekcije.reduce((n, s) => n + s.uredjaji.reduce((m, u) => m + u.otvoreneAkcije.length, 0), 0);
+  return (
+    <Modal open title={`Predaja ${p.broj}`} onClose={onNazad} widthClass="max-w-lg">
+      <div className="space-y-3 text-sm">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
+          <dt className="text-gray-600">Ispravnih stavki</dt><dd className="font-semibold">{ispravno}</dd>
+          <dt className="text-gray-600">Neispravnih stavki</dt><dd className={cn('font-semibold', neispravne.length > 0 && 'text-red-700')}>{neispravne.length}</dd>
+          <dt className="text-gray-600">Uređaja van funkcije</dt><dd className="font-semibold">{van}</dd>
+          <dt className="text-gray-600">Otvorenih akcija na uređajima</dt><dd className="font-semibold">{akcija}</dd>
+          <dt className="text-gray-600">Slika</dt><dd className="font-semibold">{slika}</dd>
+        </dl>
+        {neispravne.length > 0 && (
+          <div>
+            <p className="mb-1 font-medium text-red-800">Neispravne stavke</p>
+            <ul className="max-h-48 list-disc space-y-0.5 overflow-y-auto pl-5 text-red-800">{neispravne.map((x) => <li key={x} className="break-words">{x}</li>)}</ul>
+          </div>
+        )}
+        <p className="text-gray-600">Posle predaje pregled se menja samo kroz doradu.</p>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="ghost" onClick={onNazad} disabled={saljem}>Vrati se</Button>
+          <Button onClick={onPredaj} disabled={saljem}>Predaj</Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * „Predloži izmenu“ tokom popunjavanja (zamerka 34): šablon i sekcija su upisani; ide kao operacija pregleda, pa radi i bez
+ * interneta, a predlog pamti iz kog je pregleda. Pre slanja se vide isti predlozi koji već čekaju odluku (zamerka 37).
+ */
+export function PredlogIzPregleda({ tip, sekcija, onClose, onPosalji }: {
+  tip: string; sekcija: string; onClose: () => void;
+  onPosalji: (podaci: { vrsta: 'dodavanje' | 'izbacivanje' | 'ispravka'; opis: string; razlog: string }) => Promise<boolean>;
+}) {
+  const [vrsta, setVrsta] = useState<'dodavanje' | 'izbacivanje' | 'ispravka'>('dodavanje');
+  const [opis, setOpis] = useState('');
+  const [razlog, setRazlog] = useState('');
+  const [salje, setSalje] = useState(false);
+  async function posalji() {
+    setSalje(true);
+    if (await onPosalji({ vrsta, opis: `Sekcija ${sekcija}: ${opis.trim()}`, razlog: razlog.trim() })) onClose();
+    setSalje(false);
+  }
+  return (
+    <Modal open title={`Predlog izmene ${tip} · sekcija ${sekcija}`} onClose={onClose} widthClass="max-w-lg">
+      <div className="space-y-3">
+        <FormField label="Vrsta" htmlFor="pp-vrsta">
+          <Select id="pp-vrsta" value={vrsta} onChange={(x) => setVrsta((x ?? 'dodavanje') as typeof vrsta)}
+            options={[{ value: 'dodavanje', label: 'Dodavanje (fali uređaj ili aktivnost)' }, { value: 'izbacivanje', label: 'Izbacivanje' }, { value: 'ispravka', label: 'Ispravka teksta' }]} />
+        </FormField>
+        <OtvoreniPredlozi tip={tip} />
+        <FormField label="Šta treba promeniti" htmlFor="pp-opis"><Textarea id="pp-opis" rows={2} value={opis} onChange={(e) => setOpis(e.target.value)} /></FormField>
+        <FormField label="Razlog" htmlFor="pp-razlog"><Textarea id="pp-razlog" rows={2} value={razlog} onChange={(e) => setRazlog(e.target.value)} /></FormField>
+        <div className="flex justify-end gap-2 pt-1">
+          <Button variant="ghost" onClick={onClose} disabled={salje}>Odustani</Button>
+          <Button disabled={salje || !opis.trim() || !razlog.trim()} onClick={() => void posalji()}>Pošalji predlog</Button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 

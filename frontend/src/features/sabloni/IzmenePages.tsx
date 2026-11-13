@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowDown, ArrowLeft, ArrowUp, Pencil, Trash2 } from 'lucide-react';
 import type { SablonVerzijaDto, StavkaDto } from '../../api/types';
 import { useConfirm } from '../../app/providers/ConfirmProvider';
@@ -20,7 +20,10 @@ import { cn } from '../../lib/cn';
 import { danasYmd, formatirajDatum, formatirajVreme } from '../../lib/datum';
 import { canEditOprema, imaPravo } from '../../lib/permissions';
 import { useAuth } from '../auth/AuthProvider';
-import { useAktivnosti, useDodatnaPolja, useSekcije, useUredjaji } from './hooks';
+import { useAktivnosti, useDodatnaPolja, useSacuvajAktivnost, useSacuvajUredjaj, useSekcije, useUredjaji } from './hooks';
+import { AktivnostForma } from './SabloniPage';
+import { OtvoreniPredlozi } from './OtvoreniPredlozi';
+import { UredjajForma } from './UredjajiPage';
 import {
   VRSTE_DOGADJAJA, VRSTE_PREDLOGA, useIstorijat, useIzmenaNacrta, useNacrt, useObjavi, useOdlukaPredloga, usePodnesiPredlog, usePredlozi,
   type IstorijatFilteri, type PredlogDto, type RazlikaDto,
@@ -180,6 +183,10 @@ function PoljaIzbor({ izabrana, onChange }: { izabrana: number[]; onChange: (v: 
   );
 }
 
+/**
+ * „Dodaj stavku“ u nacrt: sekcija, uređaj iz registra i aktivnost iz kataloga. Uređaj ili aktivnost koja fali dodaje se odmah
+ * odavde („+ Novi uređaj“, „+ Nova aktivnost“, zamerka 32) — upisuje se u registar/katalog i odmah bira, bez duplikata.
+ */
 function DodajStavkuDijalog({ onClose, onSubmit }: { onClose: () => void; onSubmit: (telo: { sekcijaId: number; uredjajId: number; aktivnostId: number; poljaIds: number[] }) => Promise<unknown> }) {
   const sekcije = useSekcije();
   const [sekcijaId, setSekcijaId] = useState<number | null>(null);
@@ -188,20 +195,44 @@ function DodajStavkuDijalog({ onClose, onSubmit }: { onClose: () => void; onSubm
   const [uredjajId, setUredjajId] = useState<number | null>(null);
   const [aktivnostId, setAktivnostId] = useState<number | null>(null);
   const [polja, setPolja] = useState<number[]>([]);
+  const [nova, setNova] = useState<null | 'aktivnost' | 'uredjaj'>(null);
+  const [greska, setGreska] = useState<string | null>(null);
+  const sacuvajAktivnost = useSacuvajAktivnost();
+  const sacuvajUredjaj = useSacuvajUredjaj();
+  const aktivneSekcije = (sekcije.data ?? []).filter((s) => s.aktivna !== false).map((s) => ({ value: s.id, label: `Sekcija ${s.sifra}` }));
+
+  if (nova === 'aktivnost')
+    return (
+      <AktivnostForma aktivnost={null} saving={sacuvajAktivnost.isPending} greska={greska} onClose={() => { setNova(null); setGreska(null); }}
+        onSubmit={(input) => void sacuvajAktivnost.mutateAsync({ id: null, input })
+          .then((a) => { setAktivnostId(a.id); setNova(null); setGreska(null); })
+          .catch((e) => setGreska(porukaGreske(e, 'Aktivnost nije dodata.')))} />
+    );
+  if (nova === 'uredjaj')
+    return (
+      <UredjajForma uredjaj={null} pocetnaSekcija={sekcijaId} opcijeSekcija={aktivneSekcije} saving={sacuvajUredjaj.isPending} greska={greska}
+        onClose={() => { setNova(null); setGreska(null); }}
+        onSubmit={(input) => void sacuvajUredjaj.mutateAsync({ id: null, input })
+          .then((u) => { setSekcijaId(u.sekcijaId); setUredjajId(u.id); setNova(null); setGreska(null); })
+          .catch((e) => setGreska(porukaGreske(e, 'Uređaj nije dodat.')))} />
+    );
+
   return (
     <Modal open title="Dodaj stavku" onClose={onClose}>
       <div className="space-y-3">
         <FormField label="Sekcija" htmlFor="ds-sek">
           <Select id="ds-sek" value={sekcijaId} placeholder="Izaberite sekciju" onChange={(v) => { setSekcijaId(v); setUredjajId(null); }}
-            options={(sekcije.data ?? []).map((s) => ({ value: s.id, label: `Sekcija ${s.sifra}` }))} />
+            options={aktivneSekcije} />
         </FormField>
-        <FormField label="Uređaj iz registra" htmlFor="ds-ur" hint="Novi uređaj se prvo dodaje u registar (Uređaji).">
+        <FormField label="Uređaj iz registra" htmlFor="ds-ur">
           <Select id="ds-ur" value={uredjajId} placeholder="Izaberite uređaj" disabled={sekcijaId === null} onChange={setUredjajId}
             options={(uredjaji.data ?? []).map((u) => ({ value: u.id, label: `${u.naziv} ${u.oznaka}`.trim() }))} />
+          <Button type="button" variant="ghost" size="sm" className="mt-1" onClick={() => setNova('uredjaj')}>+ Novi uređaj</Button>
         </FormField>
         <FormField label="Aktivnost iz kataloga" htmlFor="ds-akt">
           <Select id="ds-akt" value={aktivnostId} placeholder="Izaberite aktivnost" onChange={setAktivnostId}
             options={(aktivnosti.data ?? []).map((a) => ({ value: a.id, label: a.naziv, hint: `${a.odgovorIspravan} / ${a.odgovorNeispravan}` }))} />
+          <Button type="button" variant="ghost" size="sm" className="mt-1" onClick={() => setNova('aktivnost')}>+ Nova aktivnost</Button>
         </FormField>
         <PoljaIzbor izabrana={polja} onChange={setPolja} />
         <div className="flex justify-end gap-2 pt-2">
@@ -283,6 +314,7 @@ export function PredlogDijalog({ v, onClose }: { v: SablonVerzijaDto; onClose: (
             <Select id="pr-st" value={stavkaId} nullable={vrsta === 'ispravka'} placeholder="Izaberite stavku" onChange={setStavkaId} options={stavke} />
           </FormField>
         )}
+        <OtvoreniPredlozi tip={v.tip} />
         <FormField label="Šta treba promeniti" htmlFor="pr-opis"><Textarea id="pr-opis" rows={2} value={opis} onChange={(e) => setOpis(e.target.value)} /></FormField>
         <FormField label="Razlog" htmlFor="pr-razlog"><Textarea id="pr-razlog" rows={2} value={razlog} onChange={(e) => setRazlog(e.target.value)} /></FormField>
         <div className="flex justify-end gap-2 pt-2">
@@ -299,22 +331,32 @@ export function PredlogDijalog({ v, onClose }: { v: SablonVerzijaDto; onClose: (
 
 const STATUS_PREDLOGA: Record<PredlogDto['status'], { labela: string; ton: 'amber' | 'primary' | 'gray' }> = {
   zahtev: { labela: 'čeka odluku', ton: 'amber' }, odobren: { labela: 'odobren', ton: 'primary' }, odbijen: { labela: 'odbijen', ton: 'gray' },
+  duplikat: { labela: 'duplikat', ton: 'gray' },
 };
 
 /** Lista predloga; Direktor i Admin odobravaju ili odbijaju. */
 export function PredloziTab() {
   const { me } = useAuth();
-  const odlucuje = canEditOprema(me ?? { roles: [], prava: [] });
-  const [status, setStatus] = useState<string | null>('zahtev');
-  const predlozi = usePredlozi(status);
+  const pristup = me ?? { roles: [], prava: [] };
+  const odlucuje = canEditOprema(pristup);
+  // Link iz obaveštenja (`?predlog=12`) otvara sve statuse i ističe taj predlog (zamerka 36).
+  const istaknut = Number(useSearchParams()[0].get('predlog')) || null;
+  const [status, setStatus] = useState<string | null>(istaknut ? null : 'zahtev');
+  // Inženjer podrazumevano vidi svoje predloge (i one sa kojima se složio); filter se isključuje (zamerka 36).
+  const [samoMoji, setSamoMoji] = useState(!istaknut && imaPravo(pristup, 'pregledi.popunjavanje'));
+  const predlozi = usePredlozi(status, { moji: samoMoji });
   const odluka = useOdlukaPredloga();
   const toast = useToast();
   const [odbija, setOdbija] = useState<PredlogDto | null>(null);
+  const [duplikat, setDuplikat] = useState<PredlogDto | null>(null);
   const [odgovor, setOdgovor] = useState('');
 
-  function odluci(id: number, odobren: boolean, odg: string | null) {
-    void odluka.mutateAsync({ id, odobren, odgovor: odg })
-      .then(() => { toast.success(odobren ? 'Predlog je odobren i čeka nacrt sledeće verzije.' : 'Predlog je odbijen.'); setOdbija(null); setOdgovor(''); })
+  function odluci(id: number, odobren: boolean, odg: string | null, duplikatOd: number | null = null) {
+    void odluka.mutateAsync({ id, odobren, odgovor: odg, duplikatOd })
+      .then(() => {
+        toast.success(duplikatOd ? 'Predlog je zatvoren kao duplikat.' : odobren ? 'Predlog je odobren i čeka nacrt sledeće verzije.' : 'Predlog je odbijen.');
+        setOdbija(null); setDuplikat(null); setOdgovor('');
+      })
       .catch((e) => toast.error(porukaGreske(e, 'Odluka nije sačuvana.')));
   }
 
@@ -322,14 +364,18 @@ export function PredloziTab() {
     <Card>
       <CardHeader className="flex flex-wrap items-center justify-between gap-2">
         <CardTitle>Predlozi izmena</CardTitle>
-        <div className="w-48"><Select aria-label="Status" value={status} nullable placeholder="Svi" onChange={setStatus}
-          options={[{ value: 'zahtev', label: 'Čekaju odluku' }, { value: 'odobren', label: 'Odobreni' }, { value: 'odbijen', label: 'Odbijeni' }]} /></div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Checkbox label="Samo moji" checked={samoMoji} onChange={(e) => setSamoMoji(e.target.checked)} />
+          <div className="w-48"><Select aria-label="Status" value={status} nullable placeholder="Svi" onChange={setStatus}
+            options={[{ value: 'zahtev', label: 'Čekaju odluku' }, { value: 'odobren', label: 'Odobreni' }, { value: 'odbijen', label: 'Odbijeni' }, { value: 'duplikat', label: 'Duplikati' }]} /></div>
+        </div>
       </CardHeader>
       <CardBody>
         {predlozi.isLoading ? <Ucitavanje /> : !predlozi.data?.length ? <p className="text-sm text-gray-500">Nema predloga.</p> : (
           <ul className="divide-y divide-gray-100 text-sm">
             {predlozi.data.map((p) => (
-              <li key={p.id} className="space-y-1 py-3">
+              <li key={p.id} ref={p.id === istaknut ? (el) => el?.scrollIntoView({ block: 'center' }) : undefined}
+                className={cn('space-y-1 py-3', p.id === istaknut && 'rounded-md bg-amber-50 px-2 ring-2 ring-amber-300')}>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold">{p.sablon}</span>
                   <Badge>{VRSTE_PREDLOGA.find((v) => v.value === p.vrsta)?.label}</Badge>
@@ -339,10 +385,14 @@ export function PredloziTab() {
                 <p className="break-words">{p.opis}{p.stavka && <span className="text-gray-500"> · {p.stavka}</span>}</p>
                 <p className="break-words text-gray-600">Razlog: {p.razlog}</p>
                 <p className="text-xs text-gray-500">{p.podneo}, {formatirajVreme(p.kreiranoAt)}{p.odlucio && ` · odlučio ${p.odlucio}`}{p.odgovor && `: ${p.odgovor}`}</p>
+                {!!p.saglasni?.length && <p className="text-xs text-gray-600">Slažu se: {p.saglasni.map((s) => s.ime).join(', ')}</p>}
+                {p.pregledId && <p className="text-xs"><Link className="text-primary-600 hover:underline" to={`/pregledi/${p.pregledId}`}>Iz pregleda {p.pregledBroj}</Link></p>}
+                {p.originalId && <p className="text-xs"><Link className="text-primary-600 hover:underline" to={`/sabloni/predlozi?predlog=${p.originalId}`}>Isto kao ranije poslat predlog</Link></p>}
                 {odlucuje && p.status === 'zahtev' && (
-                  <div className="flex gap-2 pt-1">
+                  <div className="flex flex-wrap gap-2 pt-1">
                     <Button size="sm" disabled={odluka.isPending} onClick={() => odluci(p.id, true, null)}>Odobri</Button>
                     <Button size="sm" variant="ghost" disabled={odluka.isPending} onClick={() => setOdbija(p)}>Odbij</Button>
+                    <Button size="sm" variant="ghost" disabled={odluka.isPending} onClick={() => setDuplikat(p)}>Duplikat</Button>
                   </div>
                 )}
               </li>
@@ -359,7 +409,30 @@ export function PredloziTab() {
           </div>
         </Modal>
       )}
+      {duplikat && <DuplikatDijalog p={duplikat} onClose={() => setDuplikat(null)} onIzaberi={(o) => odluci(duplikat.id, false, null, o)} />}
     </Card>
+  );
+}
+
+/** „Duplikat“ (zamerka 37): Direktor bira originalni predlog za isti šablon; podnosilac saznaje odluku kad se odluči o originalu. */
+function DuplikatDijalog({ p, onClose, onIzaberi }: { p: PredlogDto; onClose: () => void; onIzaberi: (originalId: number) => void }) {
+  const svi = usePredlozi(null, { tip: p.sablon });
+  const [original, setOriginal] = useState<number | null>(null);
+  const opcije = (svi.data ?? []).filter((x) => x.id !== p.id && x.status !== 'duplikat')
+    .map((x) => ({ value: x.id, label: `${x.opis.slice(0, 80)}${x.opis.length > 80 ? '…' : ''}`, hint: `${x.podneo} · ${STATUS_PREDLOGA[x.status].labela}` }));
+  return (
+    <Modal open title="Predlog je duplikat" onClose={onClose} widthClass="max-w-lg">
+      <div className="space-y-3 text-sm">
+        <p className="break-words">„{p.opis}“ je isto kao:</p>
+        {svi.isLoading ? <Ucitavanje /> : opcije.length === 0 ? <p className="text-gray-500">Nema drugih predloga za {p.sablon}.</p> : (
+          <Select aria-label="Originalni predlog" value={original} placeholder="Izaberite originalni predlog" onChange={setOriginal} options={opcije} />
+        )}
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>Odustani</Button>
+          <Button disabled={!original} onClick={() => onIzaberi(original!)}>Zatvori kao duplikat</Button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 

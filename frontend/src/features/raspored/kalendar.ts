@@ -37,6 +37,31 @@ export function ivicaPregleda(p: Pick<PregledKalendarDto, 'inzenjerOdsutan' | 'z
   return '';
 }
 
+/**
+ * Oznaka na prvobitnom danu pomerenog pregleda (zamerka 29): crveno „nije urađen – prenet na“ samo za propušten pregled,
+ * sivo „pomeren na“ za ručno pomeranje (promena datuma, PZ, otkazivanje, povlačenje rasporeda).
+ */
+export function oznakaPomeranja(p: Pick<PregledKalendarDto, 'propusten'>): { tekst: string; boja: string } {
+  return p.propusten ? { tekst: 'nije urađen – prenet na', boja: 'bg-red-50 text-red-700' } : { tekst: 'pomeren na', boja: 'bg-gray-100 text-gray-600' };
+}
+
+/**
+ * Tipovi DP-a u predlogu kad se neki dan odštiklira (zamerka 30): svaki štiklirani dan dobija sledeći tip posle poslednjeg
+ * DP-a pre njega — postojećeg (iz predloga: datumPre/tipPre) ili štikliranog dana pre njega.
+ */
+export function preracunajTipove<T extends { datum: string; tip: string; datumPre?: string | null; tipPre?: string | null }>(stavke: T[], zakazi: boolean[]): string[] {
+  let posDatum: string | null = null;
+  let posTip: string | null = null;
+  return stavke.map((s, i) => {
+    if (!zakazi[i]) return '—';
+    const pre = s.datumPre && (!posDatum || s.datumPre > posDatum) ? s.tipPre ?? null : posTip;
+    const tip = pre === 'DP1' ? 'DP2' : 'DP1';
+    posDatum = s.datum;
+    posTip = tip;
+    return tip;
+  });
+}
+
 /** Kratak tekst oznake ispod pregleda. */
 export function oznakaPregleda(p: Pick<PregledKalendarDto, 'inzenjerOdsutan' | 'zahtevNaCekanju'>): { tekst: string; boja: string } | null {
   if (p.inzenjerOdsutan) return { tekst: 'inženjer odsutan', boja: 'text-red-700' };

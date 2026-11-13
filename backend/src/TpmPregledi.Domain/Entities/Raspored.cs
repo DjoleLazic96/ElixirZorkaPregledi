@@ -139,6 +139,12 @@ public class Pregled
     /// <summary>Da li je DP (dnevni pregled).</summary>
     public bool JeDp => Tip.StartsWith("DP", StringComparison.Ordinal);
 
+    /// <summary>
+    /// Pregled je propušten i automatski prenet (R3.3) — samo tada kalendar na prvobitnom danu crveno piše „nije urađen – prenet na“.
+    /// Ručno pomeren pregled (ili pomeren zbog PZ-a, otkazivanja, povlačenja) dobija sivo „pomeren na“ (zamerka 29).
+    /// </summary>
+    public bool Propusten { get; set; }
+
     /// <summary>Učesnici PZ-a sa dva inženjera (R3.14).</summary>
     public List<PregledUcesnik> Ucesnici { get; set; } = [];
 }

@@ -200,8 +200,17 @@ public class PredlogIzmene
     /// <summary>Kada (UTC).</summary>
     public DateTime KreiranoAt { get; set; }
 
-    /// <summary><c>zahtev</c>, <c>odobren</c>, <c>odbijen</c>.</summary>
+    /// <summary><c>zahtev</c>, <c>odobren</c>, <c>odbijen</c>, <c>duplikat</c>.</summary>
     public string Status { get; set; } = "zahtev";
+
+    /// <summary>Pregled iz kog je predlog poslat (zamerka 34), ako je poslat tokom popunjavanja.</summary>
+    public int? PregledId { get; set; }
+
+    /// <summary>Za status <c>duplikat</c>: predlog koji ovaj ponavlja (zamerka 37).</summary>
+    public int? OriginalId { get; set; }
+
+    /// <summary>Korisnici koji su kliknuli „Slažem se sa predlogom“ umesto da pošalju isti predlog (zamerka 37).</summary>
+    public List<PredlogSaglasnost> Saglasnosti { get; set; } = [];
 
     /// <summary>Ko je odlučio.</summary>
     public string? OdlucioId { get; set; }
@@ -214,4 +223,17 @@ public class PredlogIzmene
 
     /// <summary>Verzija u kojoj je odobren predlog sproveden (postavlja se pri objavi).</summary>
     public int? VerzijaId { get; set; }
+}
+
+/// <summary>„Slažem se sa predlogom“ (zamerka 37): korisnik podržava postojeći predlog umesto da pošalje isti.</summary>
+public class PredlogSaglasnost
+{
+    /// <summary>Predlog.</summary>
+    public int PredlogId { get; set; }
+
+    /// <summary>Ko se slaže.</summary>
+    public string KorisnikId { get; set; } = string.Empty;
+
+    /// <summary>Kada (UTC).</summary>
+    public DateTime At { get; set; }
 }

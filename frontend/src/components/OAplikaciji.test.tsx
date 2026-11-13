@@ -16,7 +16,7 @@ describe('OAplikaciji', () => {
 
   it('prikazuje naziv, verziju frontenda i verziju servera iz /version', async () => {
     vi.mocked(api.get).mockResolvedValue(odgovor({ ...SERVER, verzija: VERZIJA }));
-    renderSaProviderima(<OAplikaciji open onClose={vi.fn()} />);
+    renderSaProviderima(<OAplikaciji open tehnicki onClose={vi.fn()} />);
 
     expect(screen.getByRole('dialog', { name: 'O aplikaciji' })).toBeInTheDocument();
     expect(screen.getByText('TPM pregledi')).toBeInTheDocument();
@@ -29,7 +29,7 @@ describe('OAplikaciji', () => {
 
   it('upozorava kad se verzija frontenda i servera razlikuju', async () => {
     vi.mocked(api.get).mockResolvedValue(odgovor({ ...SERVER, verzija: `${VERZIJA}-novija` }));
-    renderSaProviderima(<OAplikaciji open onClose={vi.fn()} />);
+    renderSaProviderima(<OAplikaciji open tehnicki onClose={vi.fn()} />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Učitana je starija verzija. Osvežite stranicu (Ctrl+F5).',
@@ -38,9 +38,17 @@ describe('OAplikaciji', () => {
 
   it('kad /version ne radi, prikazuje „nedostupno" umesto da pukne', async () => {
     vi.mocked(api.get).mockRejectedValue(new Error('mreža'));
-    renderSaProviderima(<OAplikaciji open onClose={vi.fn()} />);
+    renderSaProviderima(<OAplikaciji open tehnicki onClose={vi.fn()} />);
     expect((await screen.findAllByText('nedostupno')).length).toBeGreaterThan(0);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('ko nije Admin vidi samo naziv i verziju aplikacije (zamerka 24)', async () => {
+    vi.mocked(api.get).mockResolvedValue(odgovor({ ...SERVER, verzija: VERZIJA }));
+    renderSaProviderima(<OAplikaciji open onClose={vi.fn()} />);
+    expect(screen.getByText('Verzija aplikacije')).toBeInTheDocument();
+    expect(screen.queryByText('Okruženje')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Git SHA/)).not.toBeInTheDocument();
   });
 
   it('zatvoren dijalog ne poziva /version', () => {

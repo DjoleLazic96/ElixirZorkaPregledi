@@ -12,6 +12,8 @@ export interface UserDto {
   userName: string;
   fullName: string;
   email: string | null;
+  /** Admin je postavio lozinku — pre rada se mora promeniti (zamerka 23). */
+  moraPromenitiLozinku?: boolean;
 }
 
 export interface LoginResponse {
@@ -111,6 +113,8 @@ export interface SekcijaDto {
   id: number;
   sifra: string;
   naziv: string;
+  /** Neaktivna se ne nudi za nove uređaje (zamerka 33). */
+  aktivna?: boolean;
 }
 
 // ─── Podešavanja (`/podesavanja`, pravo „podesavanja“) ───────────────────

@@ -15,6 +15,9 @@ test.describe('Admin', () => {
     await meni(page, ['Administracija', 'Audit log', 'Stanje servera', 'Šabloni'], ['Moja odsustva', 'Raspored']);
     await page.goto('/admin/korisnici');
     await expect(page.getByText('provera.inzenjer').first()).toBeVisible();
+    // Sekcije uređuje samo Admin (zamerka 33).
+    await page.getByRole('tab', { name: 'Sekcije' }).click();
+    await expect(page.getByRole('button', { name: 'Nova sekcija' })).toBeVisible();
   });
 });
 

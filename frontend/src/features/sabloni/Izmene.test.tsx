@@ -73,6 +73,7 @@ describe('Predlozi izmena', () => {
   it('predlog traži opis i razlog i šalje izabranu stavku', async () => {
     vi.mocked(api.post).mockReset();
     vi.mocked(api.post).mockResolvedValue(odgovor({}));
+    vi.mocked(api.get).mockResolvedValue(odgovor([]));
     renderSaProviderima(<PredlogDijalog v={{ ...VERZIJA, status: 'objavljena' }} onClose={() => {}} />);
     const posalji = screen.getByRole('button', { name: 'Pošalji predlog' });
     expect(posalji).toBeDisabled();
@@ -92,7 +93,7 @@ describe('Predlozi izmena', () => {
     const red = (await screen.findByText('Izbaciti')).closest('li')!;
     expect(within(red).getByText('čeka odluku')).toBeInTheDocument();
     await userEvent.click(within(red).getByRole('button', { name: 'Odobri' }));
-    expect(vi.mocked(api.post)).toHaveBeenCalledWith('/predlozi-izmena/4/odluka', { odobren: true, odgovor: null });
+    expect(vi.mocked(api.post)).toHaveBeenCalledWith('/predlozi-izmena/4/odluka', { odobren: true, odgovor: null, duplikatOd: null });
   });
 });
 

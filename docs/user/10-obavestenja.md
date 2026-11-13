@@ -37,7 +37,7 @@ obaveštenja stižu kad se veza vrati. Ista obaveštenja stižu i mejlom. Kad se
 | Istekao rok akcije | jednom, kad akciji istekne rok |
 | Ponovljeni kvar | ista stavka neispravna onoliko puta u periodu koliko je podešeno (podrazumevano 3 puta u 30 dana) |
 | Dugo van funkcije | uređaj van funkcije duže od granice (podrazumevano 30 dana), pa ponovo na svakih toliko dana |
-| Raspored za sledeću nedelju | četvrtkom, ako DP za sledeću nedelju nije potvrđen |
+| Raspored za sledeću nedelju | četvrtkom i petkom, ako neki dan sledeće nedelje nema DP (dani su u poruci) |
 
 ## 10.4 Primaoci (Administrator)
 

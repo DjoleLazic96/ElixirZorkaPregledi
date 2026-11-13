@@ -17,6 +17,8 @@ import { porukaGreske } from '../../lib/apiError';
 import { formatirajDatum, formatirajVreme } from '../../lib/datum';
 import { preuzmiFajl } from '../../lib/download';
 import { useInzenjeri } from '../raspored/hooks';
+import { useAuth } from '../auth/AuthProvider';
+import { imaPravo } from '../../lib/permissions';
 import { STATUSI, parametri, statusLabela, tonStatusa, usePregledi, type PreglediFilteri } from './hooks';
 
 const TIPOVI = ['DP1', 'DP2', 'PZ1', 'PZ2', 'PZ3', 'PZ4'].map((t) => ({ value: t, label: t }));
@@ -26,7 +28,11 @@ const TIPOVI = ['DP1', 'DP2', 'PZ1', 'PZ2', 'PZ3', 'PZ4'].map((t) => ({ value: t
  * filtrirano. Računar: tabela; telefon: kartice (spec §8.1).
  */
 export function PreglediPage() {
-  const [f, setF] = useState<PreglediFilteri>({ od: '', do: '', tip: null, status: null, inzenjerId: null, pretraga: '', stranica: 1, velicina: 50 });
+  const { me } = useAuth();
+  // Inženjer podrazumevano vidi samo svoje preglede (zamerka 35); filter „Inženjer“ se isključuje za sve.
+  const [f, setF] = useState<PreglediFilteri>(() => ({
+    od: '', do: '', tip: null, status: null, inzenjerId: me && imaPravo(me, 'pregledi.popunjavanje') ? me.user.id : null, pretraga: '', stranica: 1, velicina: 50,
+  }));
   const pregledi = usePregledi(f);
   const inzenjeri = useInzenjeri();
   const toast = useToast();

@@ -15,10 +15,18 @@ export interface PredlogDto {
   razlog: string;
   podneo: string;
   kreiranoAt: string;
-  status: 'zahtev' | 'odobren' | 'odbijen';
+  status: 'zahtev' | 'odobren' | 'odbijen' | 'duplikat';
   odlucio: string | null;
   odgovor: string | null;
   verzija: number | null;
+  podneoId?: string;
+  /** Pregled iz kog je predlog poslat (zamerka 34). */
+  pregledId?: number | null;
+  pregledBroj?: string | null;
+  /** Ko se slaže sa predlogom (zamerka 37). */
+  saglasni?: { id: string; ime: string }[];
+  /** Za duplikat: predlog koji ponavlja. */
+  originalId?: number | null;
 }
 
 export interface NacrtDto {
@@ -99,10 +107,21 @@ export function useObjavi(tip: string) {
   });
 }
 
-export function usePredlozi(status: string | null) {
+export function usePredlozi(status: string | null, opcije: { tip?: string; moji?: boolean; enabled?: boolean } = {}) {
   return useQuery({
-    queryKey: ['predlozi', status],
-    queryFn: async () => (await api.get<PredlogDto[]>('/predlozi-izmena', { params: { status: status ?? undefined } })).data,
+    queryKey: ['predlozi', status, opcije.tip ?? null, !!opcije.moji],
+    queryFn: async () =>
+      (await api.get<PredlogDto[]>('/predlozi-izmena', { params: { status: status ?? undefined, tip: opcije.tip, moji: opcije.moji || undefined } })).data,
+    enabled: opcije.enabled ?? true,
+  });
+}
+
+/** „Slažem se sa predlogom“ (zamerka 37) umesto slanja istog predloga. */
+export function useSlazemSe() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => (await api.post<PredlogDto>(`/predlozi-izmena/${id}/slazem-se`)).data,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['predlozi'] }),
   });
 }
 
@@ -117,8 +136,8 @@ export function usePodnesiPredlog() {
 export function useOdlukaPredloga() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: { id: number; odobren: boolean; odgovor: string | null }) =>
-      (await api.post<PredlogDto>(`/predlozi-izmena/${v.id}/odluka`, { odobren: v.odobren, odgovor: v.odgovor })).data,
+    mutationFn: async (v: { id: number; odobren: boolean; odgovor: string | null; duplikatOd?: number | null }) =>
+      (await api.post<PredlogDto>(`/predlozi-izmena/${v.id}/odluka`, { odobren: v.odobren, odgovor: v.odgovor, duplikatOd: v.duplikatOd ?? null })).data,
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['predlozi'] });
       void qc.invalidateQueries({ queryKey: ['zvono'] });

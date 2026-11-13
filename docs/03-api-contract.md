@@ -50,10 +50,13 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 
 `KorisnikDto` ima i `prava[]`. `LoginResponse` (login, refresh) ima `prava[]`; JWT nosi claim `pravo` (više vrednosti).
 
-### `/sekcije` (RequireKorisnik)
+### `/sekcije` (čitanje RequireKorisnik, izmene RequireAdmin)
 | Metod | Ruta | Svrha |
 |---|---|---|
-| GET | `/sekcije` | `[{ id, sifra, naziv }]` po redosledu |
+| GET | `/sekcije` | `[{ id, sifra, naziv, aktivna }]` po redosledu (i neaktivne) |
+| POST | `/sekcije` `{ sifra, naziv? }` | nova sekcija na kraju redosleda; 422 šifra postoji |
+| PUT | `/sekcije/{id}` `{ naziv, aktivna }` | naziv i aktivnost (šifra se ne menja) |
+| PUT | `/sekcije/redosled` `{ ids[] }` | redosled; 422 ako nije svaka sekcija tačno jednom |
 
 ### `/podesavanja` (pravo `podesavanja`)
 | Metod | Ruta | Svrha |
@@ -95,11 +98,14 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 | GET | `/raspored?od&do` | RequireKorisnik | `{ pregledi[], neradniDani[], odsustva[] }` — pregledi čiji planirani ili prvobitni dan pada u period |
 | GET | `/raspored/inzenjeri` | RequireKorisnik | inženjeri u rotaciji `{ id, ime }` |
 | POST | `/raspored/predlog` `{ od }` | raspored.uredjivanje | predlog DP-a do petka te nedelje (ne upisuje) |
-| POST | `/raspored/potvrdi` `{ stavke[{datum, tip, inzenjerId}] }` | raspored.uredjivanje | pravi preglede i brojeve; 422 dan nije za DP / DP već postoji / inženjer nije aktivan |
+| POST | `/raspored/potvrdi` `{ stavke[{datum, tip, inzenjerId}], uskladi }` | raspored.uredjivanje | pravi preglede i brojeve (tip računa server od DP-a dan pre); `uskladi` = rupa usred niza se popunjava povlačenjem niza; 422 dan nije za DP / DP već postoji / inženjer nije aktivan |
+| POST | `/raspored/povuci` `{ datum }` | raspored.uredjivanje | „Povuci raspored“ u oslobođen dan → `{ pomereno }`; 422 ako dan nije rupa usred niza |
 | GET · POST | `/raspored/pz/sledeci` · `/raspored/pz` `{ datum, tip?, inzenjerId, napomena? }` | raspored.uredjivanje | sledeći PZ po redu; zakazivanje („Promeni PZ“ = drugi tip); 422 „Taj PZ je već zakazan za …“ |
 | POST | `/raspored/prenesi` | raspored.uredjivanje | ručni prenos današnjeg nezapočetog DP-a (inače pozadinski posao posle kraja radnog dana) |
 | PUT | `/pregledi/{id}/dodela` `{ inzenjerId?, datum? }` | raspored.uredjivanje | „Promeni u rasporedu“ |
 | POST | `/pregledi/{id}/ucesnici` `{ korisnikId, sekcije[] }` | raspored.uredjivanje | drugi inženjer na PZ-u (prazne sekcije = ukloni) |
+| POST | `/pregledi/{id}/otkazi` `{ razlog, pomeri }` | raspored.uredjivanje | otkazivanje planiranog; DP + `pomeri` = pomeri raspored; odgovor može imati `slobodanDan` (ponuditi povlačenje); 422 nije planiran |
+| PUT | `/pregledi/{id}/tip` `{ tip, uskladi }` | raspored.uredjivanje | „Promeni DP“; nov broj; `uskladi` preokreće naredne planirane DP-ove |
 | GET · POST · DELETE | `/neradni-dani?godina` · `/neradni-dani` `{ od, do, naziv, vrsta }` · `/neradni-dani/{id}` | RequireKorisnik · neradni_dani | |
 | GET | `/odsustva?korisnikId&status` | RequireKorisnik | bez prava odobravanja samo svoja |
 | POST | `/odsustva` `{ korisnikId, od, do, vrsta, napomena, prebacivanja[] }` | odsustva.odobravanje | unos (odmah odobreno) sa prebacivanjem; 422 preklapanje, 422 započet pregled |
@@ -118,7 +124,7 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 | GET | `/moj-paket` | `{ pregledi[], generisanoAt }` — dodeljeni za danas + 7 dana i započeti; `ETag`, `If-None-Match` → 304 |
 | POST | `/pregledi/{id}/zapocni` | status `u_radu`, vreme početka, važeća verzija šablona; samo dodeljeni ili učesnik (403); najranije na planirani dan — ranije 422 „Pregled može da se započne od …“ (važi i za `zapocni` u sinhronizaciji, R3.24) |
 | GET | `/pregledi/{id}/popunjavanje` | sekcije (`moja`, `radi`) → uređaji (`vanFunkcije`, `prosliPutVanFunkcije`) → stavke (polja, odgovor, ID-jevi slika) |
-| POST | `/sinhronizacija` `{ uredjajKlijenta, klijentSada, operacije[{opId, vrsta, pregledId, klijentAt, podaci}] }` | `{ prihvacene[], odbijene[{opId, razlog}], serverSada }`; vrste `akcija` (`stavkaId`, `vrsta`, `hitnost`, `opis`), `akcija_odgovor` (`akcijaId`, `uradjeno`), `zapocni` (`verzijaId`; vreme početka = `klijentAt`, vezuje `uredjajKlijenta`), `odgovor` (`stavkaId`, `vrednost`, `napomena`, `polja`), `van_funkcije` (`uredjajId`, `vanFunkcije`), `sve_ispravno` (`sekcija`), `obrisi_sliku` (`fotografijaId`, `stavkaId`; već obrisana = prihvaćeno), `predaja`; ponovljen `opId` = već primenjeno |
+| POST | `/sinhronizacija` `{ uredjajKlijenta, klijentSada, operacije[{opId, vrsta, pregledId, klijentAt, podaci}] }` | `{ prihvacene[], odbijene[{opId, razlog}], serverSada }`; vrste `akcija` (`stavkaId`, `vrsta`, `hitnost`, `opis`), `akcija_odgovor` (`akcijaId`, `uradjeno`), `zapocni` (`verzijaId`; vreme početka = `klijentAt`, vezuje `uredjajKlijenta`), `odgovor` (`stavkaId`, `vrednost`, `napomena`, `polja`), `van_funkcije` (`uredjajId`, `vanFunkcije`), `sve_ispravno` (`sekcija`), `obrisi_sliku` (`fotografijaId`, `stavkaId`; već obrisana = prihvaćeno), `predlog_izmene` (`vrsta`, `opis`, `razlog`; predlog izmene šablona koji pamti pregled, zamerka 34), `predaja`; ponovljen `opId` = već primenjeno |
 | POST | `/fotografije` multipart (`fajl`, `klijentId`, `pregledId`, `stavkaId`, `izvor`) | ≤ 3 MB (400 „Slika je prevelika.“), JPEG/PNG/WebP, najviše 5 po stavci (422) |
 | GET | `/fotografije/{id}` | slika (RequireKorisnik — svi vide sve preglede) |
 
@@ -174,8 +180,9 @@ Popunjavanje (`GET /pregledi/{id}/popunjavanje`, paket) uz svaki uređaj vraća 
 | POST | `/sabloni/{tip}/nacrt/stavke/{id}/pomeri` `{ gore }` | sabloni.nacrt | jedno mesto unutar sekcije |
 | POST | `/sabloni/{tip}/nacrt/objavi` `{ vaziOd }` | sabloni.objava | danas → važi odmah; kasnije → `zakazana`; 422 prošlost, bez izmena, već zakazana |
 | GET | `/sabloni/istorijat?tip&vrsta&korisnikId&od&do` | RequireKorisnik | `SablonDogadjajDto[]` (do 1000; uz ime nosi i `korisnikId` za filter) |
-| GET / POST | `/predlozi-izmena?status&tip` | RequireKorisnik | lista / predlog `{ tip, vrsta, stavkaId, opis, razlog }` (razlog obavezan) |
-| POST | `/predlozi-izmena/{id}/odluka` `{ odobren, odgovor }` | sabloni.nacrt | 422 ako je već odlučeno |
+| GET / POST | `/predlozi-izmena?status&tip&moji` | RequireKorisnik | lista (`moji` = poslao ili se složio) / predlog `{ tip, vrsta, stavkaId, opis, razlog, pregledId? }` (razlog obavezan) |
+| POST | `/predlozi-izmena/{id}/odluka` `{ odobren, odgovor, duplikatOd? }` | sabloni.nacrt | `duplikatOd` = zatvori kao duplikat tog predloga; 422 ako je već odlučeno |
+| POST | `/predlozi-izmena/{id}/slazem-se` | RequireKorisnik | „Slažem se sa predlogom“; 422 sopstveni ili odlučen predlog |
 | GET / PUT | `/aktivnosti/{id}/uputstvo` | RequireKorisnik / sabloni.nacrt | `UputstvoDto` (tekst, slike, ko i kada) / `{ tekst }` |
 | POST | `/aktivnosti/{id}/uputstvo/slike` (multipart `fajl`) | sabloni.nacrt | najviše 3, JPG/PNG/WebP ≤ 3 MB |
 | GET / DELETE | `/aktivnosti/{id}/uputstvo/slike/{fajlId}` | RequireKorisnik / sabloni.nacrt | slika / ukloni |

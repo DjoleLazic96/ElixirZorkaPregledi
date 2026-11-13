@@ -11,6 +11,10 @@
 - **Početna**, ekran uređaja sa istorijom i QR nalepnicom, analitika i ispunjenje plana, pretraga.
 - **Obaveštenja** u zvonu, na telefonu i mejlom.
 - **Šabloni u aplikaciji**: nacrt, objava sa datumom, predlozi izmena, istorijat i uputstva za aktivnosti.
+- **Otkazivanje pregleda**, **Povuci raspored**, **Promeni DP** i kvačice u predlogu rasporeda; predlog nudi dane od danas.
+- **Rezime pre predaje** i **Pogledaj pregled**; predlog izmene šablona iz pregleda, **Slažem se sa predlogom** i duplikati.
+- **Sekcije** u Administraciji; **+ Nova aktivnost** i **+ Novi uređaj** u nacrtu.
+- **Zaboravili ste lozinku?**, obavezna promena lozinke posle reseta i **Dostupna je nova verzija**.
 - **Neposlate slike** se vide sa razlogom i mogu ponovo da se pošalju, sačuvaju na telefon ili odbace.
 - **Pregled se započinje na svoj dan**; za PZ može da se zatraži raniji početak, koji odobrava Supervizor ili Direktor.
 

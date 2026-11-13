@@ -9,6 +9,21 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-13 — Zamerke 23–37: lozinka, verzija, raspored kao niz, sekcije, predlozi (odobreno)
+
+**Kontekst:** testiranje 13.11. (zamerke 23–37 u „Zamerke za doradu.md“).
+**Odluka:**
+- Zaboravljena lozinka ide preko administratora (bez mejla), uz obaveznu promenu pri prvoj prijavi posle reseta (R1.13).
+- „O aplikaciji“: tehnički podaci samo za Admina (R1.13). Blueprint 11 §4 traži dijalog sa verzijom i upozorenje na razliku verzija; oba ostaju za sve.
+- PWA prelazi sa automatskog na ručno osvežavanje uz „Dostupna je nova verzija“ (R10.12).
+- Raspored DP-a je jedan niz (R3.28–R3.32): otkazivanje, povlačenje, kvačice, „Promeni DP“ i podsetnik četvrtkom i petkom.
+- Sekcije uređuje Admin (R2.16); predlozi iz pregleda, saglasnost i duplikati (R2.17); rezime pre predaje (R4.8).
+**Posledice:**
+- Migracija `Zamerke23do37`: `pregled.propusten`, `sekcija.aktivna`, `predlog_izmene.pregled_id` i `original_id`, tabela `predlog_saglasnost`, `AspNetUsers.mora_promeniti_lozinku`.
+- Nove rute: `/pregledi/{id}/otkazi`, `/pregledi/{id}/tip`, `/raspored/povuci`, `/sekcije` (POST/PUT), `/predlozi-izmena/{id}/slazem-se`.
+- Nova operacija sinhronizacije: `predlog_izmene`.
+**Odlučio:** vlasnik projekta (2026-11-13).
+
 ## 2026-11-13 — Playwright za testove kroz pregledač; odbijene slike na telefonu (odobreno)
 
 **Kontekst:** predlozi 19 i 20 posle pregleda koda: slika koju server trajno odbije ostajala je na telefonu bez ikakvog

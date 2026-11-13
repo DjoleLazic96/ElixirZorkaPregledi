@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { PREGLED, stanje } from './podaci';
 
-const pregledId = () => (JSON.parse(readFileSync(PREGLED, 'utf8')) as { id: number }).id;
+const podaci = () => JSON.parse(readFileSync(PREGLED, 'utf8')) as { id: number; zaOtkazivanje: number };
+const pregledId = () => podaci().id;
 
 test.describe.configure({ mode: 'serial' });
 
@@ -33,6 +34,10 @@ test.describe('Inženjer na telefonu', () => {
     await expect(page.getByText(/Čeka slanje: [1-9]\d* promena/)).toBeVisible();
 
     await page.getByRole('button', { name: /Predaj pregled/ }).click();
+    // Rezime pre predaje (zamerka 35): ništa se ne predaje bez drugog klika.
+    const rezime = page.getByRole('dialog', { name: /Predaja/ });
+    await expect(rezime.getByText('Ispravnih stavki', { exact: true })).toBeVisible();
+    await rezime.getByRole('button', { name: 'Predaj', exact: true }).click();
     await expect(page).toHaveURL(/\/kalendar/);
 
     await context.setOffline(false);
@@ -58,10 +63,17 @@ test.describe('Inženjer na telefonu', () => {
 test.describe('Supervizor', () => {
   test.use({ storageState: stanje('supervizor') });
 
-  test('vidi predat pregled i može da ga overi', async ({ page }) => {
+  test('vidi predat pregled i može da ga overi, a planiran PZ otkazuje uz razlog', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('navigation').first().getByRole('link', { name: 'Raspored' })).toBeVisible();
     await page.goto(`/pregledi/${pregledId()}`);
     await expect(page.getByRole('button', { name: /Overi/ }).first()).toBeVisible();
+
+    await page.goto(`/pregledi/${podaci().zaOtkazivanje}`);
+    await page.getByRole('button', { name: 'Otkaži pregled' }).click();
+    const dijalog = page.getByRole('dialog', { name: /Otkaži pregled/ });
+    await dijalog.getByLabel('Razlog').fill('E2E: zastoj otkazan');
+    await dijalog.getByRole('button', { name: 'Otkaži pregled' }).click();
+    await expect(page.getByText('Poništen').first()).toBeVisible();
   });
 });

@@ -19,7 +19,8 @@
 | `dodatno_polje` | dodatna polja uz aktivnosti (seed tri polja) | `ToTable` |
 | `sablon`, `sablon_verzija`, `sablon_stavka`, `sablon_stavka_polje` | šest šablona, verzije, stavke i polja na stavkama | `ToTable` |
 | `sablon_dogadjaj` | istorijat šablona | `ToTable` |
-| `predlog_izmene` | predlozi izmena šablona (R2.8) | `ToTable` |
+| `predlog_izmene` | predlozi izmena šablona (R2.8); `pregled_id` (poslat iz pregleda), `original_id` (duplikat), status i `duplikat` | `ToTable` |
+| `predlog_saglasnost` | „Slažem se sa predlogom“: PK (`predlog_id`, `korisnik_id`), `at` | `ToTable` |
 | `fajl` | fajlovi na volumenu (slike, faze 04 i 10) | `ToTable` |
 | `neradni_dan` | neradni dani i praznici | `ToTable` |
 | `odsustvo` | odsustva i zahtevi za odsustvo | `ToTable` |
@@ -104,6 +105,7 @@ Indeksi: `ix_audit_log_entity_entity_id`, `ix_audit_log_created_at` (DESC). Appe
 | `sifra` | varchar(8), `ux_sekcija_sifra` | 10, 20, 21, 30, 40, 50, 60, 70 (`HasData`) |
 | `naziv` | varchar(100) | „Sekcija 21“ |
 | `redosled` | int | |
+| `aktivna` | bool, podrazumevano true | neaktivna se ne nudi za nove uređaje (zamerka 33) |
 
 ### `uredjaj`
 | Kolona | Tip | Napomena |
@@ -206,3 +208,7 @@ Sekcije, šabloni i tri dodatna polja su seed u migracijama (`HasData`); regista
 | `Popunjavanje` | kolone popunjavanja na `pregled`, `odgovor`, `uredjaj_van_funkcije`, `fotografija`, `sinhronizacija_operacija` |
 | `Raspored` | neradni dani, odsustva, pregledi, učesnici, istorija pregleda, zahtevi za prebacivanje |
 | `OpremaISabloni` | registar, katalog, dodatna polja, šabloni i verzije, istorijat, `fajl`; briše `kategorija` |
+
+### Dopune (migracija `Zamerke23do37`)
+- `pregled.propusten` (bool): propušten i automatski prenet — samo tada kalendar piše crveno „nije urađen – prenet na“.
+- `AspNetUsers.mora_promeniti_lozinku` (bool): Admin je postavio lozinku; korisnik je menja pri prvoj prijavi.

@@ -519,6 +519,18 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                 });
                 break;
             }
+            case "predlog_izmene":
+            {
+                // Predlog izmene šablona poslat tokom popunjavanja (zamerka 34): radi i bez interneta, a pamti pregled.
+                var vrsta = op.Podaci.GetProperty("vrsta").GetString() ?? "dodavanje";
+                if (vrsta is not ("dodavanje" or "izbacivanje" or "ispravka")) throw new BusinessRuleException("Izaberite vrstu predloga.");
+                var opis = op.Podaci.GetProperty("opis").GetString() ?? string.Empty;
+                var razlog = op.Podaci.GetProperty("razlog").GetString() ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(opis) || string.IsNullOrWhiteSpace(razlog)) throw new BusinessRuleException("Opis i razlog predloga su obavezni.");
+                if (opis.Length > 1000 || razlog.Length > 1000) throw new BusinessRuleException("Opis i razlog mogu imati najviše 1000 karaktera.");
+                await TpmPregledi.Application.Features.Sabloni.IzmeneSablonaHandler.NoviPredlogAsync(db, p.Tip, vrsta, null, opis, razlog, p.Id, currentUser.UserId!, clock.UtcNow, ct);
+                break;
+            }
             default:
                 throw new BusinessRuleException($"Nepoznata operacija „{op.Vrsta}“.");
         }

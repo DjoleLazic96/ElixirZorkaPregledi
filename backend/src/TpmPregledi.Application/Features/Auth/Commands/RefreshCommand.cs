@@ -40,7 +40,7 @@ public sealed class RefreshCommandHandler(
         var response = new LoginResponse(
             AccessToken: pair.AccessToken,
             ExpiresAt:   pair.AccessTokenExpiresAt,
-            User:        new UserDto(user.Id, user.UserName ?? "", user.FullName, user.Email),
+            User:        new UserDto(user.Id, user.UserName ?? "", user.FullName, user.Email, user.MoraPromenitiLozinku),
             Roles:       roles,
             Prava:       await KorisnikPrava.ProcitajAsync(db, user.Id, ct));
 

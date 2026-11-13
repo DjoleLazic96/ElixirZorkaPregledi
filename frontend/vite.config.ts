@@ -26,7 +26,9 @@ export default defineConfig({
     // PWA (odluka 2026-11-04): instalacija na početni ekran i app shell bez interneta. API se nikad ne kešira
     // u service worker-u — podaci za rad bez interneta su u IndexedDB (src/offline).
     VitePWA({
-      registerType: 'autoUpdate',
+      // „Dostupna je nova verzija“ (zamerka 25): korisnik bira kad osvežava, da se neposlato ne izgubi.
+      registerType: 'prompt',
+      injectRegister: false,
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'TPM pregledi',
@@ -56,6 +58,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     // Playwright testovi (e2e/) se pokreću posebno: `npm run e2e`.
     include: ['src/**/*.test.{ts,tsx}'],
+    alias: { 'virtual:pwa-register/react': resolve(import.meta.dirname, 'src/test/pwa-register-react.ts') },
   },
   build: {
     sourcemap: false, // produkcioni bundle bez source mapa (blueprint 12 #37)

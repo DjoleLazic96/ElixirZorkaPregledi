@@ -45,7 +45,8 @@ Ako neko odlazi iz firme a treba novi nalog istog imena: otvorite novi nalog sa 
 
 ## 5.5 Postavljanje nove lozinke
 
-Kliknite **Resetuj lozinku** u redu korisnika, unesite **Nova lozinka**, kliknite **Sačuvaj**. Korisnik je odjavljen sa svih uređaja i prijavljuje se novom lozinkom. Saopštite je lično, ne mejlom.
+Kliknite **Resetuj lozinku** u redu korisnika, unesite **Nova lozinka**, kliknite **Sačuvaj**. Korisnik je odjavljen sa svih uređaja i prijavljuje se novom lozinkom, a aplikacija odmah traži da izabere svoju (tako ni
+administrator ne zna lozinku koju korisnik dalje koristi). Saopštite je lično, ne mejlom.
 
 ## 5.6 Zaštite koje aplikacija sprovodi
 
@@ -53,6 +54,12 @@ Kliknite **Resetuj lozinku** u redu korisnika, unesite **Nova lozinka**, kliknit
 - Ne možete poslednjem aktivnom administratoru skinuti rolu Administrator ni ga deaktivirati — uvek mora postojati bar jedan.
 - Ne možete sebi oduzeti pravo **Korisnici i prava** (inače više ne biste mogli da upravljate nalozima).
 - **Popunjavanje pregleda** se ne može dodeliti Supervizoru, Direktoru ni Administratoru.
+
+## 5.9 Sekcije
+
+Administracija → **Sekcije** (samo Administrator): **Nova sekcija** (šifra kao na obrascu, npr. 80; naziv nije obavezan), **Izmeni**
+(naziv i **Aktivna**) i strelice za redosled. Sekcija se ne briše: neaktivna se samo ne nudi za nove uređaje, a postojeći uređaji i stari
+pregledi ostaju u njoj. Šifra se posle ne menja.
 
 ## 5.8 Podešavanja
 

@@ -46,7 +46,7 @@ describe('PregledKartica', () => {
   it('inženjer za svoj planiran pregled šalje zahtev za prebacivanje', async () => {
     vi.mocked(api.post).mockResolvedValue(odgovor({}));
     renderSaProviderima(<PregledKartica pregled={P} onClose={() => {}} />);
-    expect(screen.getByText(/prenet sa 09.11.2026/)).toBeInTheDocument();
+    expect(screen.getByText(/pomeren sa 09.11.2026/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Promeni u rasporedu' })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Zatraži prebacivanje' }));
@@ -119,8 +119,8 @@ describe('RasporedPage', () => {
     const dijalog = await screen.findByRole('dialog', { name: 'Predlog rasporeda' });
     await userEvent.click(within(dijalog).getByRole('button', { name: 'Potvrdi raspored' }));
 
-    expect(api.post).toHaveBeenCalledWith('/raspored/potvrdi', { stavke: [{ datum: '2026-11-09', tip: 'DP1', inzenjerId: 'ana' }] });
-    expect(await screen.findByText(/Raspored je potvrđen: DP1-2026-0001/)).toBeInTheDocument();
+    expect(api.post).toHaveBeenCalledWith('/raspored/potvrdi', { stavke: [{ datum: '2026-11-09', tip: 'DP1', inzenjerId: 'ana' }], uskladi: false });
+    expect(await screen.findByText(/Raspored je potvrđen/)).toBeInTheDocument();
   });
 });
 
