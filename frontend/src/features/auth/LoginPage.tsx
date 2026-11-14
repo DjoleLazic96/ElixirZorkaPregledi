@@ -53,7 +53,6 @@ export function LoginPage() {
         <CardBody className="p-[26px]">
           <img src="/logo-elixirzorka.png" alt="" aria-hidden className="mx-auto mb-[18px] block w-[220px] max-w-full" />
           <h1 className="text-center text-xl font-bold text-gray-800">{NAZIV_APLIKACIJE}</h1>
-          <p className="mt-1 text-center text-sm text-gray-500">Prijavite se da nastavite.</p>
 
           {sesijaIstekla && (
             <p

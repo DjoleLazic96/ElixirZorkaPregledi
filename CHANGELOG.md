@@ -83,6 +83,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - **Administracija → Podešavanja**: vremena upozorenja, kraj radnog dana, granica pauze, rok za overu i pragovi obaveštenja.
 
 ### Izmenjeno
+- Uklonjeni suvišni objašnjavajući tekstovi (Početna, prijava, primaoci obaveštenja, „Dodaj DP“), a objašnjenje u predlogu rasporeda je kraće.
 - Iz prozora obaveštenja (zvonce) uklonjena je rečenica o telefonu i mejlu.
 - „O aplikaciji“: tehnički podaci samo za Administratora.
 - Podsetnik za raspored stiže četvrtkom i petkom i navodi dane sledeće nedelje bez DP-a.

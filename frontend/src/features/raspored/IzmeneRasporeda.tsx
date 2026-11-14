@@ -228,7 +228,6 @@ export function DodajDpDijalog({ datum, onClose }: { datum: string; onClose: () 
     <Modal open title={naslov} onClose={onClose}>
       {!p ? <Ucitavanje /> : (
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">Predložen je DP koji je sledeći po redu i inženjer po rotaciji; oba možete da promenite.</p>
           <FormField label="DP" htmlFor="ddp-tip">
             <Select id="ddp-tip" value={izabranTip} onChange={(v) => v && setTip(v)}
               options={['DP1', 'DP2'].map((t) => ({ value: t, label: t === p.tip ? `${t} (sledeći po redu)` : t }))} />

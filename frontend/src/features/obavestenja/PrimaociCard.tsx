@@ -41,7 +41,6 @@ function PrimaociForma({ pocetno }: { pocetno: PrimaociDto }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-600">Lična obaveštenja (dodela, dorada, ishod zahteva) uvek idu onome koga se tiču.</p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-xs text-gray-500">
