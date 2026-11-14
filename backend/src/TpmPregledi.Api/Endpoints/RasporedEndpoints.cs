@@ -67,6 +67,7 @@ public sealed record OdlukaPrebacivanjaInput(bool Odobreno, string? ZamenaId);
 /// <param name="Do">Do.</param>
 /// <param name="Naziv">Naziv.</param>
 /// <param name="Vrsta">Vrsta.</param>
+/// <param name="PomeriDp">Pomeriti DP-ove sa tih dana dalje u nizu (zamerka 52).</param>
 public sealed record NeradniDaniInput(DateOnly Od, DateOnly Do, string Naziv, string Vrsta, bool PomeriDp = false);
 
 /// <summary>Telo predloga.</summary>

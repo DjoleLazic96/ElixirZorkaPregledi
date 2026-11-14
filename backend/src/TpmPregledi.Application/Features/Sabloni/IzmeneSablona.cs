@@ -22,6 +22,19 @@ namespace TpmPregledi.Application.Features.Sabloni;
 public sealed record RazlikaDto(string Vrsta, string Sekcija, string Uredjaj, string Aktivnost, string? Bilo);
 
 /// <summary>Predlog izmene.</summary>
+/// <param name="Id">ID.</param>
+/// <param name="Sablon">Šablon (DP1…PZ4).</param>
+/// <param name="Vrsta">Vrsta predloga (dodavanje, izmena, brisanje…).</param>
+/// <param name="StavkaId">Stavka na koju se odnosi (ako postoji).</param>
+/// <param name="Stavka">Opis te stavke.</param>
+/// <param name="Opis">Šta treba promeniti.</param>
+/// <param name="Razlog">Zašto.</param>
+/// <param name="Podneo">Ime podnosioca.</param>
+/// <param name="KreiranoAt">Kada je poslat.</param>
+/// <param name="Status">zahtev, odobren, odbijen, duplikat.</param>
+/// <param name="Odlucio">Ko je odlučio.</param>
+/// <param name="Odgovor">Obrazloženje odluke.</param>
+/// <param name="Verzija">Verzija šablona u koju je ušao.</param>
 /// <param name="PodneoId">Ko je predložio (filter „Samo moji“, zamerka 36).</param>
 /// <param name="PregledId">Pregled iz kog je predlog poslat (zamerka 34).</param>
 /// <param name="PregledBroj">Broj tog pregleda.</param>

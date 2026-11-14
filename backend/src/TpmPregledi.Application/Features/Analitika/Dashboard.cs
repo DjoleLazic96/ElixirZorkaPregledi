@@ -19,6 +19,8 @@ namespace TpmPregledi.Application.Features.Analitika;
 /// <param name="Inzenjer">Kome je dodeljen.</param>
 /// <param name="Overio">Ko je overio.</param>
 /// <param name="Moj">Dodeljen meni ili sam učesnik.</param>
+/// <param name="InzenjerOdsutan">Dodeljeni inženjer je na odsustvu tog dana.</param>
+/// <param name="ZahtevNaCekanju">Vrsta zahteva inženjera koji čeka odluku (prebacivanje, raniji početak).</param>
 public sealed record PregledKratkoDto(int Id, string Broj, string Tip, DateOnly Datum, string Status, string Inzenjer, string? Overio, bool Moj,
     bool InzenjerOdsutan = false, string? ZahtevNaCekanju = null);
 

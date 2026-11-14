@@ -33,11 +33,13 @@ public sealed record ObjavaInput(DateOnly VaziOd);
 /// <param name="StavkaId">Stavka.</param>
 /// <param name="Opis">Opis.</param>
 /// <param name="Razlog">Razlog.</param>
+/// <param name="PregledId">Pregled iz kog je predlog poslat (zamerka 34).</param>
 public sealed record PredlogIzmeneInput(string Tip, string Vrsta, int? StavkaId, string Opis, string Razlog, int? PregledId = null);
 
 /// <summary>Odluka o predlogu.</summary>
 /// <param name="Odobren">Odluka.</param>
 /// <param name="Odgovor">Obrazloženje.</param>
+/// <param name="DuplikatOd">Za duplikat: ID originalnog predloga.</param>
 public sealed record OdlukaPredlogaInput(bool Odobren, string? Odgovor, int? DuplikatOd = null);
 
 /// <summary>Tekst uputstva.</summary>

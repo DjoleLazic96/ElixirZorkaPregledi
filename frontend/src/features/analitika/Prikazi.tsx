@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/cn';
-import QRCode from 'qrcode';
 import { Printer } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -81,7 +80,8 @@ export function QrDijalog({ token, naziv, onClose }: { token: string; naziv: str
   const [src, setSrc] = useState<string | null>(null);
   const url = `${window.location.origin}/qr/${token}`;
   useEffect(() => {
-    void QRCode.toDataURL(url, { margin: 1, width: 320 }).then(setSrc);
+    // Biblioteka se učitava tek kad se nalepnica otvori — ne ide u glavni paket (pretraga u zaglavlju uvozi ovaj fajl).
+    void import('qrcode').then(({ default: QRCode }) => QRCode.toDataURL(url, { margin: 1, width: 320 })).then(setSrc);
   }, [url]);
   function stampaj() {
     const w = window.open('', '_blank', 'width=420,height=520');

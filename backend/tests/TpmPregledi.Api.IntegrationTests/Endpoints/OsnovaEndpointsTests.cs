@@ -85,7 +85,7 @@ public class UvozSablonaEndpointsTests(CustomWebAppFactory factory)
         res.StatusCode.Should().Be(HttpStatusCode.OK);
         var sabloni = await admin.GetFromJsonAsync<List<SablonPregledDto>>("/api/v1/sabloni");
         sabloni!.Should().OnlyContain(s => s.VazecaVerzija == 1);
-        sabloni.Sum(s => s.BrojStavki).Should().Be(864);
+        sabloni!.Sum(s => s.BrojStavki).Should().Be(864);
 
         using var ponovo = new MultipartFormDataContent();
         ponovo.Add(new ByteArrayContent(await File.ReadAllBytesAsync(Path.Combine(dir.FullName, "docs", "sabloni", "sabloni-za-uvoz.xlsx"))),

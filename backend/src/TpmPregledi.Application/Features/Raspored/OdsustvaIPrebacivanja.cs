@@ -378,6 +378,7 @@ public sealed class OdsustvaHandler(IAppDbContext db, ICurrentUser currentUser, 
 
 /// <summary>Zahtev za prebacivanje.</summary>
 /// <param name="Id">ID.</param>
+/// <param name="Vrsta">prebacivanje ili raniji_pocetak.</param>
 /// <param name="Pregled">Pregled.</param>
 /// <param name="PodneoId">Ko traži.</param>
 /// <param name="Podneo">Ime.</param>

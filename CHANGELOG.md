@@ -87,8 +87,10 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Arhiva pregleda na tabletu prikazuje kartice; zaglavlja i paginacija prelaze u novi red umesto da izlaze iz ekrana.
 - Fotografije i slike uputstava se prikazuju i na produkcionom serveru (bezbednosna pravila pregledača).
 - Uklonjen primer „Kategorije“ iz skeleta; početni ekran je **Početna**.
+- QR nalepnica se učitava tek kad se otvori, pa se aplikacija prvi put otvara brže.
 
 ### Ispravljeno
+- PDF i Excel na serveru: slika servera sada ima fontove, pa PDF ne gubi slova Š Ć Č Ž Đ i ćirilicu, a Excel izvoz ne puca.
 - Registar uređaja bez duplikata (Merna vaga Hasler, Pumpa, HL1–HL3, Ventilator sekundarni – hladnjak); 60-C-05 i 10-C-15 su redleri; vrsta „Merna vaga“, „HL“, „Puž“ umesto „Merna“, „HL1“, „Puž filtera“.
 - Predaja bez interneta: inženjer ostaje na pregledu sa porukom „Predato – čeka slanje“ (ranije je otvarao Kalendar, koji bez veze ne radi); bez interneta poruke kažu „Nema interneta…“.
 - Početna: pregled inženjera na odsustvu više nema oznaku „rok istekao“.
