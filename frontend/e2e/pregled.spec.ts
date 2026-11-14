@@ -38,7 +38,9 @@ test.describe('Inženjer na telefonu', () => {
     const rezime = page.getByRole('dialog', { name: /Predaja/ });
     await expect(rezime.getByText('Ispravnih stavki', { exact: true })).toBeVisible();
     await rezime.getByRole('button', { name: 'Predaj', exact: true }).click();
-    await expect(page).toHaveURL(/\/kalendar/);
+    // Bez veze inženjer ostaje na pregledu (Kalendar bez interneta ne radi) — ručno testiranje 14.11.
+    await expect(page.getByText(/Predato – čeka slanje/).first()).toBeVisible();
+    await expect(page).toHaveURL(/\/pregled\/\d+\/popuni/);
 
     await context.setOffline(false);
     // Posle povratka veze red se isprazni, a pregled je na serveru predat.
