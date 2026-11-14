@@ -23,7 +23,7 @@ import {
   usePreglediUOdsustvu, useRaspored, useSledeciPz, useUnesiOdsustvo, useZahteviPrebacivanja, useZakaziPz,
   useDpKojiSePomera, type OdsustvoDto, type PredlogStavka, type PregledKalendarDto, type ZahtevPrebacivanjaDto,
 } from './hooks';
-import { UpozorenjeDp } from './IzmeneRasporeda';
+import { PovlacenjeDijalog, UpozorenjeDp } from './IzmeneRasporeda';
 import { PregledKartica } from './KalendarPage';
 import { bojaPregleda, ivicaPregleda, oznakaPomeranja, oznakaPregleda, pomeraSe, preracunajTipove, stavkeDana } from './kalendar';
 
@@ -93,6 +93,7 @@ export function RasporedPage() {
                           className={cn('block min-h-11 w-full rounded border px-1.5 py-1 text-left text-xs md:min-h-10', bojaPregleda(p, danas), ivicaPregleda(p))}>
                           <span className="block break-words text-[11px] font-semibold leading-tight tracking-tight">{p.broj}</span>
                           <span className="block truncate">{p.dodeljen}</span>
+                          {(p.ucesnici ?? []).map((u) => <span key={u.korisnikId} className="block truncate">+ {u.ime}</span>)}
                           {oznakaPregleda(p) && <span className={cn('block truncate', oznakaPregleda(p)!.boja)}>{oznakaPregleda(p)!.tekst}</span>}
                         </button>
                       ))}
@@ -285,19 +286,24 @@ function OdlukaPrebacivanja({ zahtev, onClose }: { zahtev: ZahtevPrebacivanjaDto
   const toast = useToast();
   const [zamena, setZamena] = useState<string | null>(zahtev.predlozenaZamenaId);
   const [greska, setGreska] = useState<string | null>(null);
+  const [slobodan, setSlobodan] = useState<string | null>(null);
 
   const raniji = zahtev.vrsta === 'raniji_pocetak';
   const dp = useDpKojiSePomera(raniji ? danasYmd() : null);
 
   async function posalji(odobreno: boolean) {
     try {
-      await odluci.mutateAsync({ id: zahtev.id, odobreno, zamenaId: odobreno && !raniji ? zamena : null });
+      const r = await odluci.mutateAsync({ id: zahtev.id, odobreno, zamenaId: odobreno && !raniji ? zamena : null });
       toast.success(!odobreno ? 'Zahtev je odbijen.' : raniji ? 'Pregled je pomeren na danas.' : 'Pregled je prebačen.');
-      onClose();
+      // Dan koji je PZ oslobodio (zamerka 65): isto pitanje kao kod ručnog pomeranja PZ-a.
+      if (r?.pregled?.slobodanDan) setSlobodan(r.pregled.slobodanDan);
+      else onClose();
     } catch (err) {
       setGreska(porukaGreske(err, 'Odluka nije sačuvana.'));
     }
   }
+
+  if (slobodan) return <PovlacenjeDijalog datum={slobodan} pz onClose={onClose} />;
 
   return (
     <Modal open title={`${raniji ? 'Raniji početak' : 'Prebacivanje'} — ${zahtev.pregled.broj}`} onClose={onClose}>
@@ -582,7 +588,7 @@ function OdsustvoModal({ zahtev, onClose }: { zahtev?: OdsustvoDto; onClose: () 
               {pregledi.data!.map((x) => (
                 <li key={x.pregled.id} className="flex flex-wrap items-center gap-2 text-sm">
                   {/* Tekst dobija koliko mu treba (zamerka 45); na uskom ekranu polje ide ispod, preko cele širine. */}
-                  <span className="w-full sm:w-auto sm:shrink-0 sm:whitespace-nowrap">{x.pregled.broj} · {kratakDan(x.pregled.planiraniDatum)}, {formatirajDatum(x.pregled.planiraniDatum)}</span>
+                  <span className="w-full sm:w-56 sm:shrink-0 sm:whitespace-nowrap">{x.pregled.broj} · {kratakDan(x.pregled.planiraniDatum)}, {formatirajDatum(x.pregled.planiraniDatum)}</span>
                   {x.pregled.status === 'planiran' ? (
                     <Select className="w-full min-w-0 sm:w-auto sm:flex-1" aria-label={`Zamena za ${x.pregled.broj}`} value={zamenaZa(x.pregled.id, x.predlogZameneId)}
                       nullable placeholder="Ne prebacuj" options={opcije} onChange={(v) => setZamene({ ...zamene, [x.pregled.id]: v })} />

@@ -7,6 +7,7 @@ import { Sidebar } from './Sidebar';
 const PRAVA: Record<string, string[]> = {
   Admin: ['analitika', 'sabloni.nacrt', 'neradni_dani', 'korisnici', 'podesavanja'],
   Inzenjer: ['pregledi.popunjavanje', 'analitika'],
+  Supervizor: ['analitika', 'overa', 'raspored.uredjivanje', 'odsustva.odobravanje', 'akcije.zatvaranje'],
 };
 
 function renderSidebar(roles: string[]) {
@@ -27,6 +28,16 @@ describe('Sidebar — navigacija po roli', () => {
     ['Administracija', 'Audit log', 'Stanje servera'].forEach((l) =>
       expect(screen.queryByRole('link', { name: l })).not.toBeInTheDocument(),
     );
+  });
+
+  it('Supervizor vidi Neradne dane (samo pregled, zamerka 65), a Inženjer ne', () => {
+    renderSidebar(['Supervizor']);
+    expect(screen.getByRole('link', { name: 'Neradni dani' })).toBeInTheDocument();
+  });
+
+  it('Inženjer ne vidi Neradne dane', () => {
+    renderSidebar(['Inzenjer']);
+    expect(screen.queryByRole('link', { name: 'Neradni dani' })).not.toBeInTheDocument();
   });
 
   it('dijagnostika vodi na sopstvene rute, ne pod /admin', () => {

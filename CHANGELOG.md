@@ -6,6 +6,11 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- „Zapamti me“: bez kvačice prijava traje dok se pregledač ne zatvori (deljen računar); sa kvačicom ostajete prijavljeni.
+- Neradni dani su u meniju i za Supervizora (samo pregled); drugi inženjer PZ-a se vidi na karticama u Rasporedu i Kalendaru.
+- „Povuci raspored“ i posle odobrenog ranijeg početka PZ-a; dodir bilo gde na kartici akcije otvara akciju.
+- Inženjer kome je oduzeto pravo popunjavanja: urađeno stiže Supervizoru kao sporni unos, telefon to javlja, a pregledi se pojave u „Čeka moju odluku“.
+- Predlog zamene kod odsustva i deaktivacije smenjuje inženjere po rotaciji.
 - PDF i Word: izbor „Rezime“ ili „Ceo pregled“; neispravno je podebljano, pa se vidi i na crno-belom papiru.
 - Dnevni rezime stiže svakog radnog dana, navodi koji je DP prenet i kome, i javlja kad tog dana nije bilo pregleda; klik otvara kalendar.
 - Obaveštenje „Sporni unosi“ kad stigne unos inženjera za pregled koji je u međuvremenu prebačen ili poništen.
@@ -84,6 +89,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Uklonjen primer „Kategorije“ iz skeleta; početni ekran je **Početna**.
 
 ### Ispravljeno
+- Registar uređaja bez duplikata (Merna vaga Hasler, Pumpa, HL1–HL3, Ventilator sekundarni – hladnjak); 60-C-05 i 10-C-15 su redleri; vrsta „Merna vaga“, „HL“, „Puž“ umesto „Merna“, „HL1“, „Puž filtera“.
 - Predaja bez interneta: inženjer ostaje na pregledu sa porukom „Predato – čeka slanje“ (ranije je otvarao Kalendar, koji bez veze ne radi); bez interneta poruke kažu „Nema interneta…“.
 - Početna: pregled inženjera na odsustvu više nema oznaku „rok istekao“.
 - Sporan unos na pregledu koji još nije započet javlja tačan razlog; opis pokazuje uređaj i aktivnost umesto broja stavke.

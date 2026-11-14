@@ -198,7 +198,7 @@ public class RasporedTests
         (await preklop.Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal(OdsustvaHandler.PorukaPreklapanje);
 
         var zaPrebacivanje = await sut.Handle(new GetPreglediUOdsustvuQuery(ana, Pon, Pon.AddDays(1)), default);
-        zaPrebacivanje.Should().HaveCount(2).And.OnlyContain(x => x.PredlogZameneId == bora);
+        zaPrebacivanje.Select(x => x.PredlogZameneId).Should().Equal([bora, ceca], "zamene naizmenično po rotaciji (zamerka 67)");
 
         var dp2 = await h.Db.Pregledi.SingleAsync(p => p.Tip == "DP2");
         dp2.Status = StatusPregleda.URadu;

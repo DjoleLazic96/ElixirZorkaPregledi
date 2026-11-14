@@ -15,7 +15,7 @@
 
 1. Otvorite adresu aplikacije u Chrome-u ili Edge-u. Potreban je VPN.
 2. Unesite **Korisničko ime** i **Lozinku** koje ste dobili od administratora.
-3. Po želji štiklirajte **Zapamti me na ovom uređaju** (na službenom telefonu obavezno). Dugme „oko“ uz lozinku je prikazuje dok ga ponovo ne kliknete.
+3. Po želji štiklirajte **Zapamti me na ovom uređaju** (na službenom telefonu obavezno). Bez kvačice prijava traje dok ne zatvorite pregledač — na deljenom računaru je ne štiklirajte. Dugme „oko“ uz lozinku je prikazuje dok ga ponovo ne kliknete.
 4. Kliknite **Prijavi se**.
 
 Posle prijave otvara se početna stranica. Vaše ime je u gornjem desnom uglu.

@@ -73,7 +73,7 @@ korisnika: nova prava važe najkasnije kad istekne trenutni access token (15 min
 | Akcije i neispravnosti — čitanje, Excel | RequireKorisnik |
 | Zatvaranje, otkazivanje, zaduženi, odluka o zahtevu za zatvaranje | `Pravo:akcije.zatvaranje` |
 | Zahtev za zatvaranje akcije i njegovo otkazivanje; otkazivanje svog zahteva za doradu, prebacivanje i raniji početak | `Pravo:pregledi.popunjavanje` (samo podnosilac) |
-| Otvaranje akcije i odgovor na pop-up | kroz `/sinhronizacija` (`Pravo:pregledi.popunjavanje`) |
+| Otvaranje akcije i odgovor na pop-up | kroz `/sinhronizacija` (`Pravo:pregledi.popunjavanje`; bez prava ruta odgovara, ali ništa ne primenjuje — urađeno postaje sporni unos, zamerka 66) |
 | Ekran uređaja, QR, Dashboard, pretraga | RequireKorisnik |
 | Opšta analitika i ispunjenje plana (`/analitika`) | `Pravo:analitika` (podrazumevano sve četiri role) |
 | „Moje aktivnosti“ / „Čeka moju odluku“ na Dashboardu | pravo popunjavanja / rola Supervizor ili Direktor, stavke po pravima |
@@ -100,7 +100,7 @@ bez row lock-a (TOCTOU) — prihvaćen rizik (`SECURITY.md`).
 ## 6. Lozinke i sesija
 
 Politika: min 8, cifra, veliko i malo slovo. Lockout 5 pokušaja / 10 min. Neuspešna prijava uvek vraća istu poruku i piše `LOGIN_FAIL` u audit.
-Access token 15 min; refresh 7 dana sa rotacijom (frontend obnavlja jednim pozivom u isto vreme — `obnoviSesiju` sa Web Locks između kartica, jer bi drugi poziv sa istim, već rotiranim kolačićem dobio 401 i odjavio korisnika); reset lozinke (admin), promena lozinke, deaktivacija, promena role i promena prava revokuju
+Access token 15 min; refresh 7 dana sa rotacijom (kolačić bez „Zapamti me“ traje do zatvaranja pregledača, sa njim 180 dana) (frontend obnavlja jednim pozivom u isto vreme — `obnoviSesiju` sa Web Locks između kartica, jer bi drugi poziv sa istim, već rotiranim kolačićem dobio 401 i odjavio korisnika); reset lozinke (admin), promena lozinke, deaktivacija, promena role i promena prava revokuju
 sve refresh tokene. Korisničko ime je nepromenljivo; korisnici se ne brišu nego deaktiviraju.
 
 ## 7. Inicijalni admin

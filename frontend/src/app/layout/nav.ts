@@ -24,7 +24,8 @@ const NAV: NavItem[] = [
   { to: '/analitika', label: 'Analitika', ikona: '📊', visibleIf: (p) => imaPravo(p, 'analitika') },
   { to: '/sabloni', label: 'Šabloni', ikona: '🧩' },
   { to: '/admin', label: 'Administracija', ikona: '👥', visibleIf: canSeeAdminSection },
-  { to: '/neradni-dani', label: 'Neradni dani', ikona: '🏖️', visibleIf: (p) => imaPravo(p, 'neradni_dani') },
+  // Ko pravi raspored vidi neradne dane (samo za čitanje, zamerka 65); unosi ih pravo „neradni_dani“.
+  { to: '/neradni-dani', label: 'Neradni dani', ikona: '🏖️', visibleIf: (p) => imaPravo(p, 'neradni_dani') || imaPravo(p, 'raspored.uredjivanje') },
   { to: '/moja-odsustva', label: 'Moja odsustva', ikona: '🌴', visibleIf: (p) => imaPravo(p, 'pregledi.popunjavanje') },
   // Dijagnostika — zasebne stavke, ne pod Administracijom: nisu šifarnici i
   // otvaraju se povremeno, pa im je mesto u glavnom meniju, ne u pod-tabovima.

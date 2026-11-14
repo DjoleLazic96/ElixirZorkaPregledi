@@ -48,7 +48,7 @@ public sealed class JwtTokenService(
         db.RefreshTokens.Add(entity);
         await db.SaveChangesAsync(ct);
 
-        return new TokenPair(access, accessExp, raw, entity.ExpiresAt);
+        return new TokenPair(access, accessExp, raw, entity.ExpiresAt, zapamti);
     }
 
     /// <inheritdoc />
@@ -76,7 +76,7 @@ public sealed class JwtTokenService(
         var roles = (await userManager.GetRolesAsync(existing.User)).ToList();
         var (access, accessExp) = CreateAccessToken(existing.User, roles, await PravaAsync(existing.User.Id, ct));
 
-        return new RotateResult(new TokenPair(access, accessExp, raw, fresh.ExpiresAt), existing.User);
+        return new RotateResult(new TokenPair(access, accessExp, raw, fresh.ExpiresAt, existing.Dugotrajan), existing.User);
     }
 
     /// <inheritdoc />

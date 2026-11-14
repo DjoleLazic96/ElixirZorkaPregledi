@@ -44,6 +44,6 @@ public sealed class RefreshCommandHandler(
             Roles:       roles,
             Prava:       await KorisnikPrava.ProcitajAsync(db, user.Id, ct));
 
-        return new LoginResult(response, pair.RefreshToken, pair.RefreshTokenExpiresAt);
+        return new LoginResult(response, pair.RefreshToken, pair.RefreshTokenExpiresAt, pair.Zapamti);
     }
 }

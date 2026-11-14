@@ -6,7 +6,7 @@
 ## Otvoreno
 
 ### Pre početka razvoja
-- [ ] Vlasnik projekta (Miroslav Zec) odobrava spec `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md`
+- [x] Vlasnik projekta (Miroslav Zec) odobrava spec `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md`
 - [ ] Vlasnik blueprinta upoznat sa odstupanjima u `docs/odluke.md` — vlasnik projekta ih je odobrio 2026-11-04/05 (četiri role, mobilni prikaz, fotografije, PWA i rad bez interneta, duža sesija, biblioteke, push i zakazane provere, izgled po mockup-u)
 - [ ] Port 55434 upisati u registar blueprinta (03 §1)
 - [x] 2026-11-04 — GitHub remote: https://github.com/DjoleLazic96/ElixirZorkaPregledi (javan)

@@ -57,7 +57,7 @@ public class UvozSablonaTests
     {
         var redovi = PraviRedovi();
 
-        redovi.Should().HaveCount(867);
+        redovi.Should().HaveCount(864);
         redovi.Select(r => r.Sablon).Distinct().Should().BeEquivalentTo(Sablon.Tipovi);
         redovi.Should().Contain(r => r.Sablon == "DP1" && r.Naziv == "Merna vaga Sautelma" && r.Oznaka == "10-C-07C");
         redovi.Should().NotContain(r => r.Naziv.Length == 0);
@@ -73,8 +73,8 @@ public class UvozSablonaTests
         var rez = await Sut(h, redovi).Handle(new UvoziSabloneCommand(Stream.Null), default);
 
         rez.Sabloni.Select(s => s.Tip).Should().Equal(Sablon.Tipovi);
-        rez.Sabloni.Sum(s => s.Stavki).Should().Be(867);
-        (await h.Db.SablonStavke.CountAsync()).Should().Be(867);
+        rez.Sabloni.Sum(s => s.Stavki).Should().Be(864);
+        (await h.Db.SablonStavke.CountAsync()).Should().Be(864);
         (await h.Db.SablonVerzije.CountAsync(v => v.Status == StatusVerzije.Objavljena && v.Broj == 1)).Should().Be(6);
         (await h.Db.Uredjaji.CountAsync()).Should().Be(rez.NovihUredjaja);
         (await h.Db.SablonDogadjaji.CountAsync(d => d.Vrsta == "prvi_uvoz" && d.VerzijaId != null)).Should().Be(6);
@@ -178,11 +178,13 @@ public class UvozSablonaTests
     [Theory]
     [InlineData("Merna vaga Sautelma", "Merna vaga")]
     [InlineData("Koš vage", "Koš vage")]
-    [InlineData("Puž filtera", "Puž filtera")]
+    [InlineData("Puž filtera", "Puž")]
     [InlineData("Puž", "Puž")]
     [InlineData("Ventilator (SK 170)", "Ventilator")]
     [InlineData("Ventilator sekundardni - hladnjak", "Ventilator")]
-    [InlineData("HL1", "HL1")]
+    [InlineData("HL1", "HL")]
+    [InlineData("HL 3", "HL")]
+    [InlineData("Merna vaga Hasler", "Merna vaga")]
     public void Vrsta_se_izvodi_iz_naziva(string naziv, string vrsta)
         => UvoziSabloneHandler.VrstaIzNaziva(naziv).Should().Be(vrsta);
 }

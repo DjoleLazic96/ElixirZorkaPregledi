@@ -44,6 +44,7 @@ public class Zamerke54do56Tests
         var cecini = await new OdsustvaHandler(h.Db, new FakeCurrentUser { UserId = admin }, Sat()).Handle(new GetPreglediUOdsustvuQuery(ceca, Pon, Pon.AddYears(1)), default);
         cecini.Should().HaveCount(2);
         cecini.Should().OnlyContain(x => x.PredlogZameneId != null && x.PredlogZameneId != ceca, "predlog zamene nije ona sama");
+        cecini.Select(x => x.PredlogZameneId).Distinct().Should().HaveCount(2, "zamene idu naizmenično po rotaciji (zamerka 67)");
 
         await new DeaktivirajKorisnikaHandler(h.Users, new FakeCurrentUser { UserId = admin }, h.Db, new FakeJwtTokenService(), Sat())
             .Handle(new DeaktivirajKorisnikaCommand(ceca, cecini.Select(x => new PrebacivanjeInput(x.Pregled.Id, bora)).ToList()), default);

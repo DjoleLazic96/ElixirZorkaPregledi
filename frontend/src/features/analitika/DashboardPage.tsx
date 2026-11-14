@@ -18,7 +18,7 @@ import { Plocica } from './Prikazi';
 const linkPregleda = (p: PregledKratkoDto) =>
   p.moj && ['planiran', 'u_radu', 'vracen_na_doradu'].includes(p.status) ? `/pregled/${p.id}/popuni` : `/pregledi/${p.id}`;
 
-const IKONA_ODLUKE: Record<string, string> = { overa: '✅', dorada: '↩', prebacivanje: '🔁', odsustvo: '🏖️', predlog: '🧩', odsutan: '⚠️' };
+const IKONA_ODLUKE: Record<string, string> = { overa: '✅', dorada: '↩', prebacivanje: '🔁', odsustvo: '🏖️', predlog: '🧩', odsutan: '⚠️', bez_prava: '⛔' };
 
 function pozdrav(): string {
   const sat = new Date().getHours();

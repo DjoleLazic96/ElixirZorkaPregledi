@@ -150,6 +150,7 @@ function Dan({ dan, r, danas, uMesecu, onPregled, spisak }: DanProps) {
           >
             <span className="block break-words font-semibold">{p.broj}</span>
             <span className="block truncate">{p.dodeljen}</span>
+                          {(p.ucesnici ?? []).map((u) => <span key={u.korisnikId} className="block truncate">+ {u.ime}</span>)}
             {oznakaPregleda(p) && <span className={cn('block truncate font-normal', oznakaPregleda(p)!.boja)}>{oznakaPregleda(p)!.tekst}</span>}
           </button>
         ))}

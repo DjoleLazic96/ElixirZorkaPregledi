@@ -92,6 +92,19 @@ export const db = new TpmDb();
 
 let korisnik: string | null = null;
 
+/** Početak poruke servera kad inženjer više nema pravo popunjavanja (PopunjavanjeHandler.PorukaBezPrava). */
+export const POCETAK_BEZ_PRAVA = 'Više nemate pravo da popunjavate preglede';
+
+/** Traka „više nemate pravo…“ (zamerka 66) za prijavljenog korisnika; „U redu“ je skida. */
+export function useBezPrava(korisnikId: string | undefined): boolean {
+  const k = korisnikId ?? '';
+  return useLokalno(async () => (await db.meta.get('bezPrava'))?.vrednost === k && k !== '', [k], false);
+}
+
+export async function zatvoriBezPrava(): Promise<void> {
+  await db.meta.delete('bezPrava');
+}
+
 /**
  * Poziva se pri prijavi, odjavi i isteku sesije. Stavke iz verzije bez `korisnikId` pripadaju samo vlasniku paketa
  * (zamerka 14). Kad se prijavi drugi korisnik, briše se samo paket (pregledi i ETag) — tuđi red ostaje.
@@ -313,6 +326,8 @@ async function posalji(korisnikId: string): Promise<void> {
       })
     ).data;
     const odbijene = new Map(r.odbijene.map((o) => [o.opId, o.razlog]));
+    // Oduzeto pravo popunjavanja (zamerka 66): urađeno je otišlo Supervizoru kao sporni unos; telefon to javlja jednom trakom.
+    if (r.odbijene.some((o) => o.razlog.startsWith(POCETAK_BEZ_PRAVA))) await db.meta.put({ kljuc: 'bezPrava', vrednost: korisnikId });
     await db.transaction('rw', db.red, db.odbijene, async () => {
       for (const s of deo) {
         const razlog = odbijene.get(s.opId);
@@ -331,8 +346,16 @@ async function posalji(korisnikId: string): Promise<void> {
   const etag = (await db.meta.get('etag'))?.vrednost;
   const res = await api.get<{ pregledi: PopunjavanjeDto[] }>('/moj-paket', {
     headers: etag ? { 'If-None-Match': etag } : {},
-    validateStatus: (s) => s === 200 || s === 304,
+    validateStatus: (s) => s === 200 || s === 304 || s === 403,
   });
+  if (res.status === 403) {
+    // Bez prava popunjavanja nema ni paketa — lokalne kopije pregleda se brišu (urađeno je već poslato kao sporni unos).
+    await db.transaction('rw', db.pregledi, db.meta, async () => {
+      await db.pregledi.clear();
+      await db.meta.delete('etag');
+    });
+    return;
+  }
   if (res.status === 200) {
     await db.transaction('rw', db.pregledi, db.red, db.meta, async () => {
       const naCekanju = await db.red.orderBy('seq').filter((x) => x.korisnikId === korisnikId).toArray();

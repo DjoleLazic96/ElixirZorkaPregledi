@@ -39,7 +39,8 @@ export function DeaktivacijaDijalog({ korisnik, pregledi, salje, onPotvrdi, onCl
         <ul className="space-y-2">
           {pregledi.map((x) => (
             <li key={x.pregled.id} className="flex flex-wrap items-center gap-2">
-              <span className="w-full sm:w-auto sm:shrink-0 sm:whitespace-nowrap">{x.pregled.broj} · {kratakDan(x.pregled.planiraniDatum)}, {formatirajDatum(x.pregled.planiraniDatum)}</span>
+              {/* Ista širina natpisa u svakom redu, pa su liste zamena poravnate u kolonu (zamerka 67). */}
+              <span className="w-full sm:w-56 sm:shrink-0 sm:whitespace-nowrap">{x.pregled.broj} · {kratakDan(x.pregled.planiraniDatum)}, {formatirajDatum(x.pregled.planiraniDatum)}</span>
               {x.pregled.status === 'planiran' ? (
                 <Select className="w-full min-w-0 sm:w-auto sm:flex-1" aria-label={`Zamena za ${x.pregled.broj}`} value={zamene[x.pregled.id] ?? null}
                   nullable placeholder="Ne prebacuj" options={opcije} onChange={(v) => setZamene({ ...zamene, [x.pregled.id]: v })} />

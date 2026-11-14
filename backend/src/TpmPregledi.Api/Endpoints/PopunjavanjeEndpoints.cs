@@ -32,7 +32,7 @@ public static class PopunjavanjeEndpoints
             .WithTags("Popunjavanje").RequireAuthorization(pravo).WithSummary("Pregled za popunjavanje: stavke, odgovori, van funkcije, slike");
         app.MapPost("/api/v1/sinhronizacija", async ([FromBody] SinhronizacijaInput i, IMediator m) =>
                 Results.Ok(await m.Send(new SinhronizacijaCommand(i.UredjajKlijenta, i.KlijentSada, i.Operacije ?? []))))
-            .WithTags("Popunjavanje").RequireAuthorization(pravo).WithSummary("Operacije pregleda (idempotentno po opId)");
+            .WithTags("Popunjavanje").RequireAuthorization("RequireKorisnik").WithSummary("Operacije pregleda (idempotentno po opId); bez prava popunjavanja urađeno postaje sporni unos (zamerka 66)");
 
         app.MapGet("/api/v1/moj-paket", async (HttpContext http, IMediator m) =>
             {
