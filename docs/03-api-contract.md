@@ -96,10 +96,11 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 ### Raspored, kalendar, odsustva (faza 03)
 | Metod | Ruta | Politika | Svrha |
 |---|---|---|---|
-| GET | `/raspored?od&do` | RequireKorisnik | `{ pregledi[], neradniDani[], odsustva[] }` — pregledi čiji planirani ili prvobitni dan pada u period |
+| GET | `/raspored?od&do` | RequireKorisnik | `{ pregledi[], neradniDani[], odsustva[], dpNaDanPz, radniDani[] }` — pregledi čiji planirani ili prvobitni dan pada u period; `radniDani` = subote i nedelje unete kao radni dan (zamerka 68) |
 | GET | `/raspored/inzenjeri` | RequireKorisnik | inženjeri u rotaciji `{ id, ime }` |
 | POST | `/raspored/predlog` `{ od }` | raspored.uredjivanje | predlog DP-a do petka te nedelje (ne upisuje) |
-| POST | `/raspored/potvrdi` `{ stavke[{datum, tip, inzenjerId}], uskladi }` | raspored.uredjivanje | pravi preglede i brojeve (tip računa server od DP-a dan pre); `uskladi` = rupa usred niza se popunjava povlačenjem niza; 422 dan nije za DP / DP već postoji / inženjer nije aktivan |
+| POST | `/raspored/potvrdi` `{ stavke[{datum, tip, inzenjerId}], uskladi, postujTip? }` | raspored.uredjivanje | pravi preglede i brojeve (tip računa server od DP-a dan pre, a uz `postujTip` važi tip iz stavke — ručno dodat DP, zamerka 68); `uskladi` = rupa usred niza se popunjava povlačenjem niza; 422 sa razlogom zašto dan nije za DP (subota/nedelja, neradni dan, dan PZ-a — zamerka 69) / DP već postoji / inženjer nije aktivan |
+| GET | `/raspored/predlog-dana?datum` | raspored.uredjivanje | predlog za ručno dodavanje DP-a na jedan dan (zamerka 68): `{ datum, tip, inzenjerId, inzenjer, rupa }` — sledeći DP po redu, inženjer po rotaciji, `rupa` = posle tog dana postoje planirani DP-ovi; 422 ako dan nije za DP ili DP već postoji |
 | POST | `/raspored/povuci` `{ datum }` | raspored.uredjivanje | „Povuci raspored“ u oslobođen dan → `{ pomereno }`; 422 ako dan nije rupa usred niza |
 | GET · POST | `/raspored/pz/sledeci` · `/raspored/pz` `{ datum, tip?, inzenjerId, napomena? }` | raspored.uredjivanje | sledeći PZ po redu; zakazivanje („Promeni PZ“ = drugi tip); 422 „Taj PZ je već zakazan za …“ |
 | POST | `/raspored/prenesi` | raspored.uredjivanje | ručni prenos današnjeg nezapočetog DP-a (inače pozadinski posao posle kraja radnog dana) |
@@ -107,7 +108,7 @@ Guardovi (422): „Ne možete promeniti sopstvenu rolu.", „Ne možete deaktivi
 | POST | `/pregledi/{id}/ucesnici` `{ korisnikId, sekcije[] }` | raspored.uredjivanje | drugi inženjer na PZ-u (prazne sekcije = ukloni) |
 | POST | `/pregledi/{id}/otkazi` `{ razlog, pomeri }` | raspored.uredjivanje | otkazivanje planiranog; DP + `pomeri` = pomeri raspored; odgovor može imati `slobodanDan` (ponuditi povlačenje); 422 nije planiran |
 | PUT | `/pregledi/{id}/tip` `{ tip, uskladi }` | raspored.uredjivanje | „Promeni DP“; nov broj; `uskladi` preokreće naredne planirane DP-ove |
-| GET · POST · DELETE | `/neradni-dani?godina` · `/neradni-dani` `{ od, do, naziv, vrsta, pomeriDp? }` · `/neradni-dani/{id}` | RequireKorisnik · neradni_dani | `pomeriDp`: nezapočeti DP-ovi sa tih dana i naredni idu dalje u nizu (zamerka 52); `DELETE` vraća `{ slobodanDan }` za „Povuci raspored“ (zamerka 56) |
+| GET · POST · DELETE | `/neradni-dani?godina` · `/neradni-dani` `{ od, do, naziv, vrsta, pomeriDp? }` · `/neradni-dani/{id}` | RequireKorisnik · neradni_dani | `pomeriDp`: nezapočeti DP-ovi sa tih dana i naredni idu dalje u nizu (zamerka 52); `DELETE` vraća `{ slobodanDan }` za „Povuci raspored“ (zamerka 56). Vrsta `radni` = subota ili nedelja koja je radni dan (zamerka 68): samo vikend, Supervizor dobija obaveštenje; `DELETE …?pomeriDp=true` pomera DP sa obrisanog radnog dana dalje u nizu |
 | GET | `/odsustva?korisnikId&status` | RequireKorisnik | bez prava odobravanja samo svoja |
 | POST | `/odsustva` `{ korisnikId, od, do, vrsta, napomena, prebacivanja[] }` | odsustva.odobravanje | unos (odmah odobreno) sa prebacivanjem; 422 preklapanje, 422 započet pregled |
 | POST | `/odsustva/zahtev` `{ od, do, vrsta, napomena }` | pregledi.popunjavanje | zahtev za sebe |

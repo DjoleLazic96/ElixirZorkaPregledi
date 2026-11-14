@@ -160,7 +160,7 @@ public sealed class AnalitikaHandler(IAppDbContext db, IDateTimeProvider clock) 
             var ime = prenosi.GetValueOrDefault(p.Id) ?? k.Ime(p.DodeljenId);
             var id = idPoImenu.GetValueOrDefault(ime) ?? p.DodeljenId;
             var predat = p.PredatAt is not null;
-            double? sati = predat && p.OverenoAt is { } o ? AnalitikaPravila.SatiRadnihDana(p.PredatAt!.Value, o) : null;
+            double? sati = predat && p.OverenoAt is { } o ? AnalitikaPravila.SatiRadnihDana(p.PredatAt!.Value, o, k.RadniVikend) : null;
             var uRoku = sati is { } s && s <= rok;
             return new IspunjenjeStavka(p.PrvobitniDatum, ime, k.JeOdsutan(id, p.PrvobitniDatum), predat,
                 predat && AnalitikaPravila.LokalniDan(p.PredatAt!.Value) <= p.PrvobitniDatum, p.PlaniraniDatum != p.PrvobitniDatum,

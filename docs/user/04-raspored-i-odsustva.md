@@ -90,3 +90,12 @@ Levi meni → **Neradni dani** → od, do, naziv, vrsta → **Dodaj**. DP se ne 
 zakazani DP-ovi, pre unosa se vidi njihov spisak: **Unesi i pomeri DP-ove** ih pomera dalje u nizu (inženjeri dobijaju obaveštenje), a
 **Odustani** ne unosi ništa. DP koji ipak stoji na neradnom danu (npr. već započet) u kalendaru ima crvenu oznaku „na neradni dan“. Kad se neradni dan
 obriše, a taj dan ostane bez DP-a usred niza, nudi se **Povuci raspored**.
+
+**Radni dan vikendom.** Kad se u subotu ili nedelju radi, izaberite vrstu **Radni dan (subota/nedelja)**. Taj dan se raspored ne
+popunjava sam — posle unosa aplikacija pita „Da li želite da dodate DP?“: **Dodaj DP** predlaže DP koji je sledeći po redu i inženjera po
+rotaciji (oba možete da promenite), a **Ne sada** samo zatvara; DP se može dodati i kasnije dugmetom **+ Dodaj DP** na tom danu u Rasporedu.
+Ako posle tog dana već postoje DP-ovi, pita se **Umetni i pomeri naredne** (taj dan preuzima sledeći DP, naredni idu dan unazad, smena DP1/DP2
+ostaje ispravna) ili **Ostavi kako jeste** (dodatni DP, naredni ostaju gde su). Supervizor dobija obaveštenje o radnom danu, a inženjer o
+zakazanom pregledu. PZ se i inače može zakazati bilo kog dana. Ako se radni dan obriše, a na njemu je zakazan DP, nudi se **Obriši i pomeri DP**.
+
+Kad DP ne može da se zakaže ili pomeri na neki dan, poruka kaže zašto: subota/nedelja, neradni dan (sa nazivom) ili dan PZ-a.

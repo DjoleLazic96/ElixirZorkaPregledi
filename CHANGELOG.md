@@ -6,6 +6,8 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- **Radni dan vikendom**: na ekranu Neradni dani subota ili nedelja može da se unese kao radni dan. Aplikacija odmah pita „Dodaj DP?“, predlaže DP koji je sledeći po redu i inženjera po rotaciji (oba se menjaju) i pita da li utiče na naredne DP-ove; DP se može dodati i kasnije dugmetom „+ Dodaj DP“ u Rasporedu. Supervizor dobija obaveštenje, a rezime i rok za overu računaju taj dan kao radni.
+- Kad DP ne može na neki dan, poruka kaže zašto: subota/nedelja, neradni dan (sa nazivom) ili dan PZ-a.
 - „Zapamti me“: bez kvačice prijava traje dok se pregledač ne zatvori (deljen računar); sa kvačicom ostajete prijavljeni.
 - Neradni dani su u meniju i za Supervizora (samo pregled); drugi inženjer PZ-a se vidi na karticama u Rasporedu i Kalendaru.
 - „Povuci raspored“ i posle odobrenog ranijeg početka PZ-a; dodir bilo gde na kartici akcije otvara akciju.

@@ -53,7 +53,9 @@ public sealed record OdsustvoKratkoDto(string KorisnikId, string Ime, DateOnly O
 /// <param name="NeradniDani">Neradni dani u periodu.</param>
 /// <param name="Odsustva">Odobrena odsustva koja seku period.</param>
 /// <param name="DpNaDanPz">Da li se DP radi i na dan PZ-a (R3.9) — ekran tada ne upozorava na pomeranje DP-ova.</param>
-public sealed record RasporedDto(IReadOnlyList<PregledKalendarDto> Pregledi, IReadOnlyList<NeradniDanKratkoDto> NeradniDani, IReadOnlyList<OdsustvoKratkoDto> Odsustva, bool DpNaDanPz = false);
+/// <param name="RadniDani">Subote i nedelje unete kao radni dan (zamerka 68) — tu se DP dodaje ručno.</param>
+public sealed record RasporedDto(IReadOnlyList<PregledKalendarDto> Pregledi, IReadOnlyList<NeradniDanKratkoDto> NeradniDani, IReadOnlyList<OdsustvoKratkoDto> Odsustva, bool DpNaDanPz = false,
+    IReadOnlyList<NeradniDanKratkoDto>? RadniDani = null);
 
 /// <summary>Stavka predloga ili potvrde rasporeda.</summary>
 /// <param name="Datum">Dan.</param>
@@ -83,7 +85,16 @@ public sealed record PredlogRasporedaQuery(DateOnly Od) : IRequest<IReadOnlyList
 /// <summary>Potvrda rasporeda: pravi preglede sa brojevima (R6.9).</summary>
 /// <param name="Stavke">Dani i inženjeri (tip računa server od DP-a dan pre, zamerka 29).</param>
 /// <param name="Uskladi">Dan koji je rupa usred niza ne dobija nov DP nego se niz povuče u njega („Umetni i pomeri naredne“, zamerka 30).</param>
-public sealed record PotvrdiRasporedCommand(IReadOnlyList<StavkaRasporeda> Stavke, bool Uskladi = false) : IRequest<IReadOnlyList<PregledKalendarDto>>;
+/// <param name="PostujTip">Nov DP dobija tip iz stavke, ne sledeći po redu — ručno dodat DP sa izmenjenim tipom (zamerka 68).
+/// Važi samo za dan koji ne povlači niz.</param>
+public sealed record PotvrdiRasporedCommand(IReadOnlyList<StavkaRasporeda> Stavke, bool Uskladi = false, bool PostujTip = false) : IRequest<IReadOnlyList<PregledKalendarDto>>;
+
+/// <summary>
+/// Predlog za ručno dodavanje DP-a na jedan dan (zamerka 68, npr. subota uneta kao radni dan): sledeći DP po redu i inženjer
+/// po rotaciji; <c>Rupa</c> kaže da posle tog dana već postoje planirani DP-ovi, pa ekran pita da li utiče na naredne.
+/// </summary>
+/// <param name="Datum">Dan.</param>
+public sealed record PredlogDanaQuery(DateOnly Datum) : IRequest<PredlogStavkaDto>;
 
 /// <summary>Inženjer za izbor u rasporedu.</summary>
 /// <param name="Id">ID.</param>
@@ -168,6 +179,7 @@ public sealed class PotvrdiRasporedValidator : AbstractValidator<PotvrdiRaspored
 public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService brojac, ICurrentUser currentUser, IDateTimeProvider clock) :
     IRequestHandler<GetRasporedQuery, RasporedDto>,
     IRequestHandler<PredlogRasporedaQuery, IReadOnlyList<PredlogStavkaDto>>,
+    IRequestHandler<PredlogDanaQuery, PredlogStavkaDto>,
     IRequestHandler<PotvrdiRasporedCommand, IReadOnlyList<PregledKalendarDto>>,
     IRequestHandler<SledeciPzQuery, string>,
     IRequestHandler<GetInzenjeriQuery, IReadOnlyList<InzenjerDto>>,
@@ -183,11 +195,27 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
         var pregledi = await db.Pregledi.AsNoTracking().Include(p => p.Ucesnici)
             .Where(p => (p.PlaniraniDatum >= req.Od && p.PlaniraniDatum <= req.Do) || (p.PrvobitniDatum >= req.Od && p.PrvobitniDatum <= req.Do))
             .OrderBy(p => p.PlaniraniDatum).ThenBy(p => p.Tip).ToListAsync(ct);
-        var neradni = await db.NeradniDani.AsNoTracking().Where(n => n.Datum >= req.Od && n.Datum <= req.Do)
-            .OrderBy(n => n.Datum).Select(n => new NeradniDanKratkoDto(n.Datum, n.Naziv)).ToListAsync(ct);
+        var dani = await db.NeradniDani.AsNoTracking().Where(n => n.Datum >= req.Od && n.Datum <= req.Do)
+            .OrderBy(n => n.Datum).Select(n => new { n.Datum, n.Naziv, n.Vrsta }).ToListAsync(ct);
         var odsustva = k.Odsustva.Where(o => o.Od <= req.Do && o.Do >= req.Od)
             .Select(o => new OdsustvoKratkoDto(o.KorisnikId, k.Ime(o.KorisnikId), o.Od, o.Do, o.Vrsta)).ToList();
-        return new RasporedDto(pregledi.Select(p => Dto(p, k)).ToList(), neradni, odsustva, k.DpNaDanPz);
+        return new RasporedDto(pregledi.Select(p => Dto(p, k)).ToList(),
+            dani.Where(n => n.Vrsta != NeradniDan.VrstaRadni).Select(n => new NeradniDanKratkoDto(n.Datum, n.Naziv)).ToList(), odsustva, k.DpNaDanPz,
+            dani.Where(n => n.Vrsta == NeradniDan.VrstaRadni).Select(n => new NeradniDanKratkoDto(n.Datum, n.Naziv)).ToList());
+    }
+
+    /// <inheritdoc />
+    public async Task<PredlogStavkaDto> Handle(PredlogDanaQuery req, CancellationToken ct)
+    {
+        var k = await RasporedKontekst.UcitajAsync(db, ct);
+        if (req.Datum < clock.Today) throw new BusinessRuleException(PorukaProsliDan);
+        if (!k.JeDanZaDp(req.Datum)) throw new BusinessRuleException(k.ZastoNijeDanZaDp(req.Datum));
+        if (await db.Pregledi.AnyAsync(p => p.Tip.StartsWith("DP") && p.Status != StatusPregleda.Ponisten && p.PlaniraniDatum == req.Datum, ct))
+            throw new BusinessRuleException($"Za {req.Datum:dd.MM.yyyy} DP je već u rasporedu.");
+        var pre = await PoslednjiDpAsync(req.Datum, ct);
+        var inz = k.SledeciInzenjer(req.Datum, pre?.DodeljenId);
+        var rupa = await db.Pregledi.AnyAsync(p => p.Tip.StartsWith("DP") && p.Status == StatusPregleda.Planiran && p.PlaniraniDatum > req.Datum, ct);
+        return new PredlogStavkaDto(req.Datum, RasporedPravila.SledeciDp(pre?.Tip), inz, k.Ime(inz), rupa, pre?.PlaniraniDatum, pre?.Tip);
     }
 
     /// <inheritdoc />
@@ -216,7 +244,7 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
                 (tip, inz, datumPre, tipPre) = (p.Tip, p.DodeljenId, d, p.Tip);
                 continue;
             }
-            if (!k.JeDanZaDp(d)) continue;
+            if (!k.JeRedovanDanZaDp(d)) continue;   // radni vikend dan predlog ne popunjava (zamerka 68)
             tip = RasporedPravila.SledeciDp(tip);
             inz = k.SledeciInzenjer(d, inz);
             predlog.Add(new PredlogStavkaDto(d, tip, inz, k.Ime(inz), poslednjiPlaniran > d, datumPre, tipPre));
@@ -236,7 +264,7 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
         foreach (var s in req.Stavke)
         {
             if (s.Datum < clock.Today) greske.Add(PorukaProsliDan);
-            if (!k.JeDanZaDp(s.Datum)) greske.Add($"{s.Datum:dd.MM.yyyy} nije dan za DP (vikend, neradni dan ili dan PZ-a).");
+            if (!k.JeDanZaDp(s.Datum)) greske.Add(k.ZastoNijeDanZaDp(s.Datum));
             if (zauzeti.Contains(s.Datum) || dani.Count(d => d == s.Datum) > 1) greske.Add($"Za {s.Datum:dd.MM.yyyy} DP je već u rasporedu.");
             if (s.InzenjerId is null || !k.Inzenjeri.Contains(s.InzenjerId)) greske.Add($"Za {s.Datum:dd.MM.yyyy} izaberite aktivnog inženjera.");
             else if (k.Odsustva.FirstOrDefault(o => o.KorisnikId == s.InzenjerId && o.Pokriva(s.Datum)) is { } ods) greske.Add(k.PorukaOdsutan(s.InzenjerId, s.Datum, ods));
@@ -256,7 +284,7 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
                 await db.SaveChangesAsync(ct);
                 continue;
             }
-            novi.Add(await NoviDpAsync(s.Datum, s.InzenjerId!, k, sada, ct));
+            novi.Add(await NoviDpAsync(s.Datum, s.InzenjerId!, k, sada, ct, req.PostujTip ? s.Tip : null));
             // Sledeća rupa traži niz iz baze, pa i ovaj DP mora biti upisan.
             if (req.Uskladi) await db.SaveChangesAsync(ct);
         }
@@ -267,14 +295,17 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
         return novi.Select(p => Dto(p, k)).ToList();
     }
 
-    /// <summary>Nov DP za dan; tip je sledeći posle poslednjeg DP-a pre tog dana (i onih upravo napravljenih).</summary>
-    private async Task<Pregled> NoviDpAsync(DateOnly d, string inzenjerId, RasporedKontekst k, DateTime sada, CancellationToken ct)
+    /// <summary>
+    /// Nov DP za dan; tip je sledeći posle poslednjeg DP-a pre tog dana (i onih upravo napravljenih), osim kad je ručno izabran
+    /// (<paramref name="izabraniTip"/>, zamerka 68).
+    /// </summary>
+    private async Task<Pregled> NoviDpAsync(DateOnly d, string inzenjerId, RasporedKontekst k, DateTime sada, CancellationToken ct, string? izabraniTip = null)
     {
         var pre = db.Pregledi.Local.Where(p => p.JeDp && p.Status != StatusPregleda.Ponisten && p.PlaniraniDatum < d)
             .OrderByDescending(p => p.PlaniraniDatum).FirstOrDefault();
         var izBaze = await PoslednjiDpAsync(d, ct);
         if (pre is null || (izBaze is not null && izBaze.PlaniraniDatum > pre.PlaniraniDatum)) pre = izBaze;
-        var tip = RasporedPravila.SledeciDp(pre?.Tip);
+        var tip = izabraniTip is "DP1" or "DP2" ? izabraniTip : RasporedPravila.SledeciDp(pre?.Tip);
         var p = new Pregled
         {
             Broj = await brojac.SledeciAsync(tip, d.Year, ct), Tip = tip, PlaniraniDatum = d, PrvobitniDatum = d, DodeljenId = inzenjerId, KreiranoAt = sada,
@@ -357,7 +388,7 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
         if (req.Datum is { } d)
         {
             if (d < clock.Today) throw new BusinessRuleException(PorukaProsliDan);
-            if (p.JeDp && !k.JeDanZaDp(d)) throw new BusinessRuleException($"{d:dd.MM.yyyy} nije dan za DP.");
+            if (p.JeDp && !k.JeDanZaDp(d)) throw new BusinessRuleException(k.ZastoNijeDanZaDp(d));
             if (p.JeDp && await db.Pregledi.AnyAsync(x => x.Id != p.Id && x.Tip.StartsWith("DP") && x.PlaniraniDatum == d && x.Status != StatusPregleda.Ponisten, ct))
                 throw new BusinessRuleException($"Za {d:dd.MM.yyyy} DP je već u rasporedu.");
             p.PlaniraniDatum = d;
@@ -481,7 +512,7 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
         var k = await RasporedKontekst.UcitajAsync(db, ct);
         var niz = await db.Pregledi.Where(p => p.Tip.StartsWith("DP") && p.Status == StatusPregleda.Planiran && p.PlaniraniDatum >= od)
             .OrderBy(p => p.PlaniraniDatum).ToListAsync(ct);
-        if (!niz.Any(p => k.Neradni.Contains(p.PlaniraniDatum))) return 0;
+        if (!niz.Any(p => !k.JeRadniDan(p.PlaniraniDatum))) return 0;   // i posle brisanja radnog vikend dana (zamerka 68)
         var inzenjerDana = niz.ToDictionary(p => p.PlaniraniDatum, p => p.DodeljenId);
         var mesta = niz.Select(p => p.PlaniraniDatum).Where(k.JeDanZaDp).ToList();
         while (mesta.Count < niz.Count) mesta.Add(k.SledeciDanZaDp(mesta.Count > 0 ? mesta[^1] : od));
@@ -529,5 +560,5 @@ public sealed partial class RasporedHandler(IAppDbContext db, IBrojacService bro
         new(p.Id, p.Broj, p.Tip, p.PlaniraniDatum, p.PrvobitniDatum, p.Status, p.DodeljenId, k.Ime(p.DodeljenId),
             p.Ucesnici.Select(u => new UcesnikDto(u.KorisnikId, k.Ime(u.KorisnikId), u.Sekcije)).ToList(), p.Napomena,
             p.Status == StatusPregleda.Planiran && k.JeOdsutan(p.DodeljenId, p.PlaniraniDatum), k.ZahteviNaCekanju.GetValueOrDefault(p.Id), p.Propusten,
-            NaNeradniDan: p.JeDp && p.Status is StatusPregleda.Planiran or StatusPregleda.URadu && k.Neradni.Contains(p.PlaniraniDatum));
+            NaNeradniDan: p.JeDp && p.Status is StatusPregleda.Planiran or StatusPregleda.URadu && !k.JeRadniDan(p.PlaniraniDatum));
 }

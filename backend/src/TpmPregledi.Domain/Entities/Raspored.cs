@@ -2,7 +2,10 @@ using TpmPregledi.Domain.Common;
 
 namespace TpmPregledi.Domain.Entities;
 
-/// <summary>Neradni dan ili praznik (R3.16, R3.17). DP se tada ne radi; PZ sme ako je zakazan.</summary>
+/// <summary>
+/// Neradni dan ili praznik (R3.16, R3.17) — DP se tada ne radi; PZ sme ako je zakazan. Vrsta <see cref="VrstaRadni"/> je obrnuto:
+/// subota ili nedelja koja je radni dan (zamerka 68), u istoj tabeli jer se unosi i briše na istom ekranu, a dan ne može biti oba.
+/// </summary>
 [Auditable]
 public class NeradniDan
 {
@@ -15,8 +18,11 @@ public class NeradniDan
     /// <summary>Naziv, npr. „Božić“.</summary>
     public string Naziv { get; set; } = string.Empty;
 
-    /// <summary><c>drzavni</c>, <c>verski</c> ili <c>fabrika</c>.</summary>
+    /// <summary><c>drzavni</c>, <c>verski</c>, <c>fabrika</c> ili <see cref="VrstaRadni"/>.</summary>
     public string Vrsta { get; set; } = "drzavni";
+
+    /// <summary>Vrsta za subotu ili nedelju koja je radni dan (zamerka 68).</summary>
+    public const string VrstaRadni = "radni";
 
     /// <summary>Ko je uneo.</summary>
     public string? UneoId { get; set; }

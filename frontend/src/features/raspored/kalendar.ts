@@ -26,8 +26,9 @@ export function stavkeDana(r: RasporedDto | undefined, dan: string) {
   const pregledi = (r?.pregledi ?? []).filter((p) => p.planiraniDatum === dan);
   const preneti = (r?.pregledi ?? []).filter((p) => p.prvobitniDatum === dan && p.planiraniDatum !== dan);
   const neradni = r?.neradniDani.find((n) => n.datum === dan);
+  const radni = r?.radniDani?.find((n) => n.datum === dan);
   const odsutni = (r?.odsustva ?? []).filter((o) => o.od <= dan && o.do >= dan);
-  return { pregledi, preneti, neradni, odsutni };
+  return { pregledi, preneti, neradni, radni, odsutni };
 }
 
 /** Ivica pregleda u kalendaru: crvena kad je inženjer odsutan (zamerka 3), žuta isprekidana dok zahtev čeka odluku (zamerka 10). */

@@ -159,6 +159,13 @@ export function kratakDan(ymd: string): string {
   return KRATKI_DANI[(parsirajYmd(ymd) ?? new Date()).getDay()];
 }
 
+const DANI = ['Nedelja', 'Ponedeljak', 'Utorak', 'Sreda', 'Četvrtak', 'Petak', 'Subota'];
+
+/** „Subota 21.11.2026“ — za naslove (zamerka 68). */
+export function danSaDatumom(ymd: string): string {
+  return `${DANI[(parsirajYmd(ymd) ?? new Date()).getDay()]} ${formatirajDatum(ymd)}`;
+}
+
 /** Da li je dan subota ili nedelja. */
 export function jeVikend(ymd: string): boolean {
   const g = (parsirajYmd(ymd) ?? new Date()).getDay();

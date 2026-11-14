@@ -87,9 +87,10 @@ public static class AnalitikaPravila
     public static DateTime LokalnoVreme(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Beograd);
 
     /// <summary>
-    /// Kašnjenje overe u satima radnih dana (R6.3): sati vikenda se ne računaju. Rok se poredi sa ovim brojem.
+    /// Kašnjenje overe u satima radnih dana (R6.3): sati vikenda se ne računaju, osim subote ili nedelje unete kao radni dan
+    /// (<paramref name="radniVikend"/>, zamerka 68). Rok se poredi sa ovim brojem.
     /// </summary>
-    public static double SatiRadnihDana(DateTime od, DateTime doVremena)
+    public static double SatiRadnihDana(DateTime od, DateTime doVremena, IReadOnlySet<DateOnly>? radniVikend = null)
     {
         if (doVremena <= od) return 0;
         double sati = 0;
@@ -97,7 +98,8 @@ public static class AnalitikaPravila
         while (t < doVremena)
         {
             var sledeci = t.Date.AddDays(1) < doVremena ? t.Date.AddDays(1) : doVremena;
-            if (t.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday)) sati += (sledeci - t).TotalHours;
+            if (t.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday) || radniVikend?.Contains(DateOnly.FromDateTime(t)) == true)
+                sati += (sledeci - t).TotalHours;
             t = sledeci;
         }
         return sati;
