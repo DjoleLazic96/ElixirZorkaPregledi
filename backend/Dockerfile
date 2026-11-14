@@ -34,10 +34,10 @@ RUN dotnet publish src/TpmPregledi.Api/TpmPregledi.Api.csproj \
 # ─── 2) runtime ──────────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 
-# curl samo za HEALTHCHECK. Ako aplikacija crta PDF (QuestPDF/SkiaSharp), dodati:
-#   fontconfig fonts-dejavu-core   (potrebni za Š Ć Č Ž Đ u PDF-u)
+# curl za HEALTHCHECK. Fontovi su obavezni: QuestPDF crta PDF pregleda (Š Ć Č Ž Đ, ćirilica u napomenama), a ClosedXML
+# meri širinu kolona Excela fontom — bez ijednog fonta u slici PDF gubi slova, a Excel izvoz može da pukne.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends curl \
+ && apt-get install -y --no-install-recommends curl fontconfig fonts-dejavu-core \
  && rm -rf /var/lib/apt/lists/*
 
 # LABEL posle apt sloja — ARG vrednosti se menjaju svaki build i ne smeju da ruše apt cache.
