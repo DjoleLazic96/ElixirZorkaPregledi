@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { greskePoPolju, PORUKA_SERVER_NEDOSTUPAN, porukaGreske } from './apiError';
+import { greskePoPolju, PORUKA_BEZ_INTERNETA, PORUKA_SERVER_NEDOSTUPAN, porukaGreske } from './apiError';
+import { vi } from 'vitest';
 import { apiGreska } from '../test/utils';
 
 describe('lib/apiError — porukaGreske', () => {
@@ -37,6 +38,16 @@ describe('lib/apiError — porukaGreske', () => {
     const detail = 'Došlo je do neočekivane greške. Navedite ovaj kod podršci: 4bf92f3577b34da6a3ce929d0e0e4736';
     const err = apiGreska(500, { detail, traceId: '4bf92f3577b34da6a3ce929d0e0e4736' });
     expect(porukaGreske(err, 'fallback')).toBe(detail);
+  });
+});
+
+describe('lib/apiError — bez interneta', () => {
+  it('telefon offline: „Nema interneta…“, ne „Server nije dostupan“', () => {
+    const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    expect(porukaGreske({ isAxiosError: true }, 'x')).toBe(PORUKA_BEZ_INTERNETA);
+    onLine.mockReturnValue(true);
+    expect(porukaGreske({ isAxiosError: true }, 'x')).toBe(PORUKA_SERVER_NEDOSTUPAN);
+    onLine.mockRestore();
   });
 });
 

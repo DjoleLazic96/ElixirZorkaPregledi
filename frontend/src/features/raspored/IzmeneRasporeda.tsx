@@ -7,6 +7,7 @@ import { Textarea } from '../../components/ui/Textarea';
 import { porukaGreske } from '../../lib/apiError';
 import { dodajDane, formatirajDatum, kratakDan } from '../../lib/datum';
 import { useOtkaziPregled, usePovuci, usePromeniTipDp, useRaspored, type PregledKalendarDto } from './hooks';
+import { mnozina } from '../../lib/broj';
 
 /**
  * Otkazivanje planiranog pregleda (zamerka 27). Za DP dve opcije: „Pomeri raspored“ (pregled se ne gubi — on i naredni DP-ovi
@@ -124,7 +125,7 @@ export function PovlacenjeDijalog({ datum, pz = false, onClose }: { datum: strin
   async function potvrdi() {
     try {
       const r = await povuci.mutateAsync(datum);
-      toast.success(`Raspored je povučen (${r.pomereno} DP-a).`);
+      toast.success(`Raspored je povučen (${r.pomereno} ${mnozina(r.pomereno, { jednina: 'DP', paukal: 'DP-a', mnozina: 'DP-ova' })}).`);
       onClose();
     } catch (err) {
       setGreska(porukaGreske(err, 'Raspored nije povučen.'));

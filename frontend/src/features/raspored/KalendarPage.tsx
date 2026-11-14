@@ -148,7 +148,7 @@ function Dan({ dan, r, danas, uMesecu, onPregled, spisak }: DanProps) {
             onClick={() => onPregled(p)}
             className={cn('mt-[3px] block min-h-11 w-full rounded-[5px] border px-[5px] py-0.5 text-left text-[11px] font-semibold md:min-h-0', bojaPregleda(p, danas), ivicaPregleda(p))}
           >
-            <span className="block whitespace-nowrap font-semibold">{p.broj}</span>
+            <span className="block break-words font-semibold">{p.broj}</span>
             <span className="block truncate">{p.dodeljen}</span>
             {oznakaPregleda(p) && <span className={cn('block truncate font-normal', oznakaPregleda(p)!.boja)}>{oznakaPregleda(p)!.tekst}</span>}
           </button>
@@ -359,7 +359,7 @@ export function UcesnikForma({ pregled, onDone, onBack }: { pregled: PregledKale
     <form onSubmit={potvrdi} className="space-y-4" noValidate>
       <p className="text-sm text-gray-600">{pregled.dodeljen} radi sekcije koje ovde ne označite. Svako upisuje samo u svoje sekcije.</p>
       <FormField label="Drugi inženjer" htmlFor="uc-inz">
-        <Select id="uc-inz" value={inz} onChange={setInz} placeholder="Izaberite inženjera" disabled={!!postojeci}
+        <Select id="uc-inz" value={inz} onChange={(v) => { setInz(v); setGreska(null); }} placeholder="Izaberite inženjera" disabled={!!postojeci}
           options={(inzenjeri.data ?? []).filter((i) => i.id !== pregled.dodeljenId).map((i) => ({ value: i.id, label: i.ime }))} />
       </FormField>
       <fieldset className="space-y-2">

@@ -4,12 +4,15 @@ import { DatePicker } from '../../components/ui/DatePicker';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Ucitavanje } from '../../components/ui/Spinner';
 import { cn } from '../../lib/cn';
-import { danasYmd, dodajDane } from '../../lib/datum';
+import { danasYmd, dodajDane, mesecGodina } from '../../lib/datum';
 import { formatirajBroj, formatirajProcenat } from '../../lib/broj';
 import { useIspunjenje, useOpstaAnalitika, type IspunjenjeRedDto, type TrajanjeDto } from './hooks';
 import { Plocica, Stubici } from './Prikazi';
 
 /** Opšta analitika (R8.8) i ispunjenje plana (R8.9) za izabrani period. */
+/** „2026-11“ sa servera → „novembar 2026“. */
+const nazivMeseca = (n: string) => (/^\d{4}-\d{2}$/.test(n) ? mesecGodina(`${n}-01`) : n);
+
 export function AnalitikaPage() {
   const [od, setOd] = useState(() => dodajDane(danasYmd(), -89));
   const [doDana, setDo] = useState(danasYmd);
@@ -39,7 +42,7 @@ export function AnalitikaPage() {
 
           <Card>
             <CardHeader><CardTitle>Ispunjenje plana po mesecu</CardTitle></CardHeader>
-            <CardBody><TabelaIspunjenja redovi={i.ukupno.planirano ? [...i.poMesecu, i.ukupno] : []} prva="Mesec" /></CardBody>
+            <CardBody><TabelaIspunjenja redovi={i.ukupno.planirano ? [...i.poMesecu.map((r) => ({ ...r, naziv: nazivMeseca(r.naziv) })), i.ukupno] : []} prva="Mesec" /></CardBody>
           </Card>
           <Card>
             <CardHeader><CardTitle>Ispunjenje plana po inženjeru</CardTitle></CardHeader>
@@ -51,7 +54,7 @@ export function AnalitikaPage() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Card><CardHeader><CardTitle>Kvarovi po sekciji</CardTitle></CardHeader><CardBody><Stubici stavke={a.poSekciji.map((s) => ({ ...s, naziv: `Sekcija ${s.naziv}` }))} /></CardBody></Card>
-            <Card><CardHeader><CardTitle>Kvarovi po mesecu</CardTitle></CardHeader><CardBody><Stubici stavke={a.poMesecu} /></CardBody></Card>
+            <Card><CardHeader><CardTitle>Kvarovi po mesecu</CardTitle></CardHeader><CardBody><Stubici stavke={a.poMesecu.map((s) => ({ ...s, naziv: nazivMeseca(s.naziv) }))} /></CardBody></Card>
             <Card><CardHeader><CardTitle>Uređaji sa najviše kvarova</CardTitle></CardHeader><CardBody><Stubici stavke={a.poUredjaju} /></CardBody></Card>
             <Card><CardHeader><CardTitle>Aktivnosti sa najviše kvarova</CardTitle></CardHeader><CardBody><Stubici stavke={a.poAktivnosti} /></CardBody></Card>
             <Card><CardHeader><CardTitle>Najčešći kvarovi (uređaj i aktivnost)</CardTitle></CardHeader><CardBody><Stubici stavke={a.najcesciKvarovi} /></CardBody></Card>

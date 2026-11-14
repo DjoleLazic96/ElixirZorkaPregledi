@@ -68,8 +68,8 @@ public sealed class ZatvaranjeAkcijeHandler(IAppDbContext db, ICurrentUser curre
     /// <summary>Poruka kad je datum u budućnosti.</summary>
     public const string PorukaBuduciDan = "Datum ne može biti u budućnosti.";
 
-    /// <summary>Tekst u istoriji akcije: „Zatvorena: šta (datum, uradio X)“.</summary>
-    public static string TekstZatvaranja(Akcija a) => $"Zatvorena: {a.Uradjeno} ({a.UradjenoDatum:dd.MM.yyyy}, uradio {a.Izvrsilac})";
+    /// <summary>Tekst u istoriji akcije: „Zatvorena: šta (datum, izvršilac: X)“.</summary>
+    public static string TekstZatvaranja(Akcija a) => $"Zatvorena: {a.Uradjeno} ({a.UradjenoDatum:dd.MM.yyyy}, izvršilac: {a.Izvrsilac})";
 
     /// <summary>Akcija zatvorena ili otkazana drugim putem: zahtev koji je čekao odluku se zatvara, uz obaveštenje podnosiocu.</summary>
     public static async Task ZatvoriZahteveAsync(IAppDbContext db, Akcija a, string? ko, DateTime sada, CancellationToken ct)
@@ -109,14 +109,14 @@ public sealed class ZatvaranjeAkcijeHandler(IAppDbContext db, ICurrentUser curre
             z.FajlId = fajl.Id;
         }
         db.ZahteviZatvaranja.Add(z);
-        db.AkcijaDogadjaji.Add(new AkcijaDogadjaj { Akcija = a, Vrsta = "zahtev_zatvaranja", Tekst = $"Zatraženo zatvaranje: {z.Uradjeno} ({z.Datum:dd.MM.yyyy}, uradio {z.Izvrsilac})", KorisnikId = currentUser.UserId, At = sada });
+        db.AkcijaDogadjaji.Add(new AkcijaDogadjaj { Akcija = a, Vrsta = "zahtev_zatvaranja", Tekst = $"Zatraženo zatvaranje: {z.Uradjeno} ({z.Datum:dd.MM.yyyy}, izvršilac: {z.Izvrsilac})", KorisnikId = currentUser.UserId, At = sada });
 
         // Odlučuju oni sa pravom zatvaranja akcija (Supervizor i Direktor).
         var k = await RasporedKontekst.UcitajAsync(db, ct);
         var saPravom = db.KorisnikPrava.Where(x => x.Pravo == Prava.AkcijeZatvaranje).Select(x => x.KorisnikId);
         var odlucuju = await db.Users.Where(u => u.IsActive && saPravom.Contains(u.Id)).Select(u => u.Id).ToListAsync(ct);
         await Obavesti.DodajAsync(db, odlucuju, VrsteObavestenja.IshodZahteva, $"Zahtev za zatvaranje {a.Broj}",
-            $"{k.Ime(currentUser.UserId)}: {z.Uradjeno} ({z.Datum:dd.MM.yyyy}, uradio {z.Izvrsilac}).", $"/akcije/{a.Id}", null, sada, ct);
+            $"{k.Ime(currentUser.UserId)}: {z.Uradjeno} ({z.Datum:dd.MM.yyyy}, izvršilac: {z.Izvrsilac}).", $"/akcije/{a.Id}", null, sada, ct);
         await db.SaveChangesAsync(ct);
         return await Detalj(a.Id, ct);
     }

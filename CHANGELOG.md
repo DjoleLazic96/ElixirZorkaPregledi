@@ -84,6 +84,13 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - Uklonjen primer „Kategorije“ iz skeleta; početni ekran je **Početna**.
 
 ### Ispravljeno
+- Predaja bez interneta: inženjer ostaje na pregledu sa porukom „Predato – čeka slanje“ (ranije je otvarao Kalendar, koji bez veze ne radi); bez interneta poruke kažu „Nema interneta…“.
+- Početna: pregled inženjera na odsustvu više nema oznaku „rok istekao“.
+- Sporan unos na pregledu koji još nije započet javlja tačan razlog; opis pokazuje uređaj i aktivnost umesto broja stavke.
+- Tekstovi: srpska množina (stavka/stavke/stavki, izmena/izmene, dan/dana, DP/DP-a/DP-ova, deo/dela/delova), „na odsustvu“ i „izvršilac“ umesto muškog roda, meseci u Analitici kao „novembar 2026“.
+- Broj pregleda u Rasporedu i Kalendaru više ne izlazi iz kartice na užem ekranu.
+- Poruka „Izaberite inženjera.“ nestaje čim se inženjer izabere; datum „Do“ prati „Od“ kod odsustva i neradnih dana.
+- „Sve neoznačeno je ispravno“ na već popunjenoj sekciji ne upisuje „(0 stavki)“ u istoriju.
 - Ako server nije radio u vreme kraja radnog dana, propušten DP se prenese čim se server upali.
 - DP koji je započet, a predat posle kraja radnog dana, više se ne prenosi kao propušten i ne pomera raspored narednih DP-ova; u ispunjenju plana broji se kao „kasnije“.
 - Kad se telefon probudi ili su otvorene dve kartice, korisnik više ne biva povremeno izbačen uz „Sesija je istekla“ (obnove prijave idu jedna po jedna).

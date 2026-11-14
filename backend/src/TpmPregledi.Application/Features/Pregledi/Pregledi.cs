@@ -1,3 +1,4 @@
+using TpmPregledi.Application.Common;
 using System.Text.Json;
 using TpmPregledi.Application.Common.Exceptions;
 using TpmPregledi.Application.Common.Interfaces;
@@ -288,9 +289,15 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
         var sve = dogadjaji.Where(d => d.Vrsta == "sve_ispravno").Select(d => JsonDocument.Parse(d.Podaci).RootElement).ToList();
         if (sve.Count > 0)
             upozorenja.Add($"„Sve neoznačeno je ispravno“ upotrebljeno {sve.Count} puta (sekcije {string.Join(", ", sve.Select(x => x.GetProperty("sekcija").GetString()).Distinct())}).");
-        if (p.Delova > 1) upozorenja.Add($"Pregled je rađen u {p.Delova} dela.");
+        if (p.Delova > 1) upozorenja.Add($"Pregled je rađen u {Mnozina.Od(p.Delova, "deo", "dela", "delova")}.");
 
         var sporni = await db.SporniUnosi.AsNoTracking().Where(s => s.PregledId == p.Id).OrderBy(s => s.PrimljenoAt).ToListAsync(ct);
+        // Naziv stavke umesto internog broja („Bubnjasta 10-D-01 · Pregled …“), i kad pregled još nema svoju verziju šablona.
+        var stavkeSpornih = sporni.Select(s => StavkaIzOperacije(s.Operacija)).OfType<int>().Distinct().ToList();
+        var naziviStavki = stavkeSpornih.Count == 0 ? new Dictionary<int, string>() : await db.SablonStavke.AsNoTracking()
+            .Where(s => stavkeSpornih.Contains(s.Id))
+            .Select(s => new { s.Id, Naziv = (s.Uredjaj!.Naziv + " " + (s.Uredjaj.Oznaka ?? "")).Trim() + " · " + s.Aktivnost!.Naziv })
+            .ToDictionaryAsync(s => s.Id, s => s.Naziv, ct);
 
         // Rezime (zamerka 48): akcije otvorene na ovom pregledu, odgovori na ranije akcije i predlozi izmene šablona sa njega.
         var akcije = await (from a in db.Akcije.AsNoTracking()
@@ -316,7 +323,7 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
             verzijaBroj, p.ZapocetAt, p.PredatAt, p.AktivnoSekundi, p.Delova, p.OverioId is null ? null : k.Ime(p.OverioId), p.OverenoAt,
             p.OverioDirektor, p.PonistenRazlog, upozorenja, sekcije,
             dogadjaji.Select(d => new DogadjajDto(d.Vrsta, OpisDogadjaja(d), k.Ime(d.KorisnikId), d.At)).ToList(),
-            sporni.Select(s => new SporanUnosDto(s.Id, k.Ime(s.KorisnikId), OpisOperacije(s.Operacija), s.Razlog, s.PrimljenoAt, s.Odluka)).ToList(),
+            sporni.Select(s => new SporanUnosDto(s.Id, k.Ime(s.KorisnikId), OpisOperacije(s.Operacija, naziviStavki), s.Razlog, s.PrimljenoAt, s.Odluka)).ToList(),
             zahtevi.Select(z => new ZahtevDoradeDto(z.Id, k.Ime(z.PodneoId), z.Razlog, z.Status, z.KreiranoAt, z.PodneoId)).ToList(),
             p.Ucesnici.Select(u => new UcesnikDto(u.KorisnikId, k.Ime(u.KorisnikId), u.Sekcije)).ToList(),
             p.UredjajKlijenta is not null && p.Status is StatusPregleda.URadu or StatusPregleda.VracenNaDoradu,
@@ -460,6 +467,10 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
     public const string PorukaSporanPredat =
         "Pregled je predat. Sporan odgovor se primenjuje u doradi: vratite pregled na doradu, pa primenite unos.";
 
+    /// <summary>Sporan odgovor na pregled koji novi inženjer još nije započeo.</summary>
+    public const string PorukaSporanNezapocet =
+        "Pregled još nije započet. Sporan odgovor se primenjuje kad ga novi inženjer započne.";
+
     /// <inheritdoc />
     public async Task<PregledDetaljDto> Handle(OdluciOSpornomUnosuCommand req, CancellationToken ct)
     {
@@ -475,6 +486,7 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
             if (op.GetProperty("vrsta").GetString() != "odgovor")
                 throw new BusinessRuleException("Primenjuje se samo sporan odgovor; ostale radnje se odbacuju.");
             if (p.Status is StatusPregleda.Ponisten) throw new BusinessRuleException("Pregled je poništen.");
+            if (p.Status == StatusPregleda.Planiran) throw new BusinessRuleException(PorukaSporanNezapocet);
             if (p.Status is not (StatusPregleda.URadu or StatusPregleda.VracenNaDoradu)) throw new BusinessRuleException(PorukaSporanPredat);
             var podaci = op.GetProperty("podaci");
             var stavkaId = podaci.GetProperty("stavkaId").GetInt32();
@@ -566,7 +578,7 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
                 : $"Drugi inženjer: {S("inzenjer")}, sekcije {string.Join(", ", r.GetProperty("sekcije").EnumerateArray().Select(x => x.GetString()))}",
             "pocetak" => "Započet",
             "izmena_odgovora" => $"Izmenjen odgovor: {S("uredjaj")} — {S("aktivnost")}",
-            "sve_ispravno" => $"„Sve neoznačeno je ispravno“ u sekciji {S("sekcija")} ({S("stavki")} stavki)",
+            "sve_ispravno" => $"„Sve neoznačeno je ispravno“ u sekciji {S("sekcija")} ({Mnozina.Od(int.TryParse(S("stavki"), out var brStavki) ? brStavki : 0, "stavka", "stavke", "stavki")})",
             "predaja" => "Predat",
             "overa" => "Overen",
             "vracen_na_doradu" => $"Vraćen na doradu {S("dorada")}: {S("razlog")}",
@@ -597,14 +609,23 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
     /// <summary>ISO dan iz JSON-a („2026-11-17“) u prikaz „17.11.2026“.</summary>
     private static string Dan(string iso) => DateOnly.TryParse(iso, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d.ToString("dd.MM.yyyy") : iso;
 
-    private static string OpisOperacije(string json)
+    private static int? StavkaIzOperacije(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.TryGetProperty("podaci", out var pd) && pd.ValueKind == JsonValueKind.Object
+               && pd.TryGetProperty("stavkaId", out var s) && s.ValueKind == JsonValueKind.Number ? s.GetInt32() : null;
+    }
+
+    private static string OpisOperacije(string json, IReadOnlyDictionary<int, string> naziviStavki)
     {
         using var doc = JsonDocument.Parse(json);
         var r = doc.RootElement;
         var vrsta = r.TryGetProperty("vrsta", out var v) ? v.GetString() : "?";
+        var stavka = StavkaIzOperacije(json);
+        var naziv = stavka is { } id ? naziviStavki.GetValueOrDefault(id, $"stavka {id}") : "stavka";
         return vrsta switch
         {
-            "odgovor" => $"Odgovor na stavku {r.GetProperty("podaci").GetProperty("stavkaId")}: {(r.GetProperty("podaci").GetProperty("vrednost").GetInt32() == 0 ? "ispravan" : "neispravan")}",
+            "odgovor" => $"Odgovor — {naziv}: {(r.GetProperty("podaci").GetProperty("vrednost").GetInt32() == 0 ? "ispravan" : "neispravan")}",
             "zapocni" => "Početak pregleda",
             "predaja" => "Predaja",
             _ => vrsta ?? "?",

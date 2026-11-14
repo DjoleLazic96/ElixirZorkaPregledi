@@ -83,7 +83,7 @@ public sealed class RasporedKontekst
 
     /// <summary>„Ana Anić je odsutna 10.11.2026 (Godišnji odmor). Izaberite drugog inženjera.“</summary>
     public string PorukaOdsutan(string id, DateOnly d, Odsustvo o) =>
-        $"{Ime(id)} je odsutan {d:dd.MM.yyyy} ({NaziviOdsustva.GetValueOrDefault(o.Vrsta, o.Vrsta)}). Izaberite drugog inženjera.";
+        $"{Ime(id)} je na odsustvu {d:dd.MM.yyyy} ({NaziviOdsustva.GetValueOrDefault(o.Vrsta, o.Vrsta)}). Izaberite drugog inženjera.";
 
     /// <summary>Da li se tog dana radi DP.</summary>
     public bool JeDanZaDp(DateOnly d) => RasporedPravila.JeDanZaDp(d, Neradni, DaniPz, DpNaDanPz);

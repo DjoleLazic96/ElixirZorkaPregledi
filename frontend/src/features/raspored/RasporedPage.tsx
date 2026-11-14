@@ -90,8 +90,8 @@ export function RasporedPage() {
                     <div className="mt-1 space-y-1">
                       {s.pregledi.map((p) => (
                         <button key={p.id} type="button" onClick={() => setIzabran(p)}
-                          className={cn('block min-h-11 w-full rounded border px-2 py-1 text-left text-xs md:min-h-10', bojaPregleda(p, danas), ivicaPregleda(p))}>
-                          <span className="block whitespace-nowrap font-semibold">{p.broj}</span>
+                          className={cn('block min-h-11 w-full rounded border px-1.5 py-1 text-left text-xs md:min-h-10', bojaPregleda(p, danas), ivicaPregleda(p))}>
+                          <span className="block break-words text-[11px] font-semibold leading-tight tracking-tight">{p.broj}</span>
                           <span className="block truncate">{p.dodeljen}</span>
                           {oznakaPregleda(p) && <span className={cn('block truncate', oznakaPregleda(p)!.boja)}>{oznakaPregleda(p)!.tekst}</span>}
                         </button>
@@ -99,7 +99,7 @@ export function RasporedPage() {
                       {s.preneti.map((p) => (
                         <p key={`p${p.id}`} className={cn('rounded px-1 text-xs', oznakaPomeranja(p).boja)}>{p.broj} {oznakaPomeranja(p).tekst} {formatirajDatum(p.planiraniDatum)}</p>
                       ))}
-                      {s.odsutni.map((o) => <p key={o.korisnikId} className="truncate text-xs text-gray-500">odsutan: {o.ime}</p>)}
+                      {s.odsutni.map((o) => <p key={o.korisnikId} className="truncate text-xs text-gray-500">na odsustvu: {o.ime}</p>)}
                     </div>
                   </li>
                 );
@@ -230,7 +230,7 @@ function PzModal({ onClose }: { onClose: () => void }) {
           <Select id="pz-tip" value={izabraniTip} onChange={setTip} options={['PZ1', 'PZ2', 'PZ3', 'PZ4'].map((t) => ({ value: t, label: t }))} />
         </FormField>
         <FormField label="Inženjer" htmlFor="pz-inz">
-          <Select id="pz-inz" value={inz} onChange={setInz} placeholder="Izaberite inženjera" options={(inzenjeri.data ?? []).map((i) => ({ value: i.id, label: i.ime }))} />
+          <Select id="pz-inz" value={inz} onChange={(v) => { setInz(v); setGreska(null); }} placeholder="Izaberite inženjera" options={(inzenjeri.data ?? []).map((i) => ({ value: i.id, label: i.ime }))} />
         </FormField>
         {dp && <UpozorenjeDp dp={dp} radnja="zakažete" />}
         {promena && (
@@ -404,7 +404,7 @@ function IzmenaOdsustva({ odsustvo, onClose }: { odsustvo: OdsustvoDto; onClose:
   return (
     <Modal open title={`Izmena odsustva — ${odsustvo.ime}`} onClose={onClose}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField label="Od" htmlFor="izo-od"><DatePicker id="izo-od" value={od} onChange={setOd} clearable={false} /></FormField>
+        <FormField label="Od" htmlFor="izo-od"><DatePicker id="izo-od" value={od} onChange={(v) => { setOd(v); if (v > doDatuma) setDo(v); }} clearable={false} /></FormField>
         <FormField label="Do" htmlFor="izo-do"><DatePicker id="izo-do" value={doDatuma} onChange={setDo} min={od} clearable={false} /></FormField>
       </div>
       {greska && <p role="alert" className="mt-3 text-sm text-red-600">{greska}</p>}
@@ -558,7 +558,7 @@ function OdsustvoModal({ zahtev, onClose }: { zahtev?: OdsustvoDto; onClose: () 
                 options={(inzenjeri.data ?? []).map((i) => ({ value: i.id, label: i.ime }))} />
             </FormField>
             <div className="grid gap-4 sm:grid-cols-2">
-              <FormField label="Od" htmlFor="ods-od"><DatePicker id="ods-od" value={od} onChange={setOd} clearable={false} /></FormField>
+              <FormField label="Od" htmlFor="ods-od"><DatePicker id="ods-od" value={od} onChange={(v) => { setOd(v); if (v > doDatuma) setDo(v); }} clearable={false} /></FormField>
               <FormField label="Do" htmlFor="ods-do"><DatePicker id="ods-do" value={doDatuma} onChange={setDo} min={od} clearable={false} /></FormField>
             </div>
             <FormField label="Vrsta" htmlFor="ods-vrsta"><Select id="ods-vrsta" value={vrsta} onChange={setVrsta} options={VRSTE_ODSUSTVA} /></FormField>
