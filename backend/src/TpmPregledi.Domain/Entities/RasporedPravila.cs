@@ -12,15 +12,21 @@ public sealed record Pomeranje(Pregled Pregled, DateOnly NoviDatum, string NoviD
 /// </summary>
 public static class RasporedPravila
 {
-    /// <summary>Radni dan: ponedeljak–petak koji nije neradni dan (R3.16).</summary>
-    public static bool JeRadniDan(DateOnly d, IReadOnlySet<DateOnly> neradni) =>
-        d.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday) && !neradni.Contains(d);
+    /// <summary>
+    /// Radni dan: ponedeljak–petak koji nije neradni dan (R3.16), ili subota/nedelja uneta kao radni dan (zamerka 68).
+    /// </summary>
+    public static bool JeRadniDan(DateOnly d, IReadOnlySet<DateOnly> neradni, IReadOnlySet<DateOnly>? radniVikend = null) =>
+        (d.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday) && !neradni.Contains(d)) || radniVikend?.Contains(d) == true;
 
-    /// <summary>Da li se tog dana radi DP: radni dan, a na dan PZ-a samo ako podešavanje to dozvoljava (R3.9).</summary>
-    public static bool JeDanZaDp(DateOnly d, IReadOnlySet<DateOnly> neradni, IReadOnlySet<DateOnly> daniPz, bool dpNaDanPz) =>
-        JeRadniDan(d, neradni) && (dpNaDanPz || !daniPz.Contains(d));
+    /// <summary>
+    /// Da li se tog dana radi DP: radni dan, a na dan PZ-a samo ako podešavanje to dozvoljava (R3.9). Bez
+    /// <paramref name="radniVikend"/> vikend nikad nije dan za DP — tako rade predlog i automatsko pomeranje, jer se DP na radni
+    /// vikend dan dodaje samo ručno (zamerka 68).
+    /// </summary>
+    public static bool JeDanZaDp(DateOnly d, IReadOnlySet<DateOnly> neradni, IReadOnlySet<DateOnly> daniPz, bool dpNaDanPz, IReadOnlySet<DateOnly>? radniVikend = null) =>
+        JeRadniDan(d, neradni, radniVikend) && (dpNaDanPz || !daniPz.Contains(d));
 
-    /// <summary>Prvi dan za DP posle datog dana.</summary>
+    /// <summary>Prvi dan za DP posle datog dana; radni vikend dani se preskaču (na njih DP ide samo ručno, zamerka 68).</summary>
     public static DateOnly SledeciDanZaDp(DateOnly posle, IReadOnlySet<DateOnly> neradni, IReadOnlySet<DateOnly> daniPz, bool dpNaDanPz)
     {
         var d = posle.AddDays(1);

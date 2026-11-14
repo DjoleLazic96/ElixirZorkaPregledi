@@ -104,7 +104,7 @@ public sealed class DashboardHandler(IAppDbContext db, ICurrentUser currentUser,
         var van = await VanFunkcijeAsync(db, danas, ct);
 
         var cekajuOveru = svi.Where(p => p.Status == StatusPregleda.CekaOveru).OrderBy(p => p.Datum).ToList();
-        bool RokIstekao(int id) => predatAt.GetValueOrDefault(id) is { } t && AnalitikaPravila.SatiRadnihDana(t, clock.UtcNow) > podesavanja.RokOvereSati;
+        bool RokIstekao(int id) => predatAt.GetValueOrDefault(id) is { } t && AnalitikaPravila.SatiRadnihDana(t, clock.UtcNow, k.RadniVikend) > podesavanja.RokOvereSati;
 
         MojeAktivnostiDto? moje = null;
         if (prava.Contains(Prava.PreglediPopunjavanje))

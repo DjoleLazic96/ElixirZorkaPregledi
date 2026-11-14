@@ -40,6 +40,8 @@ export interface RasporedDto {
   odsustva: { korisnikId: string; ime: string; od: string; do: string; vrsta: string }[];
   /** DP se radi i na dan PZ-a (R3.9) — tada se DP-ovi ne pomeraju. */
   dpNaDanPz?: boolean;
+  /** Subote i nedelje unete kao radni dan (zamerka 68) — tu se DP dodaje ručno. */
+  radniDani?: { datum: string; naziv: string }[];
 }
 
 export interface PredlogStavka {
@@ -102,7 +104,7 @@ export interface NeradniDanDto {
   id: number;
   datum: string;
   naziv: string;
-  vrsta: 'drzavni' | 'verski' | 'fabrika';
+  vrsta: 'drzavni' | 'verski' | 'fabrika' | 'radni';
 }
 
 export interface Prebacivanje {
@@ -122,6 +124,7 @@ export const VRSTE_NERADNIH: ReadonlyArray<{ value: NeradniDanDto['vrsta']; labe
   { value: 'drzavni', label: 'Državni praznik' },
   { value: 'verski', label: 'Verski praznik' },
   { value: 'fabrika', label: 'Neradni dan fabrike' },
+  { value: 'radni', label: 'Radni dan (subota/nedelja)' },
 ];
 
 const KEYS = ['raspored', 'odsustva', 'zahtevi-prebacivanja', 'neradni-dani'] as const;
@@ -155,9 +158,18 @@ export function usePredlog() {
 export function usePotvrdi() {
   const inv = useInvalidiraj();
   return useMutation({
-    mutationFn: async (v: { stavke: { datum: string; tip: string; inzenjerId: string | null }[]; uskladi: boolean }) =>
+    mutationFn: async (v: { stavke: { datum: string; tip: string; inzenjerId: string | null }[]; uskladi: boolean; postujTip?: boolean }) =>
       (await api.post<PregledKalendarDto[]>('/raspored/potvrdi', v)).data,
     onSuccess: inv,
+  });
+}
+
+/** Predlog za ručno dodavanje DP-a na jedan dan (zamerka 68): sledeći DP po redu i inženjer po rotaciji. */
+export function usePredlogDana(datum: string) {
+  return useQuery({
+    queryKey: ['raspored', 'predlog-dana', datum],
+    queryFn: async () => (await api.get<PredlogStavka>('/raspored/predlog-dana', { params: { datum } })).data,
+    retry: false,
   });
 }
 
@@ -368,7 +380,8 @@ export function useUnesiNeradne() {
 export function useObrisiNeradni() {
   const inv = useInvalidiraj();
   return useMutation({
-    mutationFn: async (id: number) => (await api.delete<{ slobodanDan: string | null } | ''>(`/neradni-dani/${id}`)).data || { slobodanDan: null },
+    mutationFn: async (v: { id: number; pomeriDp?: boolean }) =>
+      (await api.delete<{ slobodanDan: string | null } | ''>(`/neradni-dani/${v.id}`, { params: v.pomeriDp ? { pomeriDp: true } : undefined })).data || { slobodanDan: null },
     onSuccess: inv,
   });
 }

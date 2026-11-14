@@ -14,15 +14,15 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Select } from '../../components/ui/Select';
 import { Ucitavanje } from '../../components/ui/Spinner';
 import { porukaGreske } from '../../lib/apiError';
-import { danasYmd, formatirajDatum } from '../../lib/datum';
+import { danSaDatumom, danasYmd, formatirajDatum } from '../../lib/datum';
 import { imaPravo } from '../../lib/permissions';
 import { useAuth } from '../auth/AuthProvider';
-import { PovlacenjeDijalog } from './IzmeneRasporeda';
+import { DodajDpDijalog, PovlacenjeDijalog } from './IzmeneRasporeda';
 import { godineNeradnih } from './kalendar';
 import { mnozina } from '../../lib/broj';
 import {
   STATUS_ODSUSTVA, VRSTE_NERADNIH, VRSTE_ODSUSTVA, useNeradniDani, useObrisiNeradni, useOdsustva, useOtkaziOdsustvo, useUnesiNeradne, useZahtevOdsustva,
-  type PregledKalendarDto, type RasporedDto,
+  type NeradniDanDto, type PregledKalendarDto, type RasporedDto,
 } from './hooks';
 
 /** „Moja odsustva“ (R3.19): zahtev za odsustvo i spisak ranijih sa statusom. */
@@ -119,12 +119,21 @@ export function NeradniDaniPage() {
   const [dpUPeriodu, setDpUPeriodu] = useState<PregledKalendarDto[] | null>(null);
   const [slobodan, setSlobodan] = useState<string | null>(null);
   const smeRaspored = imaPravo(me ?? { roles: [], prava: [] }, 'raspored.uredjivanje');
+  const radni = vrsta === 'radni';
+  // Zamerka 68: posle unosa radnog vikend dana pita se „Dodaj DP?“ za svaki uneti dan redom.
+  const [radniZaDp, setRadniZaDp] = useState<string[]>([]);
+  const [dodajDp, setDodajDp] = useState<string | null>(null);
+  // Brisanje radnog vikend dana na kom je zakazan DP: pita se da li se DP pomera dalje u nizu.
+  const [brisanje, setBrisanje] = useState<{ dan: NeradniDanDto; dp: PregledKalendarDto[] } | null>(null);
+  const sledeci = () => setRadniZaDp((l) => l.slice(1));
 
   async function sacuvaj(pomeriDp: boolean) {
     try {
       const novi = await unesi.mutateAsync({ od, do: doDatuma, naziv: naziv.trim(), vrsta: vrsta ?? 'drzavni', pomeriDp });
       const dana = `${novi.length} ${mnozina(novi.length, { jednina: 'dan', paukal: 'dana', mnozina: 'dana' })}`;
-      toast.success(pomeriDp ? `Uneto ${dana}; DP-ovi su pomereni.` : `Uneto ${dana}.`);
+      if (radni) toast.success(novi.length === 1 ? `${danSaDatumom(novi[0].datum)} je radni dan.` : `Uneto ${dana} kao radni dani.`);
+      else toast.success(pomeriDp ? `Uneto ${dana}; DP-ovi su pomereni.` : `Uneto ${dana}.`);
+      if (radni && smeRaspored) setRadniZaDp(novi.map((n) => n.datum).filter((d) => d >= danasYmd()));
       setNaziv('');
       setDpUPeriodu(null);
     } catch (err) {
@@ -136,6 +145,7 @@ export function NeradniDaniPage() {
   async function potvrdi(e: FormEvent) {
     e.preventDefault();
     setGreska(null);
+    if (radni) return void sacuvaj(false);   // vikendom DP-a nema, pa nema šta da se pomera
     try {
       const r = (await api.get<RasporedDto>('/raspored', { params: { od, do: doDatuma } })).data;
       const dp = r.pregledi.filter((p) => p.tip.startsWith('DP') && p.status === 'planiran' && p.planiraniDatum >= od && p.planiraniDatum <= doDatuma);
@@ -163,6 +173,11 @@ export function NeradniDaniPage() {
               <FormField label="Do" htmlFor="nd-do"><DatePicker id="nd-do" value={doDatuma} onChange={setDo} min={od} clearable={false} /></FormField>
               <FormField label="Naziv" htmlFor="nd-naziv"><Input id="nd-naziv" value={naziv} onChange={(e) => setNaziv(e.target.value)} placeholder="npr. Božić" /></FormField>
               <FormField label="Vrsta" htmlFor="nd-vrsta"><Select id="nd-vrsta" value={vrsta} onChange={setVrsta} options={VRSTE_NERADNIH} /></FormField>
+              {radni && (
+                <p className="text-sm text-gray-600 sm:col-span-2 lg:col-span-4">
+                  Za subotu ili nedelju kada se radi. DP se tada ne zakazuje sam — posle unosa možete odmah da ga dodate, ili kasnije u Rasporedu.
+                </p>
+              )}
               {greska && <p role="alert" className="text-sm text-red-600 sm:col-span-2 lg:col-span-4">{greska}</p>}
               <div className="flex justify-end sm:col-span-2 lg:col-span-4">
                 <Button type="submit" disabled={unesi.isPending}>Dodaj</Button>
@@ -191,14 +206,12 @@ export function NeradniDaniPage() {
             <ul className="divide-y divide-gray-100">
               {dani.data.map((d) => (
                 <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-                  <span>{formatirajDatum(d.datum)} · {d.naziv} <span className="text-xs text-gray-500">({VRSTE_NERADNIH.find((v) => v.value === d.vrsta)?.label})</span></span>
+                  <span>{formatirajDatum(d.datum)} · {d.naziv} {d.vrsta === 'radni'
+                    ? <Badge tone="green">radni dan</Badge>
+                    : <span className="text-xs text-gray-500">({VRSTE_NERADNIH.find((v) => v.value === d.vrsta)?.label})</span>}</span>
                   {sme && (
                     <Button size="sm" variant="ghost" disabled={obrisi.isPending}
-                      onClick={() => void obrisi.mutateAsync(d.id).then((r) => {
-                        toast.success('Neradni dan je obrisan.');
-                        // Dan je sada prazan usred niza DP-ova — nudi se povlačenje (zamerka 56).
-                        if (r.slobodanDan && smeRaspored) setSlobodan(r.slobodanDan);
-                      }, (err) => toast.error(porukaGreske(err, 'Brisanje nije uspelo.')))}>
+                      onClick={() => void obrisiDan(d)}>
                       Obriši
                     </Button>
                   )}
@@ -209,6 +222,54 @@ export function NeradniDaniPage() {
         </CardBody>
       </Card>
       {slobodan && <PovlacenjeDijalog datum={slobodan} onClose={() => setSlobodan(null)} />}
+      {radniZaDp.length > 0 && !dodajDp && (
+        <Modal open title="Radni dan" onClose={sledeci}>
+          <div className="space-y-3 text-sm">
+            <p>{danSaDatumom(radniZaDp[0])} je sada radni dan. Da li želite da dodate DP?</p>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="ghost" onClick={sledeci}>Ne sada</Button>
+              <Button onClick={() => setDodajDp(radniZaDp[0])}>Dodaj DP</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+      {dodajDp && <DodajDpDijalog datum={dodajDp} onClose={() => { setDodajDp(null); sledeci(); }} />}
+      {brisanje && (
+        <Modal open title="Na taj dan je zakazan DP" onClose={() => setBrisanje(null)}>
+          <div className="space-y-3 text-sm">
+            <ul className="list-disc space-y-0.5 pl-5">
+              {brisanje.dp.map((p) => <li key={p.id}>Na {formatirajDatum(p.planiraniDatum)} je zakazan <b>{p.broj}</b> ({p.dodeljen})</li>)}
+            </ul>
+            <p className="text-gray-700">Kad se radni dan obriše, tog dana se DP ne radi. <b>Obriši i pomeri DP</b>: taj DP i naredni idu dalje u nizu, a inženjeri dobijaju obaveštenje.</p>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="ghost" onClick={() => setBrisanje(null)} disabled={obrisi.isPending}>Odustani</Button>
+              <Button onClick={() => void obrisiDan(brisanje.dan, true)} disabled={obrisi.isPending}>Obriši i pomeri DP</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
+
+  async function obrisiDan(d: NeradniDanDto, pomeriDp = false) {
+    if (d.vrsta === 'radni' && !pomeriDp) {
+      try {
+        const r = (await api.get<RasporedDto>('/raspored', { params: { od: d.datum, do: d.datum } })).data;
+        const dp = r.pregledi.filter((p) => p.tip.startsWith('DP') && p.status === 'planiran' && p.planiraniDatum === d.datum);
+        if (dp.length > 0) return setBrisanje({ dan: d, dp });
+      } catch {
+        // Provera nije uspela — briše se kao i do sada; DP koji ostane kalendar označava crveno.
+      }
+    }
+    try {
+      const r = await obrisi.mutateAsync({ id: d.id, pomeriDp });
+      setBrisanje(null);
+      toast.success(d.vrsta === 'radni' ? (pomeriDp ? 'Radni dan je obrisan, a DP je pomeren.' : 'Radni dan je obrisan.') : 'Neradni dan je obrisan.');
+      // Dan je sada prazan usred niza DP-ova — nudi se povlačenje (zamerka 56).
+      if (r.slobodanDan && smeRaspored) setSlobodan(r.slobodanDan);
+    } catch (err) {
+      setBrisanje(null);
+      toast.error(porukaGreske(err, 'Brisanje nije uspelo.'));
+    }
+  }
 }

@@ -23,7 +23,7 @@ import {
   usePreglediUOdsustvu, useRaspored, useSledeciPz, useUnesiOdsustvo, useZahteviPrebacivanja, useZakaziPz,
   useDpKojiSePomera, type OdsustvoDto, type PredlogStavka, type PregledKalendarDto, type ZahtevPrebacivanjaDto,
 } from './hooks';
-import { PovlacenjeDijalog, UpozorenjeDp } from './IzmeneRasporeda';
+import { DodajDpDijalog, PovlacenjeDijalog, UpozorenjeDp } from './IzmeneRasporeda';
 import { PregledKartica } from './KalendarPage';
 import { bojaPregleda, ivicaPregleda, oznakaPomeranja, oznakaPregleda, pomeraSe, preracunajTipove, stavkeDana } from './kalendar';
 
@@ -40,6 +40,7 @@ export function RasporedPage() {
   const [predlog, setPredlog] = useState<PredlogStavka[] | null>(null);
   const [pzOtvoren, setPzOtvoren] = useState(false);
   const [odsustvoOtvoreno, setOdsustvoOtvoreno] = useState(false);
+  const [dodajDp, setDodajDp] = useState<string | null>(null);
   const traziPredlog = usePredlog();
   const toast = useToast();
   const danas = danasYmd();
@@ -87,6 +88,7 @@ export function RasporedPage() {
                   <li key={dan} className={cn('min-w-0 rounded-md border border-gray-200 p-2', dan === danas && 'ring-2 ring-primary-400')}>
                     <p className="text-xs font-medium text-gray-600">{kratakDan(dan)}, {formatirajDatum(dan)}</p>
                     {s.neradni && <p className="text-xs text-gray-500">{s.neradni.naziv}</p>}
+                    {s.radni && <p className="text-xs font-medium text-green-700">Radni dan · {s.radni.naziv}</p>}
                     <div className="mt-1 space-y-1">
                       {s.pregledi.map((p) => (
                         <button key={p.id} type="button" onClick={() => setIzabran(p)}
@@ -101,6 +103,10 @@ export function RasporedPage() {
                         <p key={`p${p.id}`} className={cn('rounded px-1 text-xs', oznakaPomeranja(p).boja)}>{p.broj} {oznakaPomeranja(p).tekst} {formatirajDatum(p.planiraniDatum)}</p>
                       ))}
                       {s.odsutni.map((o) => <p key={o.korisnikId} className="truncate text-xs text-gray-500">na odsustvu: {o.ime}</p>)}
+                      {/* Radni vikend dan raspored ne popunjava sam — DP se dodaje ručno (zamerka 68). */}
+                      {s.radni && smeRaspored && dan >= danas && !s.pregledi.some((p) => p.tip.startsWith('DP') && p.status !== 'ponisten') && (
+                        <Button size="sm" variant="secondary" className="w-full" onClick={() => setDodajDp(dan)}>+ Dodaj DP</Button>
+                      )}
                     </div>
                   </li>
                 );
@@ -120,6 +126,7 @@ export function RasporedPage() {
       {pzOtvoren && <PzModal onClose={() => setPzOtvoren(false)} />}
       {odsustvoOtvoreno && <OdsustvoModal onClose={() => setOdsustvoOtvoreno(false)} />}
       {izabran && <PregledKartica pregled={izabran} onClose={() => setIzabran(null)} />}
+      {dodajDp && <DodajDpDijalog datum={dodajDp} onClose={() => setDodajDp(null)} />}
     </div>
   );
 }

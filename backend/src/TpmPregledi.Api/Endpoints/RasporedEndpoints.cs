@@ -81,7 +81,8 @@ public sealed record VratiPregledeInput(IReadOnlyList<int> PregledIds);
 /// <summary>Telo potvrde.</summary>
 /// <param name="Stavke">Dani rasporeda.</param>
 /// <param name="Uskladi">Rupe usred niza popuniti povlačenjem niza (zamerka 30).</param>
-public sealed record PotvrdaInput(IReadOnlyList<StavkaRasporeda> Stavke, bool Uskladi = false);
+/// <param name="PostujTip">Nov DP dobija tip iz stavke (ručno dodat DP, zamerka 68).</param>
+public sealed record PotvrdaInput(IReadOnlyList<StavkaRasporeda> Stavke, bool Uskladi = false, bool PostujTip = false);
 
 /// <summary>Telo otkazivanja (zamerka 27).</summary>
 /// <param name="Razlog">Razlog.</param>
@@ -126,8 +127,10 @@ public static class RasporedEndpoints
             .WithSummary("Inženjeri u rotaciji (za izbor u rasporedu)");
         r.MapPost("/predlog", async ([FromBody] PredlogInput i, IMediator m) => Results.Ok(await m.Send(new PredlogRasporedaQuery(i.Od))))
             .RequireAuthorization(raspored).WithSummary("Predlog DP-a za nedelju (ne upisuje)");
-        r.MapPost("/potvrdi", async ([FromBody] PotvrdaInput i, IMediator m) => Results.Ok(await m.Send(new PotvrdiRasporedCommand(i.Stavke, i.Uskladi))))
+        r.MapPost("/potvrdi", async ([FromBody] PotvrdaInput i, IMediator m) => Results.Ok(await m.Send(new PotvrdiRasporedCommand(i.Stavke, i.Uskladi, i.PostujTip))))
             .RequireAuthorization(raspored).WithSummary("Potvrda rasporeda: pravi preglede sa brojevima");
+        r.MapGet("/predlog-dana", async ([FromQuery] DateOnly datum, IMediator m) => Results.Ok(await m.Send(new PredlogDanaQuery(datum))))
+            .RequireAuthorization(raspored).WithSummary("Predlog za ručno dodavanje DP-a na jedan dan (sledeći DP, inženjer po rotaciji)");
         r.MapGet("/pz/sledeci", async (IMediator m) => Results.Ok(new { tip = await m.Send(new SledeciPzQuery()) }))
             .RequireAuthorization(raspored).WithSummary("Sledeći PZ po redu");
         r.MapPost("/pz", async ([FromBody] PzInput i, IMediator m) =>
@@ -159,12 +162,12 @@ public static class RasporedEndpoints
         n.MapPost("", async ([FromBody] NeradniDaniInput i, IMediator m) =>
                 Results.Ok(await m.Send(new UnesiNeradneDaneCommand(i.Od, i.Do, i.Naziv, i.Vrsta, i.PomeriDp))))
             .RequireAuthorization(PravoPolitika.Za(Prava.NeradniDani)).WithSummary("Unos neradnih dana od–do");
-        n.MapDelete("/{id:int}", async (int id, IMediator m) =>
+        n.MapDelete("/{id:int}", async (int id, [FromQuery] bool? pomeriDp, IMediator m) =>
             {
-                var slobodan = await m.Send(new ObrisiNeradniDanCommand(id));
+                var slobodan = await m.Send(new ObrisiNeradniDanCommand(id, pomeriDp ?? false));
                 return Results.Ok(new { slobodanDan = slobodan });
             })
-            .RequireAuthorization(PravoPolitika.Za(Prava.NeradniDani)).WithSummary("Brisanje neradnog dana");
+            .RequireAuthorization(PravoPolitika.Za(Prava.NeradniDani)).WithSummary("Brisanje neradnog ili radnog vikend dana (uz pomeriDp: DP sa radnog vikend dana ide dalje u nizu)");
 
         var o = app.MapGroup("/api/v1/odsustva").WithTags("Odsustva").RequireAuthorization("RequireKorisnik");
         o.MapGet("", async ([FromQuery] string? korisnikId, [FromQuery] string? status, ClaimsPrincipal u, ICurrentUser me, IMediator m) =>

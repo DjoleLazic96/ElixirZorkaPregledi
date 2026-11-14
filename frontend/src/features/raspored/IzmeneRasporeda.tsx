@@ -3,10 +3,12 @@ import { useToast } from '../../app/providers/ToastProvider';
 import { Button } from '../../components/ui/Button';
 import { FormField } from '../../components/ui/FormField';
 import { Modal } from '../../components/ui/Modal';
+import { Select } from '../../components/ui/Select';
+import { Ucitavanje } from '../../components/ui/Spinner';
 import { Textarea } from '../../components/ui/Textarea';
 import { porukaGreske } from '../../lib/apiError';
-import { dodajDane, formatirajDatum, kratakDan } from '../../lib/datum';
-import { useOtkaziPregled, usePovuci, usePromeniTipDp, useRaspored, type PregledKalendarDto } from './hooks';
+import { danSaDatumom, dodajDane, formatirajDatum, kratakDan } from '../../lib/datum';
+import { useInzenjeri, useOtkaziPregled, usePotvrdi, usePovuci, usePredlogDana, usePromeniTipDp, useRaspored, type PregledKalendarDto } from './hooks';
 import { mnozina } from '../../lib/broj';
 
 /**
@@ -162,3 +164,87 @@ export function UpozorenjeDp({ dp, radnja }: { dp: PregledKalendarDto; radnja: s
   );
 }
 
+
+/**
+ * Ručno dodavanje DP-a na jedan dan (zamerka 68), npr. na subotu unetu kao radni dan: predlaže se sledeći DP po redu i inženjer
+ * po rotaciji, oba mogu da se promene. Ako posle tog dana već postoje DP-ovi, pre čuvanja se pita da li utiče na naredne —
+ * isto kao „Umetni i pomeri naredne“ u predlogu rasporeda.
+ */
+export function DodajDpDijalog({ datum, onClose }: { datum: string; onClose: () => void }) {
+  const predlog = usePredlogDana(datum);
+  const inzenjeri = useInzenjeri();
+  const potvrdi = usePotvrdi();
+  const toast = useToast();
+  const [tip, setTip] = useState<string | null>(null);
+  const [inzenjerId, setInzenjerId] = useState<string | null>(null);
+  const [pitaj, setPitaj] = useState(false);
+  const [greska, setGreska] = useState<string | null>(null);
+  const p = predlog.data;
+  const izabranTip = tip ?? p?.tip ?? 'DP1';
+  const izabranInzenjer = inzenjerId ?? p?.inzenjerId ?? null;
+  const naslov = `Dodaj DP — ${danSaDatumom(datum)}`;
+
+  async function sacuvaj(uskladi: boolean) {
+    setGreska(null);
+    if (!izabranInzenjer) return setGreska('Izaberite inženjera.');
+    try {
+      const novi = await potvrdi.mutateAsync({ stavke: [{ datum, tip: izabranTip, inzenjerId: izabranInzenjer }], uskladi, postujTip: !uskladi });
+      const dp = novi.find((x) => x.planiraniDatum === datum) ?? novi[0];
+      toast.success(uskladi ? `DP je dodat za ${formatirajDatum(datum)}, a naredni DP-ovi su pomereni.` : `${dp?.broj ?? 'DP'} je dodat za ${formatirajDatum(datum)}.`);
+      onClose();
+    } catch (err) {
+      setPitaj(false);
+      setGreska(porukaGreske(err, 'DP nije dodat.'));
+    }
+  }
+
+  if (predlog.isError)
+    return (
+      <Modal open title={naslov} onClose={onClose}>
+        <p role="alert" className="text-sm text-red-600">{porukaGreske(predlog.error, 'Za taj dan DP ne može da se doda.')}</p>
+        <div className="flex justify-end pt-4"><Button variant="ghost" onClick={onClose}>Zatvori</Button></div>
+      </Modal>
+    );
+
+  if (pitaj && p)
+    return (
+      <Modal open title="Da li utiče na naredne DP-ove?" onClose={() => setPitaj(false)} widthClass="max-w-xl">
+        <div className="space-y-3 text-sm">
+          <p>Posle {formatirajDatum(datum)} već postoje zakazani DP-ovi.</p>
+          <ul className="space-y-1 text-gray-700">
+            <li><b>Umetni i pomeri naredne</b> (preporučeno) — taj dan preuzima sledeći zakazani DP, a naredni idu dan unazad, pa smena DP1/DP2 ostaje ispravna.</li>
+            <li><b>Ostavi kako jeste</b> — taj dan dobija {izabranTip} kao dodatni DP, a naredni ostaju gde su.</li>
+          </ul>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="ghost" onClick={() => setPitaj(false)} disabled={potvrdi.isPending}>Nazad</Button>
+            <Button variant="secondary" onClick={() => void sacuvaj(false)} disabled={potvrdi.isPending}>Ostavi kako jeste</Button>
+            <Button onClick={() => void sacuvaj(true)} disabled={potvrdi.isPending}>Umetni i pomeri naredne</Button>
+          </div>
+        </div>
+      </Modal>
+    );
+
+  return (
+    <Modal open title={naslov} onClose={onClose}>
+      {!p ? <Ucitavanje /> : (
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">Predložen je DP koji je sledeći po redu i inženjer po rotaciji; oba možete da promenite.</p>
+          <FormField label="DP" htmlFor="ddp-tip">
+            <Select id="ddp-tip" value={izabranTip} onChange={(v) => v && setTip(v)}
+              options={['DP1', 'DP2'].map((t) => ({ value: t, label: t === p.tip ? `${t} (sledeći po redu)` : t }))} />
+          </FormField>
+          <FormField label="Inženjer" htmlFor="ddp-inz">
+            <Select id="ddp-inz" value={izabranInzenjer} onChange={setInzenjerId} options={(inzenjeri.data ?? []).map((i) => ({ value: i.id, label: i.ime }))} />
+          </FormField>
+          {greska && <p role="alert" className="text-sm text-red-600">{greska}</p>}
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={onClose} disabled={potvrdi.isPending}>Odustani</Button>
+            <Button onClick={() => (p.rupa ? setPitaj(true) : void sacuvaj(false))} disabled={potvrdi.isPending}>
+              {potvrdi.isPending ? 'Čuvanje…' : 'Dodaj DP'}
+            </Button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}

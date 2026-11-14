@@ -19,6 +19,12 @@ public sealed class RasporedKontekst
     /// <summary>Neradni dani.</summary>
     public IReadOnlySet<DateOnly> Neradni { get; private init; } = new HashSet<DateOnly>();
 
+    /// <summary>Naziv neradnog dana (za poruku zašto DP ne može tog dana, zamerka 69).</summary>
+    public IReadOnlyDictionary<DateOnly, string> NaziviNeradnih { get; private init; } = new Dictionary<DateOnly, string>();
+
+    /// <summary>Subote i nedelje unete kao radni dan (zamerka 68).</summary>
+    public IReadOnlySet<DateOnly> RadniVikend { get; private init; } = new HashSet<DateOnly>();
+
     /// <summary>Dani na koje je zakazan (neponišten) PZ.</summary>
     public IReadOnlySet<DateOnly> DaniPz { get; private init; } = new HashSet<DateOnly>();
 
@@ -53,9 +59,12 @@ public sealed class RasporedKontekst
         var uRotaciji = await db.Users.AsNoTracking().Where(u => u.IsActive && saPravom.Contains(u.Id))
             .OrderBy(u => u.FullName).ThenBy(u => u.UserName).Select(u => u.Id).ToListAsync(ct);
 
+        var dani = await db.NeradniDani.AsNoTracking().Select(n => new { n.Datum, n.Naziv, n.Vrsta }).ToListAsync(ct);
         return new RasporedKontekst
         {
-            Neradni = (await db.NeradniDani.AsNoTracking().Select(n => n.Datum).ToListAsync(ct)).ToHashSet(),
+            Neradni = dani.Where(n => n.Vrsta != NeradniDan.VrstaRadni).Select(n => n.Datum).ToHashSet(),
+            NaziviNeradnih = dani.Where(n => n.Vrsta != NeradniDan.VrstaRadni).ToDictionary(n => n.Datum, n => n.Naziv),
+            RadniVikend = dani.Where(n => n.Vrsta == NeradniDan.VrstaRadni).Select(n => n.Datum).ToHashSet(),
             DaniPz = (await db.Pregledi.AsNoTracking()
                 .Where(p => p.Tip.StartsWith("PZ") && p.Status != StatusPregleda.Ponisten)
                 .Select(p => p.PlaniraniDatum).ToListAsync(ct)).ToHashSet(),
@@ -85,8 +94,27 @@ public sealed class RasporedKontekst
     public string PorukaOdsutan(string id, DateOnly d, Odsustvo o) =>
         $"{Ime(id)} je na odsustvu {d:dd.MM.yyyy} ({NaziviOdsustva.GetValueOrDefault(o.Vrsta, o.Vrsta)}). Izaberite drugog inženjera.";
 
-    /// <summary>Da li se tog dana radi DP.</summary>
-    public bool JeDanZaDp(DateOnly d) => RasporedPravila.JeDanZaDp(d, Neradni, DaniPz, DpNaDanPz);
+    /// <summary>Radni dan (uključujući subotu ili nedelju unetu kao radni dan).</summary>
+    public bool JeRadniDan(DateOnly d) => RasporedPravila.JeRadniDan(d, Neradni, RadniVikend);
+
+    /// <summary>Da li DP sme tog dana — za ručni unos i izmenu, pa važi i radni vikend dan (zamerka 68).</summary>
+    public bool JeDanZaDp(DateOnly d) => RasporedPravila.JeDanZaDp(d, Neradni, DaniPz, DpNaDanPz, RadniVikend);
+
+    /// <summary>
+    /// Dan koji raspored sam popunjava (predlog, „rupa usred niza“): kao <see cref="JeDanZaDp"/>, ali bez radnih vikend dana —
+    /// na njih DP ide samo ručno (zamerka 68).
+    /// </summary>
+    public bool JeRedovanDanZaDp(DateOnly d) => RasporedPravila.JeDanZaDp(d, Neradni, DaniPz, DpNaDanPz);
+
+    private static readonly string[] NaziviDana = ["nedelja", "ponedeljak", "utorak", "sreda", "četvrtak", "petak", "subota"];
+
+    /// <summary>Zašto DP ne može tog dana (zamerka 69) — konkretan razlog umesto opšte poruke.</summary>
+    public string ZastoNijeDanZaDp(DateOnly d) =>
+        NaziviNeradnih.TryGetValue(d, out var naziv)
+            ? $"{d:dd.MM.yyyy} je neradni dan ({naziv}) — tada se DP ne radi."
+            : !JeRadniDan(d)
+                ? $"{d:dd.MM.yyyy} je {NaziviDana[(int)d.DayOfWeek]} — DP se radi samo radnim danima. Ako se tog dana radi, Administrator ili Direktor ga unosi kao radni dan (Neradni dani)."
+                : $"{d:dd.MM.yyyy} je dan PZ-a — tada se DP ne radi (podešavanje „DP na dan PZ-a“).";
 
     /// <summary>Prvi dan za DP posle datog.</summary>
     public DateOnly SledeciDanZaDp(DateOnly posle) => RasporedPravila.SledeciDanZaDp(posle, Neradni, DaniPz, DpNaDanPz);

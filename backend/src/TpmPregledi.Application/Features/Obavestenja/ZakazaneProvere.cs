@@ -37,7 +37,7 @@ public sealed class ZakazaneProvereHandler(IAppDbContext db, IDateTimeProvider c
 
         var broj = 0;
         broj += await NijeZapocetAsync(danas, sat, p, k, sada, ct);
-        broj += await RokOvereAsync(p, sada, ct);
+        broj += await RokOvereAsync(p, k, sada, ct);
         broj += await RokAkcijeAsync(danas, sada, ct);
         broj += await VanFunkcijeAsync(danas, p, sada, ct);
         if (sat >= p.KrajRadnogDana)
@@ -62,11 +62,11 @@ public sealed class ZakazaneProvereHandler(IAppDbContext db, IDateTimeProvider c
     }
 
     /// <summary>R6.3: pregled čeka overu duže od roka (sati radnih dana); jednom po doradi.</summary>
-    private async Task<int> RokOvereAsync(PodesavanjaDto p, DateTime sada, CancellationToken ct)
+    private async Task<int> RokOvereAsync(PodesavanjaDto p, RasporedKontekst k, DateTime sada, CancellationToken ct)
     {
         var cekaju = await db.Pregledi.AsNoTracking().Where(x => x.Status == StatusPregleda.CekaOveru && x.PredatAt != null).ToListAsync(ct);
         var broj = 0;
-        foreach (var x in cekaju.Where(x => AnalitikaPravila.SatiRadnihDana(x.PredatAt!.Value, sada) > p.RokOvereSati))
+        foreach (var x in cekaju.Where(x => AnalitikaPravila.SatiRadnihDana(x.PredatAt!.Value, sada, k.RadniVikend) > p.RokOvereSati))
             broj += await Obavesti.PrimaocimaAsync(db, VrsteObavestenja.RokOvere, $"Overa {x.Broj} kasni",
                 $"Pregled {x.Broj} čeka overu duže od {p.RokOvereSati} h radnih dana.", $"/pregledi/{x.Id}", $"rok_overe:{x.Id}:{x.Dorada}", sada, ct);
         return broj;
@@ -107,7 +107,8 @@ public sealed class ZakazaneProvereHandler(IAppDbContext db, IDateTimeProvider c
 
     /// <summary>
     /// Dnevni rezime posle kraja radnog dana, svakog radnog dana (zamerka 61): koliko je predato, koji je DP prenet i gde; dan bez
-    /// pregleda javlja da raspored treba proveriti (ujedno znak da server radi). Vikendom i na neradne dane bez pregleda ne stiže.
+    /// pregleda javlja da raspored treba proveriti (ujedno znak da server radi). Vikendom i na neradne dane bez pregleda ne stiže,
+    /// osim na subotu ili nedelju unetu kao radni dan (zamerka 68).
     /// </summary>
     private async Task<int> RezimeAsync(DateOnly danas, RasporedKontekst k, DateTime sada, CancellationToken ct)
     {
@@ -117,8 +118,7 @@ public sealed class ZakazaneProvereHandler(IAppDbContext db, IDateTimeProvider c
             .Select(x => new { x.PredatAt }).ToListAsync(ct);
         if (dana.Count == 0)
         {
-            var radni = danas.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday) && !k.Neradni.Contains(danas);
-            return radni
+            return k.JeRadniDan(danas)
                 ? await Obavesti.PrimaocimaAsync(db, VrsteObavestenja.Rezime, naslov, "Danas nije bilo zakazanih pregleda. Proverite raspored.", "/kalendar", kljuc, sada, ct)
                 : 0;
         }

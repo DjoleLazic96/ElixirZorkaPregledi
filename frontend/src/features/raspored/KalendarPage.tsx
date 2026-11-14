@@ -87,7 +87,7 @@ export function KalendarPage() {
           <ul className="space-y-2 md:hidden">
             {dani
               .filter((dan) => dan.slice(0, 7) === mesec.slice(0, 7))
-              .filter((dan) => { const s = stavkeDana(r.data, dan); return s.pregledi.length + s.preneti.length > 0 || s.neradni; })
+              .filter((dan) => { const s = stavkeDana(r.data, dan); return s.pregledi.length + s.preneti.length > 0 || s.neradni || s.radni; })
               .map((dan) => (
                 <li key={dan}>
                   <Dan dan={dan} r={r.data} danas={danas} uMesecu onPregled={setIzabran} spisak />
@@ -131,7 +131,7 @@ function Dan({ dan, r, danas, uMesecu, onPregled, spisak }: DanProps) {
       className={cn(
         'min-h-[84px] min-w-0 rounded-lg border p-[5px] text-[11px]',
         uMesecu ? 'border-gray-200 bg-white' : 'border-gray-200 bg-[#f0efed] text-gray-400',
-        (jeVikend(dan) || s.neradni) && 'bg-[#f0efed] text-gray-400',
+        ((jeVikend(dan) && !s.radni) || s.neradni) && 'bg-[#f0efed] text-gray-400',
         dan === danas && 'border-2 border-primary-500',
         spisak && 'min-h-0 p-3',
       )}
@@ -139,6 +139,7 @@ function Dan({ dan, r, danas, uMesecu, onPregled, spisak }: DanProps) {
       <p className="text-xs font-bold">
         {spisak ? `${kratakDan(dan)}, ${formatirajDatum(dan)}` : Number(dan.slice(8))}
         {s.neradni && <span className="ml-1 font-normal text-gray-500">· {s.neradni.naziv}</span>}
+        {s.radni && <span className="ml-1 font-normal text-green-700">· radni dan</span>}
       </p>
       <div className="mt-1 space-y-1">
         {s.pregledi.map((p) => (

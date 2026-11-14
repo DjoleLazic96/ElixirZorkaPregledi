@@ -190,7 +190,7 @@ public sealed partial class RasporedHandler :
     {
         if (d < clock.Today) return null;
         var k = await RasporedKontekst.UcitajAsync(db, ct);
-        if (!k.JeDanZaDp(d)) return null;
+        if (!k.JeRedovanDanZaDp(d)) return null;   // radni vikend dan bez DP-a nije rupa — tu se DP dodaje samo ručno (zamerka 68)
         if (await db.Pregledi.AnyAsync(p => p.Tip.StartsWith("DP") && p.Status != StatusPregleda.Ponisten && p.PlaniraniDatum == d, ct)) return null;
         return await db.Pregledi.AnyAsync(p => p.Tip.StartsWith("DP") && p.Status == StatusPregleda.Planiran && p.PlaniraniDatum > d, ct) ? d : null;
     }

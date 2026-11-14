@@ -9,6 +9,15 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-14 — Zamerke 68–69: radni dan vikendom, jasnija poruka (odobreno)
+
+**Kontekst:** fabrika radi 365 dana; inženjeri uglavnom rade prvu smenu radnim danima, ali nekad dođu i vikendom.
+**Odluka:**
+- Subota ili nedelja se unosi kao radni dan na ekranu Neradni dani (vrsta `radni` u istoj tabeli — unosi se i briše na istom mestu, a dan ne može biti i radni i neradni; nova migracija nije potrebna).
+- DP na taj dan ide samo ručno: predlog, prenos propuštenog DP-a i „rupa usred niza“ ga preskaču; ručni unos i izmena datuma ga dozvoljavaju. Posle unosa pitanje „Dodaj DP?“; predlog je sledeći DP i inženjer po rotaciji, a izmenjen tip se poštuje (`postujTip`). Uz postojeće naredne DP-ove isto pitanje kao u predlogu: „Umetni i pomeri naredne“ / „Ostavi kako jeste“.
+- Supervizor (primaoci „Raspored za sledeću nedelju“) dobija obaveštenje; onaj ko je uneo ne dobija. Dnevni rezime i rok za overu računaju taj dan kao radni.
+- Poruka kad DP ne može tog dana kaže razlog (zamerka 69).
+
 ## 2026-11-14 — Zamerke 63–67: registar uređaja, „Zapamti me“, sitnice, oduzeto pravo, zamene (odobreno)
 
 **Kontekst:** ručno testiranje po rolama i peti krug scenarija.

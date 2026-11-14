@@ -15,7 +15,7 @@ namespace TpmPregledi.Application.Features.Raspored;
 /// <param name="Id">ID.</param>
 /// <param name="Datum">Datum.</param>
 /// <param name="Naziv">Naziv.</param>
-/// <param name="Vrsta"><c>drzavni</c>, <c>verski</c>, <c>fabrika</c>.</param>
+/// <param name="Vrsta"><c>drzavni</c>, <c>verski</c>, <c>fabrika</c> ili <c>radni</c> (subota/nedelja koja je radni dan, zamerka 68).</param>
 public sealed record NeradniDanDto(int Id, DateOnly Datum, string Naziv, string Vrsta);
 
 /// <summary>Neradni dani u godini.</summary>
@@ -30,9 +30,10 @@ public sealed record GetNeradniDaniQuery(int Godina) : IRequest<IReadOnlyList<Ne
 /// <param name="PomeriDp">Nezapočeti DP-ovi sa tih dana i naredni idu dalje u nizu (zamerka 52); ekran pita pre unosa.</param>
 public sealed record UnesiNeradneDaneCommand(DateOnly Od, DateOnly Do, string Naziv, string Vrsta, bool PomeriDp = false) : IRequest<IReadOnlyList<NeradniDanDto>>;
 
-/// <summary>Brisanje neradnog dana (pogrešan unos).</summary>
+/// <summary>Brisanje neradnog ili radnog vikend dana (pogrešan unos).</summary>
 /// <param name="Id">ID.</param>
-public sealed record ObrisiNeradniDanCommand(int Id) : IRequest<DateOnly?>;
+/// <param name="PomeriDp">Za radni vikend dan: nezapočet DP sa tog dana i naredni idu dalje u nizu (zamerka 68); ekran pita pre brisanja.</param>
+public sealed record ObrisiNeradniDanCommand(int Id, bool PomeriDp = false) : IRequest<DateOnly?>;
 
 /// <summary>Oblik ulaza.</summary>
 public sealed class UnesiNeradneDaneValidator : AbstractValidator<UnesiNeradneDaneCommand>
@@ -41,7 +42,8 @@ public sealed class UnesiNeradneDaneValidator : AbstractValidator<UnesiNeradneDa
     public UnesiNeradneDaneValidator()
     {
         RuleFor(x => x.Naziv).NotEmpty().WithMessage("Naziv je obavezan.").MaximumLength(200).WithMessage("Naziv može imati najviše 200 karaktera.");
-        RuleFor(x => x.Vrsta).Must(v => v is "drzavni" or "verski" or "fabrika").WithMessage("Vrsta mora biti državni praznik, verski praznik ili neradni dan fabrike.");
+        RuleFor(x => x.Vrsta).Must(v => v is "drzavni" or "verski" or "fabrika" or NeradniDan.VrstaRadni)
+            .WithMessage("Vrsta mora biti državni praznik, verski praznik, neradni dan fabrike ili radni dan (vikend).");
         RuleFor(x => x).Must(x => x.Do >= x.Od).WithMessage("Datum „do“ ne može biti pre datuma „od“.")
             .Must(x => x.Do.DayNumber - x.Od.DayNumber < 31).WithMessage("Najviše 31 dan odjednom.");
     }
@@ -62,14 +64,18 @@ public sealed class NeradniDaniHandler(IAppDbContext db, ICurrentUser currentUse
     public async Task<IReadOnlyList<NeradniDanDto>> Handle(UnesiNeradneDaneCommand req, CancellationToken ct)
     {
         var dani = Enumerable.Range(0, req.Do.DayNumber - req.Od.DayNumber + 1).Select(i => req.Od.AddDays(i)).ToList();
+        var radni = req.Vrsta == NeradniDan.VrstaRadni;
+        if (radni && dani.Any(d => d.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday)))
+            throw new BusinessRuleException("Radni dan se unosi samo za subotu ili nedelju — ostalim danima se DP već radi.");
         var postoje = await db.NeradniDani.Where(n => dani.Contains(n.Datum)).Select(n => n.Datum).ToListAsync(ct);
         if (postoje.Count > 0)
             throw new BusinessRuleException($"Već uneto: {string.Join(", ", postoje.OrderBy(d => d).Select(d => d.ToString("dd.MM.yyyy")))}.");
 
         var novi = dani.Select(d => new NeradniDan { Datum = d, Naziv = req.Naziv.Trim(), Vrsta = req.Vrsta, UneoId = currentUser.UserId }).ToList();
         db.NeradniDani.AddRange(novi);
+        if (radni) await ObavestiORadnomDanuAsync(dani, req.Naziv.Trim(), ct);
         await db.SaveChangesAsync(ct);
-        if (req.PomeriDp) await RasporedHandler.PomeriDpSaNeradnihAsync(db, clock, req.Od, ct);
+        if (req.PomeriDp && !radni) await RasporedHandler.PomeriDpSaNeradnihAsync(db, clock, req.Od, ct);
         return novi.Select(n => new NeradniDanDto(n.Id, n.Datum, n.Naziv, n.Vrsta)).ToList();
     }
 
@@ -80,7 +86,26 @@ public sealed class NeradniDaniHandler(IAppDbContext db, ICurrentUser currentUse
         var n = await db.NeradniDani.FirstOrDefaultAsync(x => x.Id == req.Id, ct) ?? throw new NotFoundException("Neradni dan ne postoji.");
         db.NeradniDani.Remove(n);
         await db.SaveChangesAsync(ct);
-        return await RasporedHandler.SlobodanZaPovlacenjeAsync(db, clock, n.Datum, ct);
+        if (n.Vrsta != NeradniDan.VrstaRadni) return await RasporedHandler.SlobodanZaPovlacenjeAsync(db, clock, n.Datum, ct);
+        // Radni vikend dan: DP koji je ostao na njemu (ako ga ekran nije pomerio) kalendar označava crveno, kao DP na neradnom danu.
+        if (req.PomeriDp) await RasporedHandler.PomeriDpSaNeradnihAsync(db, clock, n.Datum, ct);
+        return null;
+    }
+
+    private static readonly string[] NaziviDana = ["Nedelja", "Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"];
+
+    /// <summary>
+    /// Supervizor (primaoci obaveštenja o rasporedu) saznaje da je vikend dan radni (zamerka 68) — DP se tu dodaje ručno, pa treba
+    /// da zna da ga proveri. Onaj ko je uneo ne dobija svoje obaveštenje.
+    /// </summary>
+    private async Task ObavestiORadnomDanuAsync(IReadOnlyList<DateOnly> dani, string naziv, CancellationToken ct)
+    {
+        var uneo = await db.Users.AsNoTracking().Where(u => u.Id == currentUser.UserId).Select(u => u.FullName).FirstOrDefaultAsync(ct);
+        var opis = string.Join(", ", dani.Select(d => $"{NaziviDana[(int)d.DayOfWeek]} {d:dd.MM.yyyy}"));
+        var kome = (await Obavesti.PrimaociAsync(db, VrsteObavestenja.PredlogRasporeda, ct)).Where(id => id != currentUser.UserId);
+        await Obavesti.DodajAsync(db, kome, VrsteObavestenja.PredlogRasporeda, dani.Count == 1 ? $"{opis} je radni dan" : "Radni vikend dani",
+            $"{opis} — radni dan ({naziv}). DP se tog dana ne zakazuje sam: dodaje se ručno u Rasporedu.{(uneo is null ? "" : $" Uneto: {uneo}.")}",
+            "/raspored", null, clock.UtcNow, ct);
     }
 }
 

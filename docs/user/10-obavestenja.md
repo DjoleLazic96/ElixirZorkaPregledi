@@ -31,7 +31,7 @@ obaveštenja stižu kad se veza vrati. Ista obaveštenja stižu i mejlom. Kad se
 | Obaveštenje | Kada |
 |---|---|
 | Pregled nije započet | DP ili PZ nije započet do vremena upozorenja (podrazumevano 13:00) |
-| Dnevni rezime | svakog radnog dana posle kraja radnog dana: predato, propušteno, koji je DP prenet i kome, čeka overu, hitne akcije, novi kvarovi; ako tog dana nije bilo pregleda — „Danas nije bilo zakazanih pregleda. Proverite raspored.“ Klik otvara kalendar. Vikendom i na neradne dane bez pregleda ne stiže. |
+| Dnevni rezime | svakog radnog dana posle kraja radnog dana: predato, propušteno, koji je DP prenet i kome, čeka overu, hitne akcije, novi kvarovi; ako tog dana nije bilo pregleda — „Danas nije bilo zakazanih pregleda. Proverite raspored.“ Klik otvara kalendar. Vikendom i na neradne dane bez pregleda ne stiže (osim na subotu ili nedelju unetu kao radni dan). |
 | Sporni unosi | inženjer je bez interneta radio pregled koji je u međuvremenu prebačen ili poništen; unos čeka **Primeni** / **Odbaci** (dobijaju ga i onaj ko je prebacio, novi inženjer i sam inženjer) |
 | Podsetnik za overu | pregled čeka overu duže od roka (sati radnih dana, vikend se ne broji) |
 | Hitna akcija | na pregledu je otvorena akcija „Hitno“ |
@@ -39,6 +39,7 @@ obaveštenja stižu kad se veza vrati. Ista obaveštenja stižu i mejlom. Kad se
 | Ponovljeni kvar | ista stavka neispravna onoliko puta u periodu koliko je podešeno (podrazumevano 3 puta u 30 dana) |
 | Dugo van funkcije | uređaj van funkcije duže od granice (podrazumevano 30 dana), pa ponovo na svakih toliko dana |
 | Raspored za sledeću nedelju | četvrtkom i petkom, ako neki dan sledeće nedelje nema DP (dani su u poruci) |
+| Radni dan vikendom | kad Administrator ili Direktor unese subotu ili nedelju kao radni dan — da se proveri da li treba dodati DP (ide istim primaocima kao „Raspored za sledeću nedelju“) |
 
 ## 10.4 Primaoci (Administrator)
 
