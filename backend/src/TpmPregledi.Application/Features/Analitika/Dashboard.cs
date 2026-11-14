@@ -138,7 +138,7 @@ public sealed class DashboardHandler(IAppDbContext db, ICurrentUser currentUser,
                 // Pregled ostao odsutnom inženjeru (zamerka 3): ostaje ovde dok se ne prebaci.
                 odluke.AddRange((await db.Pregledi.AsNoTracking().Where(p => p.Status == StatusPregleda.Planiran && p.PlaniraniDatum >= danas).ToListAsync(ct))
                     .Where(p => k.JeOdsutan(p.DodeljenId, p.PlaniraniDatum))
-                    .Select(p => new OdlukaDto("odsutan", $"{p.Broj} ({p.PlaniraniDatum:dd.MM.yyyy}): {k.Ime(p.DodeljenId)} je odsutan — prebacite pregled", $"/pregledi/{p.Id}", null, true)));
+                    .Select(p => new OdlukaDto("odsutan", $"{p.Broj} ({p.PlaniraniDatum:dd.MM.yyyy}): {k.Ime(p.DodeljenId)} je na odsustvu — prebacite pregled", $"/pregledi/{p.Id}", null, false)));
             if (prava.Contains(Prava.RasporedUredjivanje))
                 odluke.AddRange((await (from z in db.ZahteviPrebacivanja.AsNoTracking()
                         join p in db.Pregledi.AsNoTracking() on z.PregledId equals p.Id

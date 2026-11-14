@@ -19,6 +19,7 @@ import { imaPravo } from '../../lib/permissions';
 import { useAuth } from '../auth/AuthProvider';
 import { PovlacenjeDijalog } from './IzmeneRasporeda';
 import { godineNeradnih } from './kalendar';
+import { mnozina } from '../../lib/broj';
 import {
   STATUS_ODSUSTVA, VRSTE_NERADNIH, VRSTE_ODSUSTVA, useNeradniDani, useObrisiNeradni, useOdsustva, useOtkaziOdsustvo, useUnesiNeradne, useZahtevOdsustva,
   type PregledKalendarDto, type RasporedDto,
@@ -58,7 +59,7 @@ export function MojaOdsustvaPage() {
         <CardHeader><CardTitle>Novi zahtev</CardTitle></CardHeader>
         <CardBody>
           <form onSubmit={potvrdi} className="grid gap-4 sm:grid-cols-2" noValidate>
-            <FormField label="Od" htmlFor="mo-od"><DatePicker id="mo-od" value={od} onChange={setOd} clearable={false} /></FormField>
+            <FormField label="Od" htmlFor="mo-od"><DatePicker id="mo-od" value={od} onChange={(v) => { setOd(v); if (v > doDatuma) setDo(v); }} clearable={false} /></FormField>
             <FormField label="Do" htmlFor="mo-do"><DatePicker id="mo-do" value={doDatuma} onChange={setDo} min={od} clearable={false} /></FormField>
             <FormField label="Vrsta" htmlFor="mo-vrsta"><Select id="mo-vrsta" value={vrsta} onChange={setVrsta} options={VRSTE_ODSUSTVA} /></FormField>
             <FormField label="Napomena (nije obavezno)" htmlFor="mo-nap"><Input id="mo-nap" value={napomena} onChange={(e) => setNapomena(e.target.value)} /></FormField>
@@ -122,7 +123,8 @@ export function NeradniDaniPage() {
   async function sacuvaj(pomeriDp: boolean) {
     try {
       const novi = await unesi.mutateAsync({ od, do: doDatuma, naziv: naziv.trim(), vrsta: vrsta ?? 'drzavni', pomeriDp });
-      toast.success(pomeriDp ? `Uneto ${novi.length} dana; DP-ovi su pomereni.` : `Uneto ${novi.length} dana.`);
+      const dana = `${novi.length} ${mnozina(novi.length, { jednina: 'dan', paukal: 'dana', mnozina: 'dana' })}`;
+      toast.success(pomeriDp ? `Uneto ${dana}; DP-ovi su pomereni.` : `Uneto ${dana}.`);
       setNaziv('');
       setDpUPeriodu(null);
     } catch (err) {
@@ -157,7 +159,7 @@ export function NeradniDaniPage() {
         <Card>
           <CardBody>
             <form onSubmit={potvrdi} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" noValidate>
-              <FormField label="Od" htmlFor="nd-od"><DatePicker id="nd-od" value={od} onChange={setOd} clearable={false} /></FormField>
+              <FormField label="Od" htmlFor="nd-od"><DatePicker id="nd-od" value={od} onChange={(v) => { setOd(v); if (v > doDatuma) setDo(v); }} clearable={false} /></FormField>
               <FormField label="Do" htmlFor="nd-do"><DatePicker id="nd-do" value={doDatuma} onChange={setDo} min={od} clearable={false} /></FormField>
               <FormField label="Naziv" htmlFor="nd-naziv"><Input id="nd-naziv" value={naziv} onChange={(e) => setNaziv(e.target.value)} placeholder="npr. Božić" /></FormField>
               <FormField label="Vrsta" htmlFor="nd-vrsta"><Select id="nd-vrsta" value={vrsta} onChange={setVrsta} options={VRSTE_NERADNIH} /></FormField>

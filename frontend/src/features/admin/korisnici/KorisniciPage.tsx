@@ -120,7 +120,7 @@ export function KorisniciPage() {
       k.aktivan
         ? {
             title: 'Deaktivacija korisnika',
-            message: `Korisnik „${k.ime}" (${k.korisnickoIme}) više neće moći da se prijavi. Nalog se ne briše i može se ponovo aktivirati.`,
+            message: `Korisnik „${k.ime}“ (${k.korisnickoIme}) više neće moći da se prijavi. Nalog se ne briše i može se ponovo aktivirati.`,
             confirmLabel: 'Deaktiviraj',
             tone: 'danger',
           }

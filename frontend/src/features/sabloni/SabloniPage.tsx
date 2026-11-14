@@ -22,6 +22,10 @@ import { useAktivnosti, useDodatnaPolja, useSabloni, useSacuvajAktivnost, useUvo
 import { IstorijatTab, PredlogDijalog, PredloziTab } from './IzmenePages';
 import { STATUS_VERZIJE, useVerzija, useVerzije } from './izmene';
 import { UputstvoDugme } from './UputstvoDijalog';
+import { mnozina } from '../../lib/broj';
+
+const UREDJAJ = { jednina: 'uređaj', paukal: 'uređaja', mnozina: 'uređaja' };
+const STAVKA = { jednina: 'stavka', paukal: 'stavke', mnozina: 'stavki' };
 
 const TABOVI = [
   { key: 'sabloni', label: 'Šabloni' },
@@ -163,7 +167,7 @@ function SablonDugme({ s, aktivan, onClick }: { s: SablonPregledDto; aktivan: bo
     >
       <span className="block font-semibold">{s.tip}</span>
       <span className="block text-xs text-gray-500">
-        {s.vazecaVerzija === null ? 'nije uvezen' : `v${s.vazecaVerzija} · ${s.brojUredjaja} uređaja · ${s.brojStavki} stavki`}
+        {s.vazecaVerzija === null ? 'nije uvezen' : `v${s.vazecaVerzija} · ${s.brojUredjaja} ${mnozina(s.brojUredjaja, UREDJAJ)} · ${s.brojStavki} ${mnozina(s.brojStavki, STAVKA)}`}
       </span>
     </button>
   );

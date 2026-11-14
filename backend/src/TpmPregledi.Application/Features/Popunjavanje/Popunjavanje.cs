@@ -388,7 +388,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
         var drugi = ponisten || p.DodeljenId == ja ? null : p.DodeljenId;
         var primaoci = (await Obavesti.PrimaociAsync(db, VrsteObavestenja.SporanUnos, ct)).Append(ko).Append(drugi).Where(x => x != ja);
         await Obavesti.DodajAsync(db, primaoci, VrsteObavestenja.SporanUnos, $"Sporni unosi: {p.Broj}",
-            $"{ime} je bez interneta radio {p.Broj}, a pregled je u međuvremenu {sta}. Unos čeka odluku na stranici pregleda (Primeni / Odbaci).",
+            $"{p.Broj} je rađen bez interneta ({ime}), a pregled je u međuvremenu {sta}. Unos čeka odluku na stranici pregleda (Primeni / Odbaci).",
             $"/pregledi/{pregledId}", kljuc, clock.UtcNow, ct);
         await Obavesti.DodajAsync(db, [ja], VrsteObavestenja.SporanUnos, $"{p.Broj} je {sta}",
             $"Pregled {p.Broj} je u međuvremenu {sta} — vaš unos čeka odluku Supervizora ili Direktora.", $"/pregledi/{pregledId}", kljuc, clock.UtcNow, ct);
@@ -510,8 +510,9 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                         PregledId = p.Id, StavkaId = s.StavkaId, Vrednost = 0, KorisnikId = currentUser.UserId!, KlijentAt = klijentAt,
                         ServerAt = clock.UtcNow, OpId = op.OpId, Dorada = p.Dorada,
                     });
-                // Svaka upotreba se beleži (R4.3) — kontrolor vidi sekciju i vreme.
-                PregledIstorija.Dodaj(db, p, "sve_ispravno", new { sekcija, stavki = neoznacene.Count, klijentAt }, currentUser.UserId, clock.UtcNow);
+                // Svaka upotreba se beleži (R4.3) — kontrolor vidi sekciju i vreme. Ponovljen klik na punoj sekciji ne upisuje ništa.
+                if (neoznacene.Count > 0)
+                    PregledIstorija.Dodaj(db, p, "sve_ispravno", new { sekcija, stavki = neoznacene.Count, klijentAt }, currentUser.UserId, clock.UtcNow);
                 break;
             }
             case "predaja":

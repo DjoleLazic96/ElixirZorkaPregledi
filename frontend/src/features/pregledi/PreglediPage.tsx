@@ -21,6 +21,7 @@ import { useInzenjeri } from '../raspored/hooks';
 import { useAuth } from '../auth/AuthProvider';
 import { imaPravo } from '../../lib/permissions';
 import { STATUSI, parametri, statusLabela, tonStatusa, usePregledi, type PreglediFilteri } from './hooks';
+import { mnozina } from '../../lib/broj';
 
 const TIPOVI = ['DP1', 'DP2', 'PZ1', 'PZ2', 'PZ3', 'PZ4'].map((t) => ({ value: t, label: t }));
 
@@ -110,7 +111,7 @@ export function PreglediPage() {
                     <span className="whitespace-nowrap font-semibold text-primary-700">{p.broj}</span>
                     <Badge tone={tonStatusa(p.status)}>{statusLabela(p.status)}</Badge>
                   </div>
-                  <p className="mt-1 text-xs text-gray-600">{formatirajDatum(p.planiraniDatum)} · {p.inzenjer}{p.neispravnih > 0 && ` · ${p.neispravnih} neispravnih`}</p>
+                  <p className="mt-1 text-xs text-gray-600">{formatirajDatum(p.planiraniDatum)} · {p.inzenjer}{p.neispravnih > 0 && ` · ${p.neispravnih} ${mnozina(p.neispravnih, { jednina: 'neispravna', paukal: 'neispravne', mnozina: 'neispravnih' })}`}</p>
                 </Link>
               </li>
             ))}

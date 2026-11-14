@@ -25,6 +25,7 @@ import { useAktivnosti, useDodatnaPolja, useSacuvajAktivnost, useSacuvajUredjaj,
 import { AktivnostForma } from './SabloniPage';
 import { OtvoreniPredlozi } from './OtvoreniPredlozi';
 import { UredjajForma } from './UredjajiPage';
+import { mnozina } from '../../lib/broj';
 import {
   VRSTE_DOGADJAJA, VRSTE_PREDLOGA, useIstorijat, useIzmenaNacrta, useNacrt, useObjavi, useOdlukaPredloga, usePodnesiPredlog, usePredlozi,
   type IstorijatFilteri, type PredlogDto, type RazlikaDto,
@@ -278,7 +279,7 @@ function ObjavaDijalog({ tip, broj, izmena, onClose }: { tip: string; broj: numb
   return (
     <Modal open title={`Objavi ${tip} verziju ${broj}`} onClose={onClose}>
       <div className="space-y-3 text-sm">
-        <p>{izmena} izmena. Pregledi započeti pre tog dana završavaju se po staroj verziji.</p>
+        <p>{izmena} {mnozina(izmena, { jednina: 'izmena', paukal: 'izmene', mnozina: 'izmena' })}. Pregledi započeti pre tog dana završavaju se po staroj verziji.</p>
         <FormField label="Važi od" htmlFor="ob-od">
           <DatePicker id="ob-od" value={vaziOd} min={danasYmd()} clearable={false} onChange={setVaziOd} />
         </FormField>

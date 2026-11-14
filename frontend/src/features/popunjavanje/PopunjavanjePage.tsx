@@ -19,16 +19,16 @@ import { Ucitavanje } from '../../components/ui/Spinner';
 import { FormField } from '../../components/ui/FormField';
 import { Textarea } from '../../components/ui/Textarea';
 import { porukaGreske } from '../../lib/apiError';
-import { brojSlika } from '../../lib/broj';
 import { cn } from '../../lib/cn';
 import { danasYmd, formatirajDatum, formatirajVreme } from '../../lib/datum';
 import { useOtkaziZahtevPrebacivanja, useZahteviPrebacivanja, useZatraziRanijiPocetak } from '../raspored/hooks';
 import { OtkaziZahtev } from '../raspored/OtkaziZahtev';
 import { nedostaje } from '../../offline/lokalno';
-import { lokalnaSlika, obrisiSliku, useStanjeSinhronizacije, zatvoriOdbijene } from '../../offline/sinhronizacija';
+import { db, lokalnaSlika, obrisiSliku, sinhronizuj, useStanjeSinhronizacije, zatvoriOdbijene } from '../../offline/sinhronizacija';
 import { api } from '../../api/client';
 import { useAuth } from '../auth/AuthProvider';
 import { smanjiSliku } from '../../lib/slika';
+import { brojSlika, mnozina } from '../../lib/broj';
 import {
   useOperacija, useOtpremiSliku, usePopunjavanje, useZapocni,
   type AkcijaKratkoDto, type OdgovorDto, type Operacija, type PopunjavanjeDto, type StavkaPopunjavanjaDto, type UredjajPopunjavanjaDto,
@@ -118,7 +118,11 @@ export function PopunjavanjePage() {
   function proveriPredaju() {
     const n = nedostaje(p);
     if (n.odgovora > 0 || n.napomena > 0) {
-      toast.error(`Pregled još nije potpun: nedostaje ${n.odgovora} odgovora i ${n.napomena} obaveznih napomena.`);
+      const delovi = [
+        n.odgovora > 0 && `${n.odgovora} ${mnozina(n.odgovora, { jednina: 'odgovor', paukal: 'odgovora', mnozina: 'odgovora' })}`,
+        n.napomena > 0 && `${n.napomena} ${mnozina(n.napomena, { jednina: 'obavezna napomena', paukal: 'obavezne napomene', mnozina: 'obaveznih napomena' })}`,
+      ].filter(Boolean);
+      toast.error(`Pregled još nije potpun: nedostaje ${delovi.join(' i ')}.`);
       return;
     }
     if (n.polja.length > 0) {
@@ -129,11 +133,20 @@ export function PopunjavanjePage() {
   }
 
   async function predaj() {
-    if (await posalji({ vrsta: 'predaja', podaci: {} }, navigator.onLine ? 'Pregled je predat.' : 'Predato – čeka slanje.')) {
-      // Kalendar, Početna i lista još drže stari status (keš 30 s); posle predaje sve se učitava iznova.
-      void qc.invalidateQueries();
-      navigate('/kalendar');
+    if (!(await posalji({ vrsta: 'predaja', podaci: {} }))) return;
+    // Predaja je predata tek kad stigne do servera. Dok čeka (nema interneta ili server ne radi) inženjer ostaje na pregledu
+    // („Predato – čeka slanje“) — Kalendar bez veze ne može da se učita.
+    await sinhronizuj().catch(() => undefined);
+    const ceka = (await db.red.where('pregledId').equals(id).count()) > 0;
+    // Kalendar, Početna i lista još drže stari status (keš 30 s); posle predaje sve se učitava iznova.
+    void qc.invalidateQueries();
+    if (ceka) {
+      setRezime(false);
+      toast.success('Predato – čeka slanje.');
+      return;
     }
+    toast.success('Pregled je predat.');
+    navigate('/kalendar');
   }
 
   const ukupno = napredak(p);

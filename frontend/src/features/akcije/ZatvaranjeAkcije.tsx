@@ -147,7 +147,7 @@ export function ZahtevNaCekanju({ akcija, odlucuje }: { akcija: AkcijaDto; odluc
     <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
       <p className="font-semibold text-amber-900">Zahtev za zatvaranje ({z.podneo}) — čeka odluku</p>
       <p className="break-words">{z.uradjeno}</p>
-      <p className="text-gray-700">{formatirajDatum(z.datum)} · uradio {z.izvrsilac}</p>
+      <p className="text-gray-700">{formatirajDatum(z.datum)} · izvršilac: {z.izvrsilac}</p>
       {z.imaSliku && <SlikaZatvaranja url={`/akcije/${akcija.id}/slika?zahtev=${z.id}`} />}
       <div className="flex flex-wrap gap-2">
         {odlucuje && (
@@ -179,7 +179,7 @@ export function NacinZatvaranja({ akcija }: { akcija: AkcijaDto }) {
   return (
     <div className="space-y-1">
       <p className="break-words"><span className="text-gray-600">Urađeno:</span> {akcija.uradjeno}</p>
-      <p className="text-gray-600">{akcija.uradjenoDatum && formatirajDatum(akcija.uradjenoDatum)} · uradio {akcija.izvrsilac}</p>
+      <p className="text-gray-600">{akcija.uradjenoDatum && formatirajDatum(akcija.uradjenoDatum)} · izvršilac: {akcija.izvrsilac}</p>
       {akcija.imaSlikuZatvaranja && <SlikaZatvaranja url={`/akcije/${akcija.id}/slika`} />}
     </div>
   );

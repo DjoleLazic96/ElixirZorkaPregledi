@@ -236,4 +236,26 @@ public class OveraTests
         (await primeni.Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Contain(PreglediHandler.PorukaSporanPredat);
         (await o.H.Db.SporniUnosi.SingleAsync()).Odluka.Should().BeNull();
     }
+
+    [Fact]
+    public async Task Sporan_unos_na_nezapocetom_pregledu_ima_tacnu_poruku_i_naziv_stavke()
+    {
+        var o = await PredatAsync();
+        await using var _ = o.H;
+        var p = await o.H.Db.Pregledi.SingleAsync(x => x.Id == o.PregledId);
+        p.Status = StatusPregleda.Planiran;
+        o.H.Db.SporniUnosi.Add(new SporanUnos
+        {
+            PregledId = o.PregledId, KorisnikId = o.Ana, Razlog = "Ovaj pregled je dodeljen drugom inženjeru.", PrimljenoAt = DateTime.UtcNow,
+            Operacija = JsonSerializer.Serialize(new { opId = Guid.NewGuid(), vrsta = "odgovor", pregledId = o.PregledId, klijentAt = DateTime.UtcNow,
+                podaci = new { stavkaId = o.Stavke[0], vrednost = 1, napomena = "Curi" } }),
+        });
+        await o.H.Db.SaveChangesAsync();
+        var unos = await o.H.Db.SporniUnosi.SingleAsync();
+
+        var d = await Kao(o, o.Sup, Roles.Supervizor).Handle(new GetPregledQuery(o.PregledId), default);
+        d.SporniUnosi.Single().Opis.Should().StartWith("Odgovor — ").And.NotContain("stavku");
+        var primeni = () => Kao(o, o.Sup, Roles.Supervizor).Handle(new OdluciOSpornomUnosuCommand(o.PregledId, unos.Id, true), default);
+        (await primeni.Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Contain(PreglediHandler.PorukaSporanNezapocet);
+    }
 }

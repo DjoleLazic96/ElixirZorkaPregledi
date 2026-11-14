@@ -1,3 +1,4 @@
+using TpmPregledi.Application.Common;
 using TpmPregledi.Application.Common.Exceptions;
 using TpmPregledi.Application.Common.Interfaces;
 using TpmPregledi.Application.Features.Obavestenja;
@@ -311,7 +312,7 @@ public sealed class IzmeneSablonaHandler(IAppDbContext db, ICurrentUser currentU
         db.SablonDogadjaji.Add(new SablonDogadjaj
         {
             SablonId = s.Id, VerzijaId = nacrt.Id, Vrsta = "objava", KorisnikId = currentUser.UserId, At = sada,
-            Opis = $"Objavljena verzija {nacrt.Broj}, važi od {req.VaziOd:dd.MM.yyyy} ({dto.Razlike.Count} izmena). Započeti pregledi se završavaju po staroj verziji.",
+            Opis = $"Objavljena verzija {nacrt.Broj}, važi od {req.VaziOd:dd.MM.yyyy} ({Mnozina.Od(dto.Razlike.Count, "izmena", "izmene", "izmena")}). Započeti pregledi se završavaju po staroj verziji.",
         });
         await db.SaveChangesAsync(ct);
         // Verzija koja važi od danas odmah postaje važeća (ostale čeka zakazana provera).

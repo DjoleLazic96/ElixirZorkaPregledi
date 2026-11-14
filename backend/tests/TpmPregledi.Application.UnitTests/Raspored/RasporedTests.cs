@@ -312,7 +312,7 @@ public class RasporedTests
         await using var __ = h;
         h.Db.Odsustva.Add(new Odsustvo { KorisnikId = bora, Od = Pon.AddDays(8), Do = Pon.AddDays(10), Vrsta = "godisnji", Status = "odobreno" });
         await h.Db.SaveChangesAsync();
-        const string poruka = "Bora je odsutan 18.11.2026 (Godišnji odmor). Izaberite drugog inženjera.";
+        const string poruka = "Bora je na odsustvu 18.11.2026 (Godišnji odmor). Izaberite drugog inženjera.";
 
         (await FluentActions.Awaiting(() => Sut(h).Handle(new ZakaziPzCommand(Pon.AddDays(9), "PZ1", bora, null), default))
             .Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal(poruka);
@@ -335,7 +335,7 @@ public class RasporedTests
         await h.Db.SaveChangesAsync();
         var dash = await new TpmPregledi.Application.Features.Analitika.DashboardHandler(h.Db, new FakeCurrentUser { UserId = sup.Id, Roles = [Roles.Supervizor] }, new FakeClock(new DateTime(2026, 11, 10, 9, 0, 0, DateTimeKind.Utc)))
             .Handle(new TpmPregledi.Application.Features.Analitika.GetDashboardQuery(), default);
-        dash.CekaOdluku!.Should().Contain(o => o.Vrsta == "odsutan" && o.Opis.Contains("PZ1-2026-0001"));
+        dash.CekaOdluku!.Should().Contain(o => o.Vrsta == "odsutan" && o.Opis.Contains("PZ1-2026-0001") && !o.RokIstekao, "pregled odsutnog nije istekao rok (ručno testiranje)");
     }
 
     [Fact]
