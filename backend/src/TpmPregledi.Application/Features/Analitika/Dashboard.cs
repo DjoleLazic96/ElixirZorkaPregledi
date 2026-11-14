@@ -140,6 +140,18 @@ public sealed class DashboardHandler(IAppDbContext db, ICurrentUser currentUser,
                     .Where(p => k.JeOdsutan(p.DodeljenId, p.PlaniraniDatum))
                     .Select(p => new OdlukaDto("odsutan", $"{p.Broj} ({p.PlaniraniDatum:dd.MM.yyyy}): {k.Ime(p.DodeljenId)} je na odsustvu — prebacite pregled", $"/pregledi/{p.Id}", null, false)));
             if (prava.Contains(Prava.RasporedUredjivanje))
+            {
+                // Pregled inženjera koji više ne sme da ga radi (zamerka 66): oduzeto pravo popunjavanja ili deaktiviran nalog.
+                var smeju = db.KorisnikPrava.Where(x => x.Pravo == Prava.PreglediPopunjavanje).Select(x => x.KorisnikId);
+                var nesme = await (from p in db.Pregledi.AsNoTracking()
+                                   join u in db.Users on p.DodeljenId equals u.Id
+                                   where (p.Status == StatusPregleda.Planiran || p.Status == StatusPregleda.URadu || p.Status == StatusPregleda.VracenNaDoradu)
+                                         && (!u.IsActive || !smeju.Contains(u.Id))
+                                   select new { p.Id, p.Broj, p.PlaniraniDatum, u.FullName, u.IsActive }).ToListAsync(ct);
+                odluke.AddRange(nesme.Select(p => new OdlukaDto("bez_prava",
+                    $"{p.Broj} ({p.PlaniraniDatum:dd.MM.yyyy}): {p.FullName} {(p.IsActive ? "nema pravo popunjavanja" : "je deaktiviran")} — prebacite pregled", $"/pregledi/{p.Id}", null, false)));
+            }
+            if (prava.Contains(Prava.RasporedUredjivanje))
                 odluke.AddRange((await (from z in db.ZahteviPrebacivanja.AsNoTracking()
                         join p in db.Pregledi.AsNoTracking() on z.PregledId equals p.Id
                         where z.Status == "zahtev"

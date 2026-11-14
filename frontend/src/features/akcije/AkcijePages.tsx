@@ -31,10 +31,13 @@ import { NacinZatvaranja, NeposlatiZahtevi, ZahtevNaCekanju, ZatvaranjeForma } f
 
 /** Kartica akcije za listu (R7.3, R7.6): broj, pregled, uređaj, hitnost, rok (crveno kad je istekao, R7.8), kvar na stavci. */
 function AkcijaRed({ a }: { a: AkcijaDto }) {
+  const navigate = useNavigate();
   return (
-    // Stavka po mockup-u (`.list .it`); sadrži više linkova (akcija, uređaj, pregled), pa nije jedan veliki link.
+    // Stavka po mockup-u (`.list .it`); sadrži više linkova (akcija, uređaj, pregled). Dodir bilo gde drugde na kartici otvara
+    // akciju (zamerka 65 — na telefonu je broj mala meta); linkovi unutra i dalje vode svaki na svoje.
     // „Stavka sada ispravna“ (R7.15) — zelena ivica levo, da se akcija za odluku odmah uoči (zamerka 50).
-    <li className={cn('rounded-[14px] border border-gray-200 bg-[#f7f8f6] px-3 py-2.5', a.stavkaSadaIspravna && 'border-l-4 border-l-green-500')}>
+    <li onClick={(e) => { if (!(e.target as HTMLElement).closest('a')) navigate(`/akcije/${a.id}`); }}
+      className={cn('cursor-pointer rounded-[14px] border border-gray-200 bg-[#f7f8f6] px-3 py-2.5 hover:bg-gray-100', a.stavkaSadaIspravna && 'border-l-4 border-l-green-500')}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Link to={`/akcije/${a.id}`} className="whitespace-nowrap text-[13px] font-bold text-primary-500 hover:underline">{a.broj}<span aria-hidden> ›</span></Link>
         <span className="flex flex-wrap gap-1">

@@ -5,6 +5,7 @@ using TpmPregledi.Application.Features.Obavestenja;
 using TpmPregledi.Application.Features.Podesavanja;
 using TpmPregledi.Application.Features.Raspored;
 using TpmPregledi.Domain.Entities;
+using TpmPregledi.Domain.Identity;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -247,6 +248,9 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
     public async Task<SinhronizacijaRezultat> Handle(SinhronizacijaCommand req, CancellationToken ct)
     {
         _uredjajKlijenta = string.IsNullOrWhiteSpace(req.UredjajKlijenta) ? null : req.UredjajKlijenta;
+        // Bez prava popunjavanja (oduzeto dok je rad čekao slanje) urađeno ne propada nego postaje sporni unos (zamerka 66).
+        if (!currentUser.ImaPravo(Prava.PreglediPopunjavanje))
+            return await BezPravaAsync(req, ct);
         var prihvacene = new List<Guid>();
         var odbijene = new List<OdbijenaOperacija>();
         foreach (var op in req.Operacije)
@@ -263,6 +267,34 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
 
         await ZabeleziOdstupanjeSataAsync(req, ct);
         return new SinhronizacijaRezultat(prihvacene, odbijene, clock.UtcNow);
+    }
+
+    /// <summary>Poruka telefonu kad inženjer više nema pravo popunjavanja (zamerka 66); telefon je prepoznaje po početku.</summary>
+    public const string PorukaBezPrava = "Više nemate pravo da popunjavate preglede. Urađeno je poslato Supervizoru kao sporni unos.";
+
+    /// <summary>
+    /// Inženjeru je oduzeto pravo dok je imao neposlat rad (zamerka 66): ništa se ne primenjuje, a urađeno na pregledima na kojima je
+    /// bio čuva se kao sporni unos (Supervizor/Direktor: Primeni / Odbaci, posle prebacivanja na drugog inženjera). Telefon dobija
+    /// odbijanje za svaku operaciju, pa mu se red isprazni.
+    /// </summary>
+    private async Task<SinhronizacijaRezultat> BezPravaAsync(SinhronizacijaCommand req, CancellationToken ct)
+    {
+        var ja = currentUser.UserId!;
+        var odbijene = new List<OdbijenaOperacija>();
+        foreach (var op in req.Operacije)
+        {
+            if (await db.SinhronizacijaOperacije.AnyAsync(o => o.OpId == op.OpId, ct)) continue;
+            odbijene.Add(new OdbijenaOperacija(op.OpId, PorukaBezPrava));
+            if (!await BioNaPregleduAsync(op.PregledId, ja, ct)) continue;
+            db.SporniUnosi.Add(new SporanUnos
+            {
+                PregledId = op.PregledId, KorisnikId = ja, Razlog = "Inženjer više nema pravo popunjavanja.", PrimljenoAt = clock.UtcNow,
+                Operacija = JsonSerializer.Serialize(op, Json),
+            });
+            await ObavestiOSpornomAsync(op.PregledId, "bez_prava", ct);
+            await db.SaveChangesAsync(ct);
+        }
+        return new SinhronizacijaRezultat([], odbijene, clock.UtcNow);
     }
 
     /// <summary>
@@ -347,7 +379,7 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
                         PregledId = op.PregledId, KorisnikId = currentUser.UserId!, Razlog = razlog, PrimljenoAt = clock.UtcNow,
                         Operacija = JsonSerializer.Serialize(op, Json),
                     });
-                    await ObavestiOSpornomAsync(op.PregledId, razlog == "Pregled je poništen.", ct);
+                    await ObavestiOSpornomAsync(op.PregledId, razlog == "Pregled je poništen." ? "ponisten" : "prebacen", ct);
                     await db.SaveChangesAsync(ct);
                 }
                 return razlog;
@@ -374,8 +406,9 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
     /// Zamerka 60: stigli su sporni unosi — primaocima (podrazumevano Supervizor i Direktor), onome ko je prebacio ili poništio
     /// pregled, novom inženjeru i samom inženjeru. Jednom dnevno po pregledu i inženjeru, ma koliko operacija stiglo.
     /// </summary>
-    private async Task ObavestiOSpornomAsync(int pregledId, bool ponisten, CancellationToken ct)
+    private async Task ObavestiOSpornomAsync(int pregledId, string slucaj, CancellationToken ct)
     {
+        var ponisten = slucaj == "ponisten";
         var ja = currentUser.UserId!;
         var p = await db.Pregledi.AsNoTracking().Where(x => x.Id == pregledId).Select(x => new { x.Broj, x.DodeljenId }).FirstAsync(ct);
         var ime = await db.Users.Where(u => u.Id == ja).Select(u => u.FullName).FirstOrDefaultAsync(ct) ?? "Inženjer";
@@ -383,15 +416,18 @@ public sealed class PopunjavanjeHandler(IAppDbContext db, ICurrentUser currentUs
             .Where(d => d.PregledId == pregledId && d.KorisnikId != null && d.KorisnikId != ja
                         && (d.Vrsta == "izmena_rasporeda" || d.Vrsta == "prebacivanje" || d.Vrsta == "ponistavanje"))
             .OrderByDescending(d => d.At).Select(d => d.KorisnikId).FirstOrDefaultAsync(ct);
+        var bezPrava = slucaj == "bez_prava";
         var sta = ponisten ? "poništen" : "dodeljen drugom inženjeru";
         var kljuc = $"sporan_unos:{pregledId}:{ja}:{clock.Today:yyyy-MM-dd}";
-        var drugi = ponisten || p.DodeljenId == ja ? null : p.DodeljenId;
+        var drugi = ponisten || bezPrava || p.DodeljenId == ja ? null : p.DodeljenId;
         var primaoci = (await Obavesti.PrimaociAsync(db, VrsteObavestenja.SporanUnos, ct)).Append(ko).Append(drugi).Where(x => x != ja);
-        await Obavesti.DodajAsync(db, primaoci, VrsteObavestenja.SporanUnos, $"Sporni unosi: {p.Broj}",
-            $"{p.Broj} je rađen bez interneta ({ime}), a pregled je u međuvremenu {sta}. Unos čeka odluku na stranici pregleda (Primeni / Odbaci).",
-            $"/pregledi/{pregledId}", kljuc, clock.UtcNow, ct);
-        await Obavesti.DodajAsync(db, [ja], VrsteObavestenja.SporanUnos, $"{p.Broj} je {sta}",
-            $"Pregled {p.Broj} je u međuvremenu {sta} — vaš unos čeka odluku Supervizora ili Direktora.", $"/pregledi/{pregledId}", kljuc, clock.UtcNow, ct);
+        var tekst = bezPrava
+            ? $"{p.Broj} je rađen bez interneta ({ime}), a {ime} u međuvremenu više nema pravo popunjavanja. Prebacite pregled drugom inženjeru, pa na stranici pregleda odlučite o unosu (Primeni / Odbaci)."
+            : $"{p.Broj} je rađen bez interneta ({ime}), a pregled je u međuvremenu {sta}. Unos čeka odluku na stranici pregleda (Primeni / Odbaci).";
+        await Obavesti.DodajAsync(db, primaoci, VrsteObavestenja.SporanUnos, $"Sporni unosi: {p.Broj}", tekst, $"/pregledi/{pregledId}", kljuc, clock.UtcNow, ct);
+        if (!bezPrava)   // bez prava: telefon sam javlja poruku, a obaveštenje ne bi mogao ni da otvori
+            await Obavesti.DodajAsync(db, [ja], VrsteObavestenja.SporanUnos, $"{p.Broj} je {sta}",
+                $"Pregled {p.Broj} je u međuvremenu {sta} — vaš unos čeka odluku Supervizora ili Direktora.", $"/pregledi/{pregledId}", kljuc, clock.UtcNow, ct);
     }
 
     /// <summary>Sat telefona koji odstupa više od dozvoljenog (R5.1) se beleži kontroloru; inženjer ne vidi poruku.</summary>

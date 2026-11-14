@@ -9,6 +9,18 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-14 — Zamerke 63–67: registar uređaja, „Zapamti me“, sitnice, oduzeto pravo, zamene (odobreno)
+
+**Kontekst:** ručno testiranje po rolama i peti krug scenarija.
+**Odluka:**
+- Registar: ujednačeni nazivi (Merna vaga Hasler, Pumpa, HL1–HL3, Ventilator sekundarni – hladnjak); 60-C-05 i 10-C-15 su redleri (aktivnosti lanca; rolne i bubanj izbačeni); vrsta „HL“ za HL1–HL5 i „Puž“ za „Puž filtera“ (zamerka 63).
+- „Zapamti me“: bez kvačice kolačić bez roka (do zatvaranja pregledača), sa kvačicom 180 dana (zamerka 64).
+- Neradni dani u meniju i za pravo rasporeda (samo pregled); drugi inženjer PZ-a na karticama; „Povuci raspored“ i posle ranijeg početka PZ-a; cela kartica akcije je link (zamerka 65).
+- Oduzeto pravo popunjavanja: `/sinhronizacija` za svakog korisnika, a handler bez prava ništa ne primenjuje — urađeno na pregledima na kojima je bio postaje sporni unos uz obaveštenje; telefon prikaže traku i isprazni red; pregledi bez inženjera sa pravom (ili deaktiviranog) su u „Čeka moju odluku“ (zamerka 66).
+- Predlog zamene za više pregleda ide po rotaciji (zamerka 67).
+**Posledice:** `ICurrentUser.ImaPravo`; `TokenPair`/`LoginResult.Zapamti`; Excel šablona 864 stavke (DP2 133, PZ1 138).
+**Odlučio:** vlasnik projekta (2026-11-14).
+
 ## 2026-11-13 — Zamerke 59–62: prenos posle pada servera, sporni unosi, rezime, štampa (odobreno)
 
 **Kontekst:** treći krug testiranja scenarija.

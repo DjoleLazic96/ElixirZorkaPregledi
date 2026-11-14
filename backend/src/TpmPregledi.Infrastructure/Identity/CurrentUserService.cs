@@ -22,6 +22,9 @@ public sealed class CurrentUserService(IHttpContextAccessor accessor) : ICurrent
         Principal?.Identity?.Name ?? Principal?.FindFirstValue("preferred_username");
 
     /// <inheritdoc />
+    public bool ImaPravo(string pravo) => Principal?.HasClaim(JwtTokenService.PravoClaim, pravo) ?? false;
+
+    /// <inheritdoc />
     public IReadOnlyList<string> Roles =>
         Principal?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray() ?? [];
 

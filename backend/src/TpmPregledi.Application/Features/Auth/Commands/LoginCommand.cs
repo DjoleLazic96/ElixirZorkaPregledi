@@ -22,7 +22,8 @@ public sealed record LoginCommand(string UserName, string Password, bool Zapamti
 /// <param name="Response">Telo odgovora (access token, korisnik, role).</param>
 /// <param name="RefreshToken">Sirovi refresh token za cookie.</param>
 /// <param name="RefreshExpiresAt">UTC istek refresh tokena (= <c>Expires</c> cookie-ja).</param>
-public sealed record LoginResult(LoginResponse Response, string RefreshToken, DateTime RefreshExpiresAt);
+/// <param name="Zapamti">Kolačić traje do <c>RefreshExpiresAt</c>; inače do zatvaranja pregledača (zamerka 64).</param>
+public sealed record LoginResult(LoginResponse Response, string RefreshToken, DateTime RefreshExpiresAt, bool Zapamti = false);
 
 /// <summary>Oblik ulaza: oba polja obavezna. Ne otkriva ništa o nalogu.</summary>
 public sealed class LoginCommandValidator : AbstractValidator<LoginCommand>
@@ -102,7 +103,7 @@ public sealed class LoginCommandHandler(
 
             await audit.PrijavaUspehAsync(user.Id, user.UserName ?? req.UserName, currentUser.IpAddress, ct);
 
-            return new LoginResult(response, pair.RefreshToken, pair.RefreshTokenExpiresAt);
+            return new LoginResult(response, pair.RefreshToken, pair.RefreshTokenExpiresAt, pair.Zapamti);
         }
         catch (AuthenticationFailedException)
         {

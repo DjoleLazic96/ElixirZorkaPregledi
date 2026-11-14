@@ -55,8 +55,10 @@ public sealed record RotateResult(TokenPair Tokens, ApplicationUser User);
 /// <param name="AccessTokenExpiresAt">UTC istek access tokena.</param>
 /// <param name="RefreshToken">Sirovi refresh token — ide samo u HttpOnly cookie.</param>
 /// <param name="RefreshTokenExpiresAt">UTC istek refresh tokena.</param>
+/// <param name="Zapamti">„Zapamti me“: kolačić preživljava zatvaranje pregledača; bez toga traje do zatvaranja (zamerka 64).</param>
 public sealed record TokenPair(
     string AccessToken,
     DateTime AccessTokenExpiresAt,
     string RefreshToken,
-    DateTime RefreshTokenExpiresAt);
+    DateTime RefreshTokenExpiresAt,
+    bool Zapamti = false);

@@ -27,6 +27,7 @@ Za planiran ili započet pregled Supervizor i Direktor ovde imaju i **Promeni u 
 - **Sporni unosi** — ako je inženjer bez interneta radio pregled koji je u međuvremenu prebačen ili poništen, stiže obaveštenje „Sporni unosi“ (Supervizor i Direktor, onaj ko je prebacio, novi inženjer; inženjer dobija poruku da njegov unos čeka odluku). Njegovi odgovori
   čekaju ovde: **Primeni** ili **Odbaci**. Primeniti se može samo na pregled koji je u radu ili na doradi; ako je pregled
   predat ili overen, prvo ga **vratite na doradu**, pa primenite unos.
+- **Inženjer bez prava popunjavanja** — ako Admin inženjeru oduzme pravo (ili promeni rolu) dok mu nešto čeka slanje, urađeno stiže kao sporni unos, a njegovi pregledi se pojave u „Čeka moju odluku“ kao „… nema pravo popunjavanja — prebacite pregled“. Prebacite ih drugom inženjeru, pa odlučite o unosu.
 - Ako je neko drugi u međuvremenu odlučio o istom pregledu, aplikacija javlja da je pregled izmenjen — osvežite stranicu i
   odlučite ponovo.
 

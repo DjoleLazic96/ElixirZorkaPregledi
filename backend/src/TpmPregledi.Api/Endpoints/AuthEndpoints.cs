@@ -46,7 +46,7 @@ public static class AuthEndpoints
     private static async Task<IResult> LoginAsync([FromBody] LoginCommand command, IMediator mediator, HttpContext http)
     {
         var result = await mediator.Send(command);
-        SetRefreshCookie(http, result.RefreshToken, result.RefreshExpiresAt);
+        SetRefreshCookie(http, result.RefreshToken, result.RefreshExpiresAt, result.Zapamti);
         return Results.Ok(result.Response);
     }
 
@@ -57,7 +57,7 @@ public static class AuthEndpoints
             return Results.Unauthorized();
 
         var result = await mediator.Send(new RefreshCommand(token));
-        SetRefreshCookie(http, result.RefreshToken, result.RefreshExpiresAt);
+        SetRefreshCookie(http, result.RefreshToken, result.RefreshExpiresAt, result.Zapamti);
         return Results.Ok(result.Response);
     }
 
@@ -85,9 +85,11 @@ public static class AuthEndpoints
     /// HttpOnly (JS ne vidi) + Secure (samo preko HTTPS-a — zahteva ispravan X-Forwarded-Proto iza
     /// proxy-ja) + SameSite=Strict + Path=/api/v1/auth (cookie ne putuje na ostale rute).
     /// </summary>
-    private static void SetRefreshCookie(HttpContext http, string token, DateTime expiresAt) =>
+    /// <remarks>Bez „Zapamti me“ kolačić nema rok: briše ga zatvaranje pregledača (deljen računar, zamerka 64). Server ga i dalje
+    /// prihvata najviše <c>RefreshTokenDays</c>.</remarks>
+    private static void SetRefreshCookie(HttpContext http, string token, DateTime expiresAt, bool zapamti) =>
         http.Response.Cookies.Append(CookieNames.RefreshToken, token,
-            CookieOptionsZaRefresh(http, new DateTimeOffset(expiresAt)));
+            CookieOptionsZaRefresh(http, zapamti ? new DateTimeOffset(expiresAt) : null));
 
     private static CookieOptions CookieOptionsZaRefresh(HttpContext http, DateTimeOffset? expires) => new()
     {

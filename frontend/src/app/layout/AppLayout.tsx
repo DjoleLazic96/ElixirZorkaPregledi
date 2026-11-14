@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useToast } from '../providers/ToastProvider';
 import { ROLA_LABELE, imaPravo, isAdmin, type Rola } from '../../lib/permissions';
-import { obrisiLokalno, sinhronizuj, useStanjeSinhronizacije } from '../../offline/sinhronizacija';
+import { obrisiLokalno, sinhronizuj, useBezPrava, useStanjeSinhronizacije, zatvoriBezPrava } from '../../offline/sinhronizacija';
 import { BellRing, Info, KeyRound, LogOut } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { OAplikaciji } from '../../components/OAplikaciji';
@@ -26,18 +26,22 @@ export function AppLayout() {
   const toast = useToast();
   const sinh = useStanjeSinhronizacije(me?.user.id);
   const inzenjer = me ? imaPravo(me, 'pregledi.popunjavanje') : false;
+  // Neposlat rad šalje se i kad je pravo u međuvremenu oduzeto — server ga čuva kao sporni unos (zamerka 66).
+  const imaNeposlato = sinh.promena + sinh.slika > 0;
+  const salje = inzenjer || imaNeposlato;
+  const bezPrava = useBezPrava(me?.user.id);
 
   // Inženjer: paket i red za slanje se sinhronizuju odmah, na svakih minut i pri povratku veze (R10.4).
   useEffect(() => {
-    if (!inzenjer) return;
+    if (!salje) return;
     void sinhronizuj().catch(() => {});
     const t = window.setInterval(() => void sinhronizuj().catch(() => {}), 60_000);
     return () => window.clearInterval(t);
-  }, [inzenjer]);
+  }, [salje]);
 
   async function odjavi() {
     // Odjava bi obrisala neposlato urađeno; zato se čeka da red bude prazan.
-    if (inzenjer && !(await obrisiLokalno())) {
+    if ((inzenjer || imaNeposlato) && !(await obrisiLokalno())) {
       toast.error('Imate promene koje još nisu poslate. Odjavite se kad se pošalju (potreban je internet).');
       return;
     }
@@ -139,6 +143,12 @@ export function AppLayout() {
               </div>
             )}
             <NovaVerzija />
+            {bezPrava && (
+              <div role="alert" className="mb-2.5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-300 bg-red-50 px-2.5 py-1.5 text-[13px] font-semibold text-red-800">
+                <span>Više nemate pravo da popunjavate preglede. Urađeno je poslato Supervizoru kao sporni unos.</span>
+                <button type="button" className="min-h-11 rounded px-2 text-red-900 underline md:min-h-0" onClick={() => void zatvoriBezPrava()}>U redu</button>
+              </div>
+            )}
             {inzenjer && <OdbijeneSlike korisnikId={me?.user.id} />}
             {/* `key` na putanji remount-uje omotač pri svakoj navigaciji, pa se
                 `animate-fade-in` ponovo okine (isključeno pri reduced-motion). */}

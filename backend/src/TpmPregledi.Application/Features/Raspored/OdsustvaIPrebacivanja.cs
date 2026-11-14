@@ -254,11 +254,14 @@ public sealed class OdsustvaHandler(IAppDbContext db, ICurrentUser currentUser, 
                         && (p.Status == StatusPregleda.Planiran || p.Status == StatusPregleda.URadu))
             .OrderBy(p => p.PlaniraniDatum).ToListAsync(ct);
 
+        // Zamena po rotaciji (R3.20): prvi dostupan posle odsutnog, a za svaki sledeći pregled sledeći u rotaciji posle prethodne
+        // zamene — da više pregleda ne padne na jednog inženjera (zamerka 67). Odsutni tog dana se preskaču.
+        var poslednji = req.KorisnikId;
         return pregledi.Select(p =>
         {
-            // Zamena po rotaciji: prvi dostupan posle odsutnog, ne on sam (R3.20).
-            var predlog = RasporedPravila.SledeciInzenjer(k.Inzenjeri, req.KorisnikId,
+            var predlog = RasporedPravila.SledeciInzenjer(k.Inzenjeri, poslednji,
                 i => i != req.KorisnikId && !k.JeOdsutan(i, p.PlaniraniDatum));
+            poslednji = predlog ?? poslednji;
             return new PregledZaPrebacivanjeDto(RasporedHandler.Dto(p, k), predlog, k.Ime(predlog));
         }).ToList();
     }
@@ -580,7 +583,11 @@ public sealed class ZahteviPrebacivanjaHandler(IAppDbContext db, ICurrentUser cu
         await db.SaveChangesAsync(ct);
         // PZ je sada danas: nezapočet DP danas i naredni idu dan napred, kao kod zakazivanja PZ-a (R3.9, zamerka 43).
         if (odobreno) await RasporedHandler.PremestiDpZbogPzAsync(db, clock, bio, danas, ct);
-        return Dto(z, p, k);
+        var dto = Dto(z, p, k);
+        // Dan koji je PZ oslobodio nudi „Povuci raspored“, kao kod ručnog pomeranja PZ-a (zamerka 65).
+        return odobreno && bio != p.PlaniraniDatum
+            ? dto with { Pregled = dto.Pregled with { SlobodanDan = await RasporedHandler.SlobodanZaPovlacenjeAsync(db, clock, bio, ct) } }
+            : dto;
     }
 
     private static ZahtevPrebacivanjaDto Dto(ZahtevPrebacivanja z, Pregled p, RasporedKontekst k) =>

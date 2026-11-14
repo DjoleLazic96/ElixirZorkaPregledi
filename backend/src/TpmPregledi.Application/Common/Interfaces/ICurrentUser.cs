@@ -20,4 +20,7 @@ public interface ICurrentUser
 
     /// <summary><c>true</c> ako zahtev nosi važeći token.</summary>
     bool IsAuthenticated { get; }
+
+    /// <summary>Da li token nosi pravo (claim <c>pravo</c>) — za handlere koji rade i bez prava, ali drugačije (zamerka 66).</summary>
+    bool ImaPravo(string pravo);
 }

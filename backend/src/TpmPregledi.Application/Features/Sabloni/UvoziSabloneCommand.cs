@@ -139,12 +139,14 @@ public sealed class UvoziSabloneHandler(
         return new UvozRezultatDto(rezultat, noviU, noviA);
     }
 
-    /// <summary>Reči posle kojih vrsta ima i drugu reč („Merna vaga“, „Koš vage“, „Procesno sito“…).</summary>
-    private static readonly HashSet<string> DvoclanaVrsta = ["Merna", "Koš", "Procesno", "Završno", "Završni", "Baterija", "Puž"];
+    /// <summary>Reči posle kojih vrsta ima i drugu reč („Merna vaga“, „Koš vage“, „Procesno sito“…). „Puž filtera“ je vrste „Puž“ (zamerka 63).</summary>
+    private static readonly HashSet<string> DvoclanaVrsta = ["Merna", "Koš", "Procesno", "Završno", "Završni", "Baterija"];
 
     /// <summary>Vrsta uređaja pri uvozu: prva reč naziva, ili prve dve kad je prva samo odrednica. Menja se u registru.</summary>
     public static string VrstaIzNaziva(string naziv)
     {
+        // HL1–HL5 su ista vrsta „HL“ (zamerka 63), inače bi svaki bio svoja.
+        if (System.Text.RegularExpressions.Regex.IsMatch(naziv, @"^HL\s*\d+$")) return "HL";
         var reci = naziv.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         return reci.Length > 1 && DvoclanaVrsta.Contains(reci[0]) && !reci[1].Contains('-') && !reci[1].StartsWith('(')
             ? $"{reci[0]} {reci[1]}"

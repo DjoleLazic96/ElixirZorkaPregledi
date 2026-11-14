@@ -11,6 +11,10 @@ public sealed class FakeCurrentUser : ICurrentUser
     public string? IpAddress { get; init; } = "10.1.2.3";
     public bool IsAuthenticated => UserId is not null;
 
+    /// <summary>Prava iz tokena; <c>null</c> = sva (stari testovi ne navode prava).</summary>
+    public IReadOnlyList<string>? Prava { get; init; }
+    public bool ImaPravo(string pravo) => Prava is null || Prava.Contains(pravo);
+
     /// <summary>Niko nije prijavljen (seed, START, login pre izdavanja tokena).</summary>
     public static FakeCurrentUser Anoniman => new() { UserId = null, UserName = null, Roles = [] };
 }

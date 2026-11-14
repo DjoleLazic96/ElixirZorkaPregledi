@@ -188,6 +188,21 @@ public class ObavestenjaTests
             .Should().Equal(ocekivano.Select(DateOnly.Parse));
 
     [Fact]
+    public async Task Pregled_inzenjera_bez_prava_popunjavanja_ceka_odluku_zamerka_66()
+    {
+        var o = await PripremiAsync();
+        await using var _ = o.H;
+        await PregledAsync(o, "DP1-2026-0001", new DateOnly(2026, 11, 20));
+        o.H.Db.KorisnikPrava.RemoveRange(o.H.Db.KorisnikPrava.Where(x => x.KorisnikId == o.Ana));
+        await o.H.Db.SaveChangesAsync();
+
+        var dash = await new TpmPregledi.Application.Features.Analitika.DashboardHandler(o.H.Db,
+                new FakeCurrentUser { UserId = o.Sup, Roles = [Roles.Supervizor] }, Sat(16, 9))
+            .Handle(new TpmPregledi.Application.Features.Analitika.GetDashboardQuery(), default);
+        dash.CekaOdluku!.Should().ContainSingle(x => x.Vrsta == "bez_prava").Which.Opis.Should().Contain("nema pravo popunjavanja — prebacite pregled");
+    }
+
+    [Fact]
     public async Task Promena_dodele_i_ishod_odsustva_obavestavaju_inzenjera()
     {
         var o = await PripremiAsync();

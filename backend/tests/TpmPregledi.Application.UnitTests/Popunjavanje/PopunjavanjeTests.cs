@@ -395,6 +395,25 @@ public class RadBezInternetaTests
     }
 
     [Fact]
+    public async Task Bez_prava_popunjavanja_uradjeno_postaje_sporni_unos_zamerka_66()
+    {
+        var (h, ana, _, id) = await PripremiAsync();
+        await using var _h = h;
+        var sup = await h.SeedUserAsync("sup", "Supervizor2026!", Roles.Supervizor);
+        h.Db.KorisnikPrava.Add(new KorisnikPravo { KorisnikId = sup.Id, Pravo = Prava.Overa });
+        await h.Db.SaveChangesAsync();
+        var r = await new PopunjavanjeHandler(h.Db, new FakeCurrentUser { UserId = ana, Prava = ["analitika"] }, new FakeClock(FakeClock.PosleRasporeda), new FakeBrojac())
+            .Handle(new SinhronizacijaCommand("telefon-1", null, [Op(id, "zapocni", new { }, 0), Op(id, "predaja", new { }, 1)]), default);
+
+        r.Prihvacene.Should().BeEmpty();
+        r.Odbijene.Should().HaveCount(2).And.OnlyContain(o => o.Razlog == PopunjavanjeHandler.PorukaBezPrava);
+        (await h.Db.SporniUnosi.CountAsync(s => s.KorisnikId == ana)).Should().Be(2);
+        (await h.Db.Pregledi.SingleAsync()).Status.Should().Be(StatusPregleda.Planiran, "ništa se ne primenjuje");
+        (await h.Db.Obavestenja.Where(o => o.Vrsta == VrsteObavestenja.SporanUnos).Select(o => o.Tekst).ToListAsync())
+            .Should().ContainSingle("jedno obaveštenje po pregledu i danu").Which.Should().Contain("više nema pravo popunjavanja");
+    }
+
+    [Fact]
     public async Task Sat_telefona_koji_odstupa_vise_od_dozvoljenog_se_belezi()
     {
         var (h, ana, _, id) = await PripremiAsync();
