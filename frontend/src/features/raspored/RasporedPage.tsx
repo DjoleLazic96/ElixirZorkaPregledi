@@ -179,7 +179,7 @@ function PredlogModal({ predlog, onClose }: { predlog: PredlogStavka[]; onClose:
 
   return (
     <Modal open title="Predlog rasporeda" onClose={onClose} widthClass="max-w-xl">
-      <p className="mb-3 text-sm text-gray-600">DP se dodeljuje redom aktivnim inženjerima, a odsutni se preskaču. Inženjera možete promeniti, a dan koji ne želite da zakažete odštiklirajte.</p>
+      <p className="mb-3 text-sm text-gray-600">Inženjera možete promeniti, a dan koji ne želite odštiklirajte.</p>
       <ul className="space-y-2">
         {stavke.map((s, i) => (
           <li key={s.datum} className="flex flex-wrap items-center gap-2 border-b border-gray-100 pb-2 sm:border-0 sm:pb-0">

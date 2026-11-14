@@ -104,7 +104,6 @@ export function DashboardPage() {
                 opis="Pop-up iskače kad dođete do uređaja" />
             )}
           </Lista>
-          <p className="mt-2 text-xs text-gray-500">Prikazano: danas i narednih 7 dana. Kasniji pregledi su u Kalendaru.</p>
         </Kartica>
       )}
 
