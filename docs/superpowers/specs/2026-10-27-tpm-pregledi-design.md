@@ -521,7 +521,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 - **R7.3** Ekran „Potrebne akcije“ (i na Dashboardu) prikazuje sve otvorene akcije, sa filterima po hitnosti, sekciji i uređaju. *[K]*
 - **R7.4** Akciju zatvara inženjer kroz pop-up na sledećem pregledu koji sadrži taj uređaj (i kad je akcija nastala u PZ-u); ako nije urađena, ostaje otvorena. *[K]*
 - **R7.5** Supervizor i Direktor mogu sa ekrana „Potrebne akcije“ da zatvore akciju (šta je urađeno, kada, ko je uradio) ili da je otkažu (razlog). *[O]* (dopuna 2026-11-13)
-- **R7.6** Ekran „Potrebne akcije“ ima kolonu „Pregled“; klik na broj pregleda otvara pregled. Klik na akciju otvara ekran akcije: podaci (uređaj, aktivnost, vrsta, opis, hitnost, rok, ko je prijavio, iz kog pregleda, kvar na stavci) i istorija akcije; Supervizor i Direktor tu mogu da je zatvore ili otkažu. *[O]*
+- **R7.6** Ekran „Potrebne akcije“ ima kolonu „Pregled“; klik na broj pregleda otvara pregled. Klik na akciju otvara ekran akcije: podaci (uređaj, aktivnost, vrsta, opis, hitnost, rok, ko je prijavio, iz kog pregleda, kvar na stavci) i istorija akcije; Supervizor i Direktor tu mogu da je zatvore ili otkažu. Ekran akcije i ekran kvara (uz svaku prijavu) pokazuju slike stavke sa pregleda (zamerka 71). *[O]*
 - **R7.7** Svaki ekran detalja (akcija, pregled, uređaj) ima dugme „Nazad“ koje vraća na ekran sa kog je otvoren. Klik na logo u zaglavlju uvek vodi na početnu stranu. *[O]*
 - **R7.8** Kad akciji istekne rok, postaje crvena na Dashboardu i ide jedno obaveštenje. *[O]*
 - **R7.9** „Urađeno tokom pregleda“ se ne vodi kao posebno polje; po potrebi ide u napomenu. *[K]*
@@ -586,7 +586,7 @@ po check-listi u `docs/deploy/`), izgled PDF-a (vizuelna provera), slanje mejla 
 ### A.11 Izvoz, štampa i čuvanje
 
 - **R11.1** Pregled može da se odštampa (vidi se i verzija šablona), ali se realno neće štampati; papirni obrazac sa potpisom se ukida. *[K]*
-- **R11.2** Pojedinačan pregled se izvozi u PDF i Word — po izboru rezime ili ceo pregled, neispravno crveno i podebljano — a liste (arhiva, neispravnosti, akcije) u Excel. *[O]* (zamerka 62)
+- **R11.2** Pojedinačan pregled se izvozi u PDF i Word — po izboru rezime ili ceo pregled, neispravno crveno i podebljano, slike kao sličice uz stavku — a liste (arhiva, neispravnosti, akcije) u Excel. Rezime (na ekranu i u izveštaju) ima i napomene i slike uz ispravne stavke. *[O]* (zamerke 62, 72, 73)
 - **R11.3** Pregledi i fotografije se čuvaju trajno. *[K]*
 - **R11.4** Stari papirni pregledi se ne unose u aplikaciju. *[O]*
 

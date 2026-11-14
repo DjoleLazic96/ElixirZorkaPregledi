@@ -139,7 +139,7 @@ Odbijene operacije: „Pregled još nije potpun: nedostaje N odgovora i M obavez
 |---|---|---|---|
 | GET | `/pregledi?od&do&tip&status&inzenjerId&pretraga&stranica&velicina` | RequireKorisnik | `StranicaDto<PregledRedDto>` (sa brojem neispravnih) |
 | GET | `/pregledi/{id}` | RequireKorisnik | detalj: zaglavlje, aktivno vreme i delovi, upozorenja, sekcije sa odgovorima/poljima/slikama, istorija, sporni unosi, zahtevi za doradu, `ucesnici` (drugi inženjer PZ-a sa sekcijama), `akcije` (otvorene na pregledu, sa `stavkaId`), `odgovoriNaAkcije`, `predlozi` |
-| GET | `/pregledi/{id}/izvoz?format=pdf\|docx&prikaz=ceo\|rezime` | RequireKorisnik | izveštaj: ceo pregled (podrazumevano) ili samo rezime kao na ekranu |
+| GET | `/pregledi/{id}/izvoz?format=pdf\|docx&prikaz=ceo\|rezime` | RequireKorisnik | izveštaj: ceo pregled (podrazumevano) ili samo rezime kao na ekranu; slike su umanjene sličice uz stavku (zamerka 72) |
 | GET | `/izvoz/pregledi.xlsx?…filteri` | RequireKorisnik | arhiva u Excel (filtrirano) |
 | POST | `/pregledi/{id}/overi` | overa | `ceka_overu` → `overen` |
 | POST | `/pregledi/{id}/vrati-na-doradu` `{ inzenjerId, razlog }` | overa | pre i posle overe; 422 „Pregled je overio Direktor; samo Direktor može da poništi tu overu.“ |
@@ -154,14 +154,14 @@ Odbijene operacije: „Pregled još nije potpun: nedostaje N odgovora i M obavez
 | Metod | Ruta | Politika | Svrha |
 |---|---|---|---|
 | GET | `/akcije?status&hitnost&sekcijaId&uredjajId&sadaIspravna&saZahtevom` | RequireKorisnik | `AkcijaDto[]` (rok, istekao rok, zaduženi, kvar na stavci, kako je zatvorena, zahtev za zatvaranje na čekanju) |
-| GET | `/akcije/{id}` | RequireKorisnik | akcija sa istorijom |
+| GET | `/akcije/{id}` | RequireKorisnik | akcija sa istorijom i `fotografije[]` — slike stavke sa pregleda na kom je otvorena (zamerka 71) |
 | POST | `/akcije/{id}/zatvori` `{ uradjeno, datum, izvrsilac }` · `/otkazi` `{ razlog }` | akcije.zatvaranje | 422 ako nije otvorena ili je datum u budućnosti; zahtev na čekanju se zatvara |
 | POST | `/akcije/{id}/zahtev-zatvaranja` (multipart: `klijentId`, `uradjeno`, `datum`, `izvrsilac`, `fajl?`) | pregledi.popunjavanje | idempotentno po `klijentId`; 422 kad zahtev već čeka; obaveštenje onima sa pravom `akcije.zatvaranje` |
 | POST | `/akcije/zahtevi-zatvaranja/{id}/odluka` `{ odobreno, razlog? }` · `/otkazi` | akcije.zatvaranje · pregledi.popunjavanje (podnosilac) | odbijanje traži razlog |
 | GET | `/akcije/{id}/slika?zahtev` | RequireKorisnik | slika uz zatvaranje ili uz zahtev |
 | PUT | `/akcije/{id}/zaduzen` `{ zaduzen }` | akcije.zatvaranje | osoba ili služba, ide u istoriju |
 | GET | `/kvarovi?otvoreno&sekcijaId&uredjajId&pretraga` | RequireKorisnik | `KvarDto[]` (trajanje, prijave, otvorene akcije) |
-| GET | `/kvarovi/{id}` | RequireKorisnik | kvar sa svim datumima prijave i akcijama na stavci |
+| GET | `/kvarovi/{id}` | RequireKorisnik | kvar sa svim datumima prijave (uz svaku `fotografije[]`, zamerka 71) i akcijama na stavci |
 | GET | `/izvoz/akcije.xlsx` · `/izvoz/kvarovi.xlsx` | RequireKorisnik | Excel (filtrirano) |
 
 Popunjavanje (`GET /pregledi/{id}/popunjavanje`, paket) uz svaki uređaj vraća `otvoreneAkcije` za pop-up.

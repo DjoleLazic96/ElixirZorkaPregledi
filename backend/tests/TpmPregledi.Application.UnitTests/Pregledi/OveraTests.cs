@@ -86,6 +86,24 @@ public class OveraTests
         var arhiva = await Kao(o, o.Sup, Roles.Supervizor).Handle(new GetPreglediQuery(new PreglediFilteri(null, null, null, null, null, null)), default);
         arhiva.Stavke.Single().Neispravnih.Should().Be(1);
         izv.Excel(arhiva.Stavke).Should().HaveCountGreaterThan(1000);
+
+        // Zamerke 72–73: slike su sličice u PDF-u i Word-u — u rezimeu i uz ispravne stavke, u celom pregledu ispod reda stavke.
+        var saSlikama = d with
+        {
+            Sekcije = d.Sekcije.Select(s => s with
+            {
+                Uredjaji = s.Uredjaji.Select(u => u with { Stavke = u.Stavke.Select(x => x with { Fotografije = x.Neispravan ? [1L] : [2L] }).ToList() }).ToList(),
+            }).ToList(),
+        };
+        var slike = new Dictionary<long, byte[]> { [1] = SlikeIzvestajaTests.Slika(2048, 1536), [2] = SlikeIzvestajaTests.Slika(1536, 2048) };
+        izv.Pdf(saSlikama, rezime: true, slike).Length.Should().BeGreaterThan(izv.Pdf(saSlikama, rezime: true).Length);
+        using (var w = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(new MemoryStream(izv.Docx(saSlikama, rezime: true, slike)), false))
+        {
+            w.MainDocumentPart!.Document.Body!.InnerText.Should().Contain("Napomene i slike uz ispravne stavke").And.NotContain("slika)");
+            w.MainDocumentPart.ImageParts.Count().Should().BeGreaterThan(1, "neispravna i bar jedna ispravna stavka");
+        }
+        using (var w = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(new MemoryStream(izv.Docx(saSlikama, slike: slike)), false))
+            w.MainDocumentPart!.ImageParts.Count().Should().Be(saSlikama.Sekcije.Sum(s => s.Uredjaji.Sum(u => u.Stavke.Count)));
     }
 
     [Fact]

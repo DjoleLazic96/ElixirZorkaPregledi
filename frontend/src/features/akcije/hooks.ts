@@ -36,6 +36,8 @@ export interface AkcijaDto {
 export interface AkcijaDetaljDto {
   akcija: AkcijaDto;
   istorija: { vrsta: string; tekst: string; korisnik: string; at: string }[];
+  /** Slike stavke sa pregleda na kom je akcija otvorena (zamerka 71). */
+  fotografije?: number[];
 }
 
 export interface KvarDto {
@@ -57,7 +59,7 @@ export interface KvarDto {
 
 export interface KvarDetaljDto {
   kvar: KvarDto;
-  prijave: { pregledId: number; broj: string; datum: string; napomena: string | null }[];
+  prijave: { pregledId: number; broj: string; datum: string; napomena: string | null; fotografije?: number[] }[];
   akcije: AkcijaDto[];
 }
 

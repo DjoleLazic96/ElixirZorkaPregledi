@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ListChecks, ShieldAlert } from 'lucide-react';
 import { useToast } from '../../app/providers/ToastProvider';
 import { IzvozDugme } from '../../components/IzvozDugme';
+import { Slike } from '../../components/Slike';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '../../components/ui/Card';
@@ -161,6 +162,7 @@ export function AkcijaPage() {
           </div>
           <p className="break-words"><Link to={`/uredjaji/${a.uredjajId}`} className="text-primary-700 hover:underline">{a.uredjaj}</Link> (sekcija {a.sekcija}) · {a.aktivnost}</p>
           <p>{vrstaLabela(a.vrsta)}{a.opis && ` — ${a.opis}`}</p>
+          {(akcija.data.fotografije?.length ?? 0) > 0 && <div><span className="text-gray-600">Slike sa pregleda:</span><Slike ids={akcija.data.fotografije!} /></div>}
           <p className="text-gray-600">
             Prijavio {a.prijavio} · pregled <Link className="text-primary-700 hover:underline" to={`/pregledi/${a.pregledId}`}>{a.pregled}</Link>
             {a.rok && <> · rok <span className={cn(a.rokIstekao && 'font-semibold text-red-700')}>{formatirajDatum(a.rok)}</span></>}
@@ -283,6 +285,7 @@ export function KvarPage() {
                 <span className="whitespace-nowrap text-gray-500">{formatirajDatum(p.datum)}</span>
                 <Link to={`/pregledi/${p.pregledId}`} className="whitespace-nowrap text-primary-700 hover:underline">{p.broj}</Link>
                 {p.napomena && <span className="break-words">{p.napomena}</span>}
+                {(p.fotografije?.length ?? 0) > 0 && <span className="basis-full"><Slike ids={p.fotografije!} /></span>}
               </li>
             ))}
           </ul>

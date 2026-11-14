@@ -13,8 +13,8 @@ Klik na broj otvara pregled.
 Gore su šablon i verzija, datumi, inženjer, početak i predaja, **aktivno vreme** i broj delova. Supervizor i Direktor vide i
 **upozorenja** (npr. sat telefona je odstupao, „Sve neoznačeno je ispravno“ upotrebljeno). Zatim kartica sa dva prikaza: **Rezime**
 (otvara se prvi: neispravne stavke sa napomenom, poljima, slikama i akcijom, uređaji van funkcije, akcije otvorene na pregledu, odgovori na
-ranije akcije, napomene uz ispravne stavke, „Sve ispravno“ i predlozi izmene šablona) i **Ceo pregled** (sekcije kao dugmad na vrhu —
-crvena ima neispravnu stavku; neispravno je crveno, akcija plavo, van funkcije narandžasto). Ispod je **Istorija**. **PDF** i **Word** otvaraju izbor **Rezime** (isto što i rezime na ekranu, obično jedna strana) ili **Ceo pregled** (sve sekcije, za arhivu); dok pregled ne počne, ne mogu da se kliknu. Neispravno je u izveštaju crveno i podebljano, pa se vidi i na crno-belom papiru.
+ranije akcije, napomene i slike uz ispravne stavke, „Sve ispravno“ i predlozi izmene šablona) i **Ceo pregled** (sekcije kao dugmad na vrhu —
+crvena ima neispravnu stavku; neispravno je crveno, akcija plavo, van funkcije narandžasto). Ispod je **Istorija**. **PDF** i **Word** otvaraju izbor **Rezime** (isto što i rezime na ekranu, obično jedna strana) ili **Ceo pregled** (sve sekcije, za arhivu); dok pregled ne počne, ne mogu da se kliknu. Neispravno je u izveštaju crveno i podebljano, pa se vidi i na crno-belom papiru. Slike su u izveštaju kao male sličice uz stavku (u rezimeu uz neispravne stavke i uz ispravne sa slikom, u celom pregledu ispod reda stavke).
 Za planiran ili započet pregled Supervizor i Direktor ovde imaju i **Promeni u rasporedu** (inženjer, datum), a za PZ **Dodaj inženjera** — isto kao u Kalendaru.
 
 ## 3.3 Odluke (Supervizor, Direktor)

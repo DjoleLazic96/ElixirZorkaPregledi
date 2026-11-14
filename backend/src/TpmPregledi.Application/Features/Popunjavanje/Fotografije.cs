@@ -32,10 +32,15 @@ public sealed record SacuvajFotografijuCommand(Guid KlijentId, int PregledId, in
 /// <param name="Id">ID slike.</param>
 public sealed record GetFotografijaQuery(long Id) : IRequest<(Stream Sadrzaj, string Mime)>;
 
+/// <summary>Sadržaj slika pregleda za PDF i Word (zamerka 72); slika čiji fajl nedostaje se preskače.</summary>
+/// <param name="Ids">ID-jevi slika.</param>
+public sealed record GetSlikeZaIzvestajQuery(IReadOnlyList<long> Ids) : IRequest<IReadOnlyDictionary<long, byte[]>>;
+
 /// <summary>Čuvanje i čitanje slika.</summary>
 public sealed class FotografijeHandler(IAppDbContext db, IFajlSkladiste skladiste, ICurrentUser currentUser, IDateTimeProvider clock) :
     IRequestHandler<SacuvajFotografijuCommand, long>,
-    IRequestHandler<GetFotografijaQuery, (Stream Sadrzaj, string Mime)>
+    IRequestHandler<GetFotografijaQuery, (Stream Sadrzaj, string Mime)>,
+    IRequestHandler<GetSlikeZaIzvestajQuery, IReadOnlyDictionary<long, byte[]>>
 {
     /// <summary>Najviše slika po stavci (R4.5).</summary>
     public const int NajviseSlika = 5;
@@ -90,5 +95,28 @@ public sealed class FotografijeHandler(IAppDbContext db, IFajlSkladiste skladist
         var f = await db.Fotografije.AsNoTracking().FirstOrDefaultAsync(x => x.Id == req.Id, ct) ?? throw new NotFoundException("Slika ne postoji.");
         var fajl = await db.Fajlovi.AsNoTracking().FirstAsync(x => x.Id == f.FajlId, ct);
         return (skladiste.Otvori(fajl), fajl.Mime);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<long, byte[]>> Handle(GetSlikeZaIzvestajQuery req, CancellationToken ct)
+    {
+        var zapisi = await (from f in db.Fotografije.AsNoTracking() join fa in db.Fajlovi.AsNoTracking() on f.FajlId equals fa.Id
+            where req.Ids.Contains(f.Id) select new { f.Id, Fajl = fa }).ToListAsync(ct);
+        var rez = new Dictionary<long, byte[]>();
+        foreach (var z in zapisi)
+        {
+            try
+            {
+                await using var s = skladiste.Otvori(z.Fajl);
+                using var ms = new MemoryStream();
+                await s.CopyToAsync(ms, ct);
+                rez[z.Id] = ms.ToArray();
+            }
+            catch (IOException)
+            {
+                // Fajl nedostaje na disku — izveštaj ide bez te slike.
+            }
+        }
+        return rez;
     }
 }

@@ -260,7 +260,10 @@ public class PopunjavanjeTests
             .Should().ThrowAsync<BusinessRuleException>()).Which.Greske.Should().Equal("Fajl nije slika (dozvoljeni su JPG, PNG i WebP).");
         await FluentActions.Awaiting(() => ana.Handle(new SacuvajFotografijuCommand(Guid.NewGuid(), o.PregledId, o.Stavke[2], "kamera", Jpeg, "image/jpeg"), default))
             .Should().ThrowAsync<BusinessRuleException>();   // sekcija 30 je Borina
-        (await ana.Handle(new SacuvajFotografijuCommand(Guid.NewGuid(), o.PregledId, o.Stavke[0], "kamera", Jpeg, "image/jpeg"), default)).Should().BePositive();
+        var slikaId = await ana.Handle(new SacuvajFotografijuCommand(Guid.NewGuid(), o.PregledId, o.Stavke[0], "kamera", Jpeg, "image/jpeg"), default);
+        slikaId.Should().BePositive();
+        // Zamerka 72: izveštaj dobija sadržaj slika po ID-u; nepostojeći ID se preskače.
+        (await ana.Handle(new GetSlikeZaIzvestajQuery([slikaId, 999_999]), default)).Keys.Should().Equal(slikaId);
         FotografijeHandler.JeSlika([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]).Should().BeTrue();
         FotografijeHandler.JeSlika("RIFF0000WEBP"u8.ToArray()).Should().BeTrue();
     }

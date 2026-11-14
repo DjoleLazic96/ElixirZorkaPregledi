@@ -9,6 +9,15 @@
 > Odluke označene **PREDLOG** odstupaju od blueprinta i čekaju odobrenje vlasnika projekta (Miroslav Zec) i vlasnika
 > blueprinta (blueprint 19 §7). Funkcionalne odluke su u spec-u `docs/superpowers/specs/2026-10-27-tpm-pregledi-design.md` (Prilog A).
 
+## 2026-11-14 — Zamerke 70–73: slike na akciji, kvaru, u izveštaju i rezimeu (odobreno)
+
+**Odluka:**
+- Slika stavke se vidi na akciji (ista stavka po ključu kroz verzije šablona) i uz svaku prijavu kvara (zamerka 71).
+- PDF i Word imaju sličice umesto „(N slika)“. Slike se umanjuju na ~480 px JPEG (QuestPDF ih umanjuje, pa nije potrebna nova biblioteka) da izveštaj ne bi imao desetine MB; nečitljiva slika se preskače (zamerka 72).
+- Slike se ne čuvaju automatski u galeriji telefona (telefoni su deljeni; slike su na serveru i u rezervnoj kopiji).
+- Rezime: „Napomene i slike uz ispravne stavke“ — ulazi i ispravna stavka sa slikom bez napomene (zamerka 73).
+- Iz zvonceta je uklonjena rečenica o telefonu i mejlu (zamerka 70).
+
 ## 2026-11-14 — Zamerke 68–69: radni dan vikendom, jasnija poruka (odobreno)
 
 **Kontekst:** fabrika radi 365 dana; inženjeri uglavnom rade prvu smenu radnim danima, ali nekad dođu i vikendom.

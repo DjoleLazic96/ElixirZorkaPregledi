@@ -2,6 +2,9 @@ using ClosedXML.Excel;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using W = DocumentFormat.OpenXml.Wordprocessing;
+using A = DocumentFormat.OpenXml.Drawing;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -15,7 +18,8 @@ namespace TpmPregledi.Infrastructure.Izvestaji;
 /// šablona, rezime problematičnih stavki na početku, pa ceo pregled po sekcijama; Excel arhive (ClosedXML).
 /// Boje kao na ekranu (zamerka 48): neispravno crveno, akcija otvorena na pregledu plavo (ispod svoje stavke), van funkcije
 /// narandžasto; na kraju lista akcija otvorenih na pregledu i odgovori na ranije akcije. Neispravno je i podebljano, da se vidi
-/// na crno-belom papiru (zamerka 62). „Rezime“ ima isto što i rezime na ekranu, bez tabela po sekcijama.
+/// na crno-belom papiru (zamerka 62). „Rezime“ ima isto što i rezime na ekranu, bez tabela po sekcijama. Slike su sličice uz
+/// stavku (zamerka 72): u rezimeu uz neispravne stavke i uz ispravne sa slikom (zamerka 73), u celom pregledu ispod reda stavke.
 /// </summary>
 public sealed class IzvestajPregleda : IIzvestajPregleda
 {
@@ -64,12 +68,31 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
         p.Sekcije.SelectMany(s => s.Uredjaji.SelectMany(u => u.Stavke.Where(x => x.Neispravan).Select(x => (s.Sifra, u, x))));
 
     private static string OpisProblema(string sek, DetaljUredjajDto u, DetaljStavkaDto s) =>
-        $"Sekcija {sek} · {u.Naziv} · {s.Aktivnost}: {s.Odgovor}. {s.Napomena} {string.Join("; ", s.Polja)} {(s.Fotografije.Count > 0 ? $"({s.Fotografije.Count} slika)" : "")}".Trim();
+        $"Sekcija {sek} · {u.Naziv} · {s.Aktivnost}: {s.Odgovor}. {s.Napomena} {string.Join("; ", s.Polja)}".Trim();
 
-    /// <summary>Napomene uz ispravne stavke (samo u rezimeu, kao na ekranu).</summary>
-    private static IEnumerable<string> NapomeneUzIspravne(PregledDetaljDto p) =>
+    /// <summary>Napomene i slike uz ispravne stavke (samo u rezimeu, kao na ekranu; zamerka 73).</summary>
+    private static IEnumerable<(string Tekst, IReadOnlyList<long> Slike)> NapomeneUzIspravne(PregledDetaljDto p) =>
         p.Sekcije.SelectMany(s => s.Uredjaji.Where(u => !u.VanFunkcije).SelectMany(u => u.Stavke
-            .Where(x => !x.Neispravan && !string.IsNullOrEmpty(x.Napomena)).Select(x => $"Sekcija {s.Sifra} · {u.Naziv} · {x.Aktivnost}: {x.Napomena}")));
+            .Where(x => !x.Neispravan && (!string.IsNullOrEmpty(x.Napomena) || x.Fotografije.Count > 0))
+            .Select(x => ($"Sekcija {s.Sifra} · {u.Naziv} · {x.Aktivnost}{(string.IsNullOrEmpty(x.Napomena) ? "" : $": {x.Napomena}")}", x.Fotografije))));
+
+    /// <summary>Sličice za izveštaj, jednom po pozivu (zamerka 72).</summary>
+    private static Dictionary<long, SlikaIzvestaja> Slicice(IReadOnlyDictionary<long, byte[]>? slike) =>
+        (slike ?? new Dictionary<long, byte[]>()).Select(x => (x.Key, Mala: SlikeIzvestaja.Umanji(x.Value)))
+            .Where(x => x.Mala is not null).ToDictionary(x => x.Key, x => x.Mala!);
+
+    /// <summary>Red sličica u PDF-u (ništa ako stavka nema čitljivih slika).</summary>
+    private static void PdfSlike(ColumnDescriptor col, IEnumerable<long> ids, Dictionary<long, SlikaIzvestaja> male, float levo = 0)
+    {
+        var imaju = ids.Where(male.ContainsKey).ToList();
+        if (imaju.Count == 0) return;
+        col.Item().PaddingLeft(levo).PaddingVertical(2).Row(r =>
+        {
+            r.Spacing(4);
+            foreach (var id in imaju) r.ConstantItem(96).Height(72).Image(male[id].Jpeg).FitArea();
+            r.RelativeItem();
+        });
+    }
 
     private static readonly Dictionary<string, string> StatusPredloga = new() { ["zahtev"] = "čeka odluku", ["odobren"] = "odobren", ["odbijen"] = "odbijen", ["duplikat"] = "duplikat" };
 
@@ -77,13 +100,15 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
     private static IEnumerable<(string Naslov, IReadOnlyList<string> Redovi)> OstatakRezimea(PregledDetaljDto p) =>
         new (string Naslov, IReadOnlyList<string> Redovi)[]
         {
-            ("Napomene uz ispravne stavke", NapomeneUzIspravne(p).ToList()),
             ("„Sve ispravno“", p.Istorija.Where(d => d.Vrsta == "sve_ispravno").Select(d => d.Opis).ToList()),
             ("Predlozi izmene šablona sa ovog pregleda", (p.Predlozi ?? []).Select(x => $"{x.Opis} · {StatusPredloga.GetValueOrDefault(x.Status, x.Status)}").ToList()),
         }.Where(x => x.Redovi.Count > 0);
 
     /// <inheritdoc />
-    public byte[] Pdf(PregledDetaljDto p, bool rezime = false) => QuestPDF.Fluent.Document.Create(doc => doc.Page(page =>
+    public byte[] Pdf(PregledDetaljDto p, bool rezime = false, IReadOnlyDictionary<long, byte[]>? slike = null)
+    {
+        var male = Slicice(slike);
+        return QuestPDF.Fluent.Document.Create(doc => doc.Page(page =>
     {
         page.Size(PageSizes.A4);
         page.Margin(28);
@@ -106,8 +131,11 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
             {
                 col.Item().Text(OpisProblema(sek, u, s)).FontColor(Colors.Red.Darken2).Bold();
                 if (rezime)
+                {
+                    PdfSlike(col, s.Fotografije, male, 12);
                     foreach (var a in poStavci[s.StavkaId])
                         col.Item().PaddingLeft(12).Text($"Akcija {OpisAkcije(a)}").FontColor(Colors.Blue.Darken2);
+                }
             }
             var van = p.Sekcije.SelectMany(s => s.Uredjaji.Where(u => u.VanFunkcije)).Select(u => u.Naziv).ToList();
             if (van.Count > 0) col.Item().Text($"Nije u funkciji: {string.Join(", ", van)}").FontColor(Colors.Orange.Darken3);
@@ -130,6 +158,8 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
                             else if (s.Neispravan) odg.FontColor(Colors.Red.Darken2).Bold();
                             var nap = t.Cell().Padding(2).Text(string.Join(" ", new[] { s.Napomena, string.Join("; ", s.Polja) }.Where(x => !string.IsNullOrEmpty(x))));
                             if (s.Neispravan) nap.FontColor(Colors.Red.Darken2).Bold();
+                            if (s.Fotografije.Any(male.ContainsKey))
+                                t.Cell().ColumnSpan(4).PaddingLeft(12).Column(c => PdfSlike(c, s.Fotografije, male));
                             foreach (var a in poStavci[s.StavkaId])
                                 t.Cell().ColumnSpan(4).PaddingLeft(12).PaddingVertical(1).Text($"Akcija {OpisAkcije(a)}").FontColor(Colors.Blue.Darken2);
                         }
@@ -149,18 +179,28 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
                 foreach (var o in odgovori) col.Item().Text(OpisOdgovora(o));
             }
             if (rezime)
+            {
+                var napomene = NapomeneUzIspravne(p).ToList();
+                if (napomene.Count > 0)
+                {
+                    col.Item().PaddingTop(8).Text("Napomene i slike uz ispravne stavke").FontSize(11).SemiBold();
+                    foreach (var (tekst, ids) in napomene) { col.Item().Text(tekst); PdfSlike(col, ids, male, 12); }
+                }
                 foreach (var (naslov, redovi) in OstatakRezimea(p))
                 {
                     col.Item().PaddingTop(8).Text(naslov).FontSize(11).SemiBold();
                     foreach (var r in redovi) col.Item().Text(r);
                 }
+            }
         });
         page.Footer().AlignRight().Text(x => { x.Span("Strana "); x.CurrentPageNumber(); x.Span(" od "); x.TotalPages(); });
     })).GeneratePdf();
+    }
 
     /// <inheritdoc />
-    public byte[] Docx(PregledDetaljDto p, bool rezime = false)
+    public byte[] Docx(PregledDetaljDto p, bool rezime = false, IReadOnlyDictionary<long, byte[]>? slike = null)
     {
+        var male = Slicice(slike);
         using var ms = new MemoryStream();
         using (var w = WordprocessingDocument.Create(ms, WordprocessingDocumentType.Document))
         {
@@ -178,6 +218,38 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
             }
 
             W.TableCell Celija(string tekst, bool bold = false, string? boja = null) => new(Par(tekst, bold, null, boja));
+
+            // Sličice u jednom pasusu (zamerka 72): duža strana 1 inč, odnos stranica kao na slici.
+            uint brojSlike = 0;
+            W.Paragraph? SlikePar(IEnumerable<long> ids)
+            {
+                var imaju = ids.Where(male.ContainsKey).ToList();
+                if (imaju.Count == 0) return null;
+                var par = new W.Paragraph();
+                foreach (var id in imaju)
+                {
+                    var m = male[id];
+                    var deo = main.AddImagePart(ImagePartType.Jpeg);
+                    using (var s = new MemoryStream(m.Jpeg)) deo.FeedData(s);
+                    const long Inc = 914400;
+                    var (cx, cy) = m.Sirina >= m.Visina ? (Inc, Inc * m.Visina / Math.Max(1, m.Sirina)) : (Inc * m.Sirina / Math.Max(1, m.Visina), Inc);
+                    brojSlike++;
+                    par.Append(new W.Run(new W.Drawing(new DW.Inline(
+                        new DW.Extent { Cx = cx, Cy = cy },
+                        new DW.EffectExtent { LeftEdge = 0, TopEdge = 0, RightEdge = 0, BottomEdge = 0 },
+                        new DW.DocProperties { Id = brojSlike, Name = $"Slika {brojSlike}" },
+                        new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true }),
+                        new A.Graphic(new A.GraphicData(new PIC.Picture(
+                            new PIC.NonVisualPictureProperties(new PIC.NonVisualDrawingProperties { Id = 0U, Name = $"slika{brojSlike}.jpg" }, new PIC.NonVisualPictureDrawingProperties()),
+                            new PIC.BlipFill(new A.Blip { Embed = main.GetIdOfPart(deo) }, new A.Stretch(new A.FillRectangle())),
+                            new PIC.ShapeProperties(new A.Transform2D(new A.Offset { X = 0L, Y = 0L }, new A.Extents { Cx = cx, Cy = cy }),
+                                new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle })))
+                        { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" }))
+                    { DistanceFromTop = 0U, DistanceFromBottom = 0U, DistanceFromLeft = 0U, DistanceFromRight = 0U })));
+                    par.Append(new W.Run(new W.Text(" ") { Space = SpaceProcessingModeValues.Preserve }));
+                }
+                return par;
+            }
 
             W.Table Tabela(IEnumerable<string[]> redovi, bool prviRedBold)
             {
@@ -204,7 +276,10 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
             {
                 body.Append(Par(OpisProblema(sek, u, s), true, null, Crvena));
                 if (rezime)
+                {
+                    if (SlikePar(s.Fotografije) is { } sp) body.Append(sp);
                     foreach (var a in poStavci[s.StavkaId]) body.Append(Par($"    Akcija {OpisAkcije(a)}", false, null, Plava));
+                }
             }
             var vanFunkcije = p.Sekcije.SelectMany(s => s.Uredjaji.Where(u => u.VanFunkcije)).Select(u => u.Naziv).ToList();
             if (vanFunkcije.Count > 0) body.Append(Par($"Nije u funkciji: {string.Join(", ", vanFunkcije)}", false, null, Narandzasta));
@@ -218,6 +293,8 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
                         var boja = u.VanFunkcije ? Narandzasta : s.Neispravan ? Crvena : null;
                         t.Append(new W.TableRow(Celija(u.Naziv), Celija(s.Aktivnost), Celija(u.VanFunkcije ? "nije u funkciji" : s.Odgovor ?? "—", s.Neispravan, boja),
                             Celija(string.Join(" ", new[] { s.Napomena, string.Join("; ", s.Polja) }.Where(x => !string.IsNullOrEmpty(x))), s.Neispravan, s.Neispravan ? Crvena : null)));
+                        if (SlikePar(s.Fotografije) is { } sp)
+                            t.Append(new W.TableRow(new W.TableCell(new W.TableCellProperties(new W.GridSpan { Val = 4 }), sp)));
                         foreach (var a in poStavci[s.StavkaId])
                             t.Append(new W.TableRow(new W.TableCell(new W.TableCellProperties(new W.GridSpan { Val = 4 }), Par($"Akcija {OpisAkcije(a)}", false, null, Plava))));
                     }
@@ -236,11 +313,23 @@ public sealed class IzvestajPregleda : IIzvestajPregleda
                 foreach (var o in odgovori) body.Append(Par(OpisOdgovora(o)));
             }
             if (rezime)
+            {
+                var napomene = NapomeneUzIspravne(p).ToList();
+                if (napomene.Count > 0)
+                {
+                    body.Append(Par("Napomene i slike uz ispravne stavke", true, "24"));
+                    foreach (var (tekst, ids) in napomene)
+                    {
+                        body.Append(Par(tekst));
+                        if (SlikePar(ids) is { } sp) body.Append(sp);
+                    }
+                }
                 foreach (var (naslov, redovi) in OstatakRezimea(p))
                 {
                     body.Append(Par(naslov, true, "24"));
                     foreach (var r in redovi) body.Append(Par(r));
                 }
+            }
             body.Append(new W.SectionProperties(new W.PageSize { Width = 11906, Height = 16838 }, new W.PageMargin { Top = 720, Bottom = 720, Left = 720, Right = 720 }));
         }
         return ms.ToArray();
