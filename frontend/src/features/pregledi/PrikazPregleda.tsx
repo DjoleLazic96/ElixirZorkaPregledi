@@ -33,7 +33,7 @@ function Odeljak({ naslov, children }: { naslov: string; children: React.ReactNo
 
 /**
  * Rezime pregleda (zamerka 48) — ono što kontrolor treba da vidi: neispravne stavke (sa napomenom, poljima, slikama i akcijom),
- * uređaji van funkcije, akcije otvorene na pregledu, odgovori na ranije akcije, napomene uz ispravne stavke, upotreba
+ * uređaji van funkcije, akcije otvorene na pregledu, odgovori na ranije akcije, napomene i slike uz ispravne stavke, upotreba
  * „Sve ispravno“ i predlozi izmene šablona poslati sa ovog pregleda. Prazni odeljci se ne prikazuju.
  */
 export function RezimePregleda({ p }: { p: PregledDetaljDto }) {
@@ -41,7 +41,7 @@ export function RezimePregleda({ p }: { p: PregledDetaljDto }) {
   const poStavci = (id: number) => akcije.filter((a) => a.stavkaId === id);
   const svi = p.sekcije.flatMap((s) => s.uredjaji.map((u) => ({ s: s.sifra, u })));
   const problemi = svi.flatMap(({ s, u }) => (u.vanFunkcije ? [] : u.stavke.filter((x) => x.neispravan).map((x) => ({ s, u, x }))));
-  const napomene = svi.flatMap(({ s, u }) => (u.vanFunkcije ? [] : u.stavke.filter((x) => !x.neispravan && x.napomena).map((x) => ({ s, u, x }))));
+  const napomene = svi.flatMap(({ s, u }) => (u.vanFunkcije ? [] : u.stavke.filter((x) => !x.neispravan && (x.napomena || x.fotografije.length > 0)).map((x) => ({ s, u, x }))));
   const van = svi.filter(({ u }) => u.vanFunkcije);
   const sveIspravno = p.istorija.filter((d) => d.vrsta === 'sve_ispravno');
 
@@ -78,9 +78,13 @@ export function RezimePregleda({ p }: { p: PregledDetaljDto }) {
         </Odeljak>
       )}
       {napomene.length > 0 && (
-        <Odeljak naslov="Napomene uz ispravne stavke">
+        <Odeljak naslov="Napomene i slike uz ispravne stavke">
+          {/* Slika uz ispravnu stavku se vidi i bez napomene — inženjer ju je napravio sa razlogom (zamerka 73). */}
           {napomene.map(({ s, u, x }) => (
-            <p key={x.stavkaId} className="break-words text-sm">Sekcija {s} · {u.naziv} · {x.aktivnost}: <span className="text-gray-700">{x.napomena}</span></p>
+            <div key={x.stavkaId} className="break-words text-sm">
+              Sekcija {s} · {u.naziv} · {x.aktivnost}{x.napomena && <>: <span className="text-gray-700">{x.napomena}</span></>}
+              <Slike ids={x.fotografije} />
+            </div>
           ))}
         </Odeljak>
       )}

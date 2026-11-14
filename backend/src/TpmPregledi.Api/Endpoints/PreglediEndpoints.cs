@@ -1,5 +1,6 @@
 using TpmPregledi.Api.Common;
 using TpmPregledi.Application.Features.Pregledi;
+using TpmPregledi.Application.Features.Popunjavanje;
 using TpmPregledi.Domain.Identity;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -49,9 +50,11 @@ public static class PreglediEndpoints
                 var p = await m.Send(new GetPregledQuery(id));
                 var rezime = prikaz == "rezime";
                 var ime = rezime ? $"{p.Broj}-rezime" : p.Broj;
+                var ids = p.Sekcije.SelectMany(s => s.Uredjaji).SelectMany(u => u.Stavke).SelectMany(s => s.Fotografije).ToList();
+                var slike = ids.Count == 0 ? null : await m.Send(new GetSlikeZaIzvestajQuery(ids));
                 return format == "docx"
-                    ? Results.File(izv.Docx(p, rezime), "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"{ime}.docx")
-                    : Results.File(izv.Pdf(p, rezime), "application/pdf", $"{ime}.pdf");
+                    ? Results.File(izv.Docx(p, rezime, slike), "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"{ime}.docx")
+                    : Results.File(izv.Pdf(p, rezime, slike), "application/pdf", $"{ime}.pdf");
             })
             .WithSummary("Izveštaj pregleda (format=pdf|docx, prikaz=ceo|rezime)");
 

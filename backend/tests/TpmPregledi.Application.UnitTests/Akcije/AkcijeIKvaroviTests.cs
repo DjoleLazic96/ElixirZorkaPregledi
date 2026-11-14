@@ -116,8 +116,16 @@ public class AkcijeIKvaroviTests
             ("odgovor", new { stavkaId = o.Stavke[1], vrednost = 0 }),
             ("predaja", new { }));
         r.Odbijene.Should().BeEmpty();
+        // Slika uz neispravnu stavku (zamerka 71): vidi se na akciji i uz prijavu kvara.
+        var fajl = new Fajl { Putanja = "x.jpg", Mime = "image/jpeg", Sha256 = "x", KreiranoAt = DateTime.UtcNow };
+        o.H.Db.Fajlovi.Add(fajl);
+        await o.H.Db.SaveChangesAsync();
+        var slika = new Fotografija { PregledId = p1, StavkaId = o.Stavke[0], FajlId = fajl.Id, KorisnikId = o.Ana, KlijentId = Guid.NewGuid(), KreiranoAt = DateTime.UtcNow };
+        o.H.Db.Fotografije.Add(slika);
+        await o.H.Db.SaveChangesAsync();
 
         var akcija = (await Ekran(o).Handle(new GetAkcijeQuery(new AkcijeFilteri()), default)).Single();
+        (await Ekran(o).Handle(new GetAkcijaQuery(akcija.Id), default)).Fotografije.Should().Equal(slika.Id);
         akcija.Broj.Should().Be("A-2026-0001");
         akcija.Rok.Should().Be(new DateOnly(2026, 11, 16));
         akcija.KvarBroj.Should().Be("K-2026-0001");
@@ -142,7 +150,9 @@ public class AkcijeIKvaroviTests
         var kvar = (await Ekran(o).Handle(new GetKvaroviQuery(new KvaroviFilteri(Otvoreno: null)), default)).Single();
         kvar.Zatvoren.Should().Be(new DateOnly(2026, 11, 11));
         kvar.TrajanjeDana.Should().Be(2);
-        (await Ekran(o).Handle(new GetKvarQuery(kvar.Id), default)).Prijave.Single().Napomena.Should().Be("7 rolni");
+        var prijava = (await Ekran(o).Handle(new GetKvarQuery(kvar.Id), default)).Prijave.Single();
+        prijava.Napomena.Should().Be("7 rolni");
+        prijava.Fotografije.Should().Equal(slika.Id);
     }
 
     [Fact]

@@ -6,6 +6,9 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 ## [Neobjavljeno]
 
 ### Novo
+- Slike sa pregleda se vide i na ekranu akcije i uz svaku prijavu kvara.
+- PDF i Word imaju male slike uz stavku (umesto „2 slike“).
+- Rezime: „Napomene i slike uz ispravne stavke“ — vidi se i slika uz ispravnu stavku, i kad nema napomene.
 - **Radni dan vikendom**: na ekranu Neradni dani subota ili nedelja može da se unese kao radni dan. Aplikacija odmah pita „Dodaj DP?“, predlaže DP koji je sledeći po redu i inženjera po rotaciji (oba se menjaju) i pita da li utiče na naredne DP-ove; DP se može dodati i kasnije dugmetom „+ Dodaj DP“ u Rasporedu. Supervizor dobija obaveštenje, a rezime i rok za overu računaju taj dan kao radni.
 - Kad DP ne može na neki dan, poruka kaže zašto: subota/nedelja, neradni dan (sa nazivom) ili dan PZ-a.
 - „Zapamti me“: bez kvačice prijava traje dok se pregledač ne zatvori (deljen računar); sa kvačicom ostajete prijavljeni.
@@ -80,6 +83,7 @@ Format po Keep a Changelog, verzije po SemVer (Elixir blueprint 11). Pisano za k
 - **Administracija → Podešavanja**: vremena upozorenja, kraj radnog dana, granica pauze, rok za overu i pragovi obaveštenja.
 
 ### Izmenjeno
+- Iz prozora obaveštenja (zvonce) uklonjena je rečenica o telefonu i mejlu.
 - „O aplikaciji“: tehnički podaci samo za Administratora.
 - Podsetnik za raspored stiže četvrtkom i petkom i navodi dane sledeće nedelje bez DP-a.
 - Ručno pomeren pregled ima sivu oznaku „pomeren na“; crveno „nije urađen“ samo za propušten.

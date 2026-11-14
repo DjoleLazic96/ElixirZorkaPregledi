@@ -38,7 +38,8 @@ public sealed record AkcijaDogadjajDto(string Vrsta, string Tekst, string Korisn
 /// <summary>Akcija sa istorijom.</summary>
 /// <param name="Akcija">Podaci.</param>
 /// <param name="Istorija">Istorija.</param>
-public sealed record AkcijaDetaljDto(AkcijaDto Akcija, IReadOnlyList<AkcijaDogadjajDto> Istorija);
+/// <param name="Fotografije">Slike stavke na pregledu na kom je akcija otvorena (zamerka 71).</param>
+public sealed record AkcijaDetaljDto(AkcijaDto Akcija, IReadOnlyList<AkcijaDogadjajDto> Istorija, IReadOnlyList<long>? Fotografije = null);
 
 /// <summary>Kvar u listi i detalju (R8.1, R8.16).</summary>
 public sealed record KvarDto(
@@ -50,7 +51,8 @@ public sealed record KvarDto(
 /// <param name="Broj">Broj pregleda.</param>
 /// <param name="Datum">Dan.</param>
 /// <param name="Napomena">Napomena.</param>
-public sealed record PrijavaKvaraDto(int PregledId, string Broj, DateOnly Datum, string? Napomena);
+/// <param name="Fotografije">Slike stavke na tom pregledu (zamerka 71).</param>
+public sealed record PrijavaKvaraDto(int PregledId, string Broj, DateOnly Datum, string? Napomena, IReadOnlyList<long>? Fotografije = null);
 
 /// <summary>Kvar sa prijavama i akcijama na stavci.</summary>
 /// <param name="Kvar">Podaci.</param>
@@ -147,7 +149,15 @@ public sealed class AkcijeIKvaroviHandler(IAppDbContext db, ICurrentUser current
         var a = await db.Akcije.AsNoTracking().FirstOrDefaultAsync(x => x.Id == req.Id, ct) ?? throw new NotFoundException("Akcija ne postoji.");
         var k = await RasporedKontekst.UcitajAsync(db, ct);
         var ist = await db.AkcijaDogadjaji.AsNoTracking().Where(d => d.AkcijaId == a.Id).OrderBy(d => d.At).ToListAsync(ct);
-        return new AkcijaDetaljDto((await DtoAsync([a], ct)).Single(), ist.Select(d => new AkcijaDogadjajDto(d.Vrsta, d.Tekst, k.Ime(d.KorisnikId), d.At)).ToList());
+        // Slike sa stavke iz koje je akcija nastala — stavka je ista kroz verzije šablona po ključu (zamerka 71).
+        var slike = await (
+                from f in db.Fotografije.AsNoTracking()
+                join s in db.SablonStavke.AsNoTracking() on f.StavkaId equals s.Id
+                where f.PregledId == a.PregledId && s.Kljuc == a.StavkaKljuc
+                orderby f.Id
+                select f.Id)
+            .ToListAsync(ct);
+        return new AkcijaDetaljDto((await DtoAsync([a], ct)).Single(), ist.Select(d => new AkcijaDogadjajDto(d.Vrsta, d.Tekst, k.Ime(d.KorisnikId), d.At)).ToList(), slike);
     }
 
     /// <inheritdoc />
@@ -215,10 +225,16 @@ public sealed class AkcijeIKvaroviHandler(IAppDbContext db, ICurrentUser current
                 where o.Vrednost == 1 && o.Dorada == p.Dorada && p.PredatAt != null && s.UredjajId == kv.UredjajId && s.AktivnostId == kv.AktivnostId
                       && p.PlaniraniDatum >= kv.Otvoren && p.PlaniraniDatum <= doDana
                 orderby p.PlaniraniDatum
-                select new PrijavaKvaraDto(p.Id, p.Broj, p.PlaniraniDatum, o.Napomena))
+                select new { p.Id, p.Broj, p.PlaniraniDatum, o.Napomena, o.StavkaId })
             .ToListAsync(ct);
+        // Slike uz svaku prijavu (zamerka 71): ono što je inženjer slikao kad je stavku označio neispravnom.
+        var pregledIds = prijave.Select(x => x.Id).ToList();
+        var slike = (await db.Fotografije.AsNoTracking().Where(f => pregledIds.Contains(f.PregledId)).OrderBy(f => f.Id)
+                .Select(f => new { f.Id, f.PregledId, f.StavkaId }).ToListAsync(ct))
+            .ToLookup(f => (f.PregledId, f.StavkaId), f => f.Id);
         var akcije = await db.Akcije.AsNoTracking().Where(a => a.UredjajId == kv.UredjajId && a.AktivnostId == kv.AktivnostId).ToListAsync(ct);
-        return new KvarDetaljDto((await KvarDtoAsync([kv], ct)).Single(), prijave, await DtoAsync(akcije, ct));
+        return new KvarDetaljDto((await KvarDtoAsync([kv], ct)).Single(),
+            prijave.Select(x => new PrijavaKvaraDto(x.Id, x.Broj, x.PlaniraniDatum, x.Napomena, slike[(x.Id, x.StavkaId)].ToList())).ToList(), await DtoAsync(akcije, ct));
     }
 
     // ─── Pomoćno ──────────────────────────────────────────────────────────

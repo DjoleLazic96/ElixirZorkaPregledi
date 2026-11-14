@@ -636,11 +636,14 @@ public sealed class PreglediHandler(IAppDbContext db, ICurrentUser currentUser, 
 /// <summary>Izveštaji (implementacija u Infrastructure: QuestPDF, OpenXML, ClosedXML).</summary>
 public interface IIzvestajPregleda
 {
-    /// <summary>Ceo pregled sa rezimeom problematičnih stavki (R6.1); uz <paramref name="rezime"/> samo rezime kao na ekranu (zamerka 62).</summary>
-    byte[] Pdf(PregledDetaljDto p, bool rezime = false);
+    /// <summary>
+    /// Ceo pregled sa rezimeom problematičnih stavki (R6.1); uz <paramref name="rezime"/> samo rezime kao na ekranu (zamerka 62).
+    /// <paramref name="slike"/> su sadržaji slika po ID-u — u izveštaju se prikazuju kao sličice uz stavku (zamerka 72).
+    /// </summary>
+    byte[] Pdf(PregledDetaljDto p, bool rezime = false, IReadOnlyDictionary<long, byte[]>? slike = null);
 
     /// <summary>Isti sadržaj kao PDF, u Word-u (R11.2).</summary>
-    byte[] Docx(PregledDetaljDto p, bool rezime = false);
+    byte[] Docx(PregledDetaljDto p, bool rezime = false, IReadOnlyDictionary<long, byte[]>? slike = null);
 
     /// <summary>Arhiva po filterima (R8.13: izvoz uzima filtrirano).</summary>
     byte[] Excel(IReadOnlyList<PregledRedDto> redovi);

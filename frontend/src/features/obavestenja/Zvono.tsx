@@ -64,7 +64,6 @@ export function Zvono() {
               </li>
             ))}
           </ul>
-          <p className="px-3.5 pt-2 text-xs text-gray-500">Obaveštenja stižu i na telefon i mejlom. Primaoce bira Administrator.</p>
         </div>
       </AnchoredDropdown>
     </>

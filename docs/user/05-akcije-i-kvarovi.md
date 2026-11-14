@@ -29,5 +29,5 @@ Supervizor ili Direktor dobija obaveštenje, a zahtev vidi na vrhu ekrana **Akci
 
 Levi meni → **Neispravnosti**: kvarovi (npr. K-2026-0087). Kvar se otvara kad predat pregled kaže „neispravno“ i traje do prvog
 predatog pregleda sa „ispravno“; „nije u funkciji“ ga ne menja. Filter **Trenutno otvoreno**, sekcija, pretraga po broju ili uređaju.
-Ekran kvara pokazuje sve datume prijave i akcije na toj stavci. Kad se kvar zatvori, a akcija je još otvorena, akcija dobija oznaku
+Ekran kvara pokazuje sve datume prijave (uz svaku i slike sa tog pregleda) i akcije na toj stavci. I ekran akcije pokazuje slike stavke sa pregleda na kom je akcija otvorena. Kad se kvar zatvori, a akcija je još otvorena, akcija dobija oznaku
 **stavka sada ispravna** da Supervizor ili Direktor odluči da li je zatvara.
